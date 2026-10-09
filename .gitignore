@@ -1,0 +1,9 @@
+.env
+.env.*
+!.env.example
+*.keypair
+*keypair*.json
+id.json
+target/
+data/
+logs/

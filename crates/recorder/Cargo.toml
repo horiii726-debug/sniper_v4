@@ -1,0 +1,9 @@
+[package]
+name = "recorder"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+zstd.workspace = true
+events = { path = "../events" }

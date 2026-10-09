@@ -1,0 +1,80 @@
+# Venue program registry (V4 §4). Program IDs are config, not code constants.
+# official_source / official_checked: filled after checking the protocol owner's docs/repo.
+# onchain_checked: filled by `sniper verify-programs` (executable program account on mainnet).
+
+[[venue]]
+name = "pumpfun_curve"
+program_id = "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P"
+official_source = "https://github.com/pump-fun/pump-public-docs/blob/main/docs/PUMP_PROGRAM_README.md"
+official_checked = "2026-10-09 MATCH"
+onchain_checked = ""
+
+[[venue]]
+name = "pumpswap_amm"
+program_id = "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA"
+official_source = "https://github.com/pump-fun/pump-public-docs/blob/main/docs/PUMP_SWAP_README.md"
+official_checked = "2026-10-09 MATCH"
+onchain_checked = ""
+
+[[venue]]
+name = "raydium_amm_v4"
+program_id = "675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8"
+official_source = "https://docs.raydium.io/reference/program-addresses"
+official_checked = "2026-10-09 MATCH"
+onchain_checked = ""
+
+[[venue]]
+name = "raydium_cpmm"
+program_id = "CPMMoo8L3F4NbTegBCKVNunggL7H1ZpdTHKxQB5qKP1C"
+official_source = "https://docs.raydium.io/reference/program-addresses"
+official_checked = "2026-10-09 MATCH"
+onchain_checked = ""
+
+[[venue]]
+name = "raydium_clmm"
+program_id = "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK"
+official_source = "https://docs.raydium.io/reference/program-addresses"
+official_checked = "2026-10-09 MATCH"
+onchain_checked = ""
+
+[[venue]]
+name = "raydium_launchlab"
+program_id = "LanMV9sAd7wArD4vJFi2qDdfnVhFxYSUg6eADduJ3uj"
+official_source = "https://docs.raydium.io/reference/program-addresses"
+official_checked = "2026-10-09 MATCH"
+onchain_checked = ""
+
+[[venue]]
+name = "meteora_dlmm"
+program_id = "LBUZKhRxPF3XUpBCjp4YzTKgLccjZhTSDM9YuVaPwxo"
+official_source = "https://docs.meteora.ag/developer-guides/dlmm"
+official_checked = "2026-10-09 MATCH"
+onchain_checked = ""
+
+[[venue]]
+name = "meteora_damm_v2"
+program_id = "cpamdpZCGKUy5JxQXB4dcpGPiikHawvSWAd6mEn1sGG"
+official_source = "https://github.com/MeteoraAg/damm-v2"
+official_checked = "2026-10-09 MATCH"
+onchain_checked = ""
+
+[[venue]]
+name = "meteora_dbc"
+program_id = "dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN"
+official_source = "https://github.com/MeteoraAg/dynamic-bonding-curve"
+official_checked = "2026-10-09 MATCH"
+onchain_checked = ""
+
+[[venue]]
+name = "orca_whirlpool"
+program_id = "whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc"
+official_source = "https://github.com/orca-so/whirlpools"
+official_checked = "2026-10-09 MATCH"
+onchain_checked = ""
+
+[[venue]]
+name = "moonshot"
+program_id = "MoonCVVNZFSYkqNXP6bxHLPL6QQJiMagDL3qcqUQTrG"
+official_source = "https://github.com/gomoonit/moonshot-sdk/blob/main/src/solana/program/tokenLaunchpadIdlV4.ts (repo archived 2025-04-09; renamed Moonit - recheck successor)"
+official_checked = "2026-10-09 MATCH"
+onchain_checked = ""

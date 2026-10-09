@@ -1,0 +1,9 @@
+[package]
+name = "latency"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+hdrhistogram.workspace = true
+libc.workspace = true
+serde.workspace = true

@@ -1,0 +1,418 @@
+//! Stage 0 binary: record live feeds, replay recordings, and produce Gate 0 measurements.
+
+mod logging;
+
+use anyhow::{anyhow, bail, Context, Result};
+use clap::{Parser, Subcommand};
+use config::{Cluster, Redactor, Settings, VenueRegistry};
+use events::{Action, Pipeline, ProgramFilter, RawMsg};
+use feed::rpc::Rpc;
+use std::io::Write;
+use std::path::{Path, PathBuf};
+use std::time::Duration;
+use tokio::sync::{mpsc, watch};
+
+#[derive(Parser)]
+#[command(name = "sniper", about = "Solana DEX sniper V4 — Stage 0 tooling")]
+struct Cli {
+    /// Path to the .env file.
+    #[arg(long, global = true, default_value = ".env")]
+    env: PathBuf,
+    /// Venue registry.
+    #[arg(long, global = true, default_value = "config/venues.toml")]
+    venues: PathBuf,
+    #[command(subcommand)]
+    cmd: Cmd,
+}
+
+#[derive(Subcommand)]
+enum Cmd {
+    /// Record live feeds to a directory (raw recording + live derived output).
+    Record {
+        #[arg(long, default_value = "devnet")]
+        cluster: String,
+        /// Comma-separated: grpc, ws.
+        #[arg(long, default_value = "grpc")]
+        feeds: String,
+        /// `venues` = transactions touching the venue programs; `all-nonvote` = every non-vote tx.
+        #[arg(long, default_value = "venues")]
+        profile: String,
+        #[arg(long)]
+        out: PathBuf,
+        /// Stop after this many seconds (0 = until Ctrl-C).
+        #[arg(long, default_value_t = 0)]
+        duration_secs: u64,
+        /// Finalized-slot distance before a slot's chain is checked.
+        #[arg(long, default_value_t = 150)]
+        gap_grace_slots: u64,
+        /// Forced disconnects (G0.2): number of kills of the feed's TCP connections.
+        #[arg(long, default_value_t = 0)]
+        chaos_kills: u64,
+        #[arg(long, default_value_t = 60)]
+        chaos_interval_secs: u64,
+        /// Feed whose connections the chaos task kills: grpc or ws.
+        #[arg(long, default_value = "grpc")]
+        chaos_feed: String,
+        #[arg(long, default_value_t = 3600)]
+        rotate_secs: u64,
+    },
+    /// Replay a recording through the pipeline; prints the derived-output SHA-256.
+    Replay {
+        #[arg(long)]
+        rec: PathBuf,
+        #[arg(long)]
+        out: PathBuf,
+    },
+    /// Offline Gate 0 report: latency (G0.5), reconnect recovery (G0.2), duplicate audit.
+    Report {
+        #[arg(long)]
+        rec: PathBuf,
+        #[arg(long, default_value_t = 60_000.0)]
+        recover_within_ms: f64,
+    },
+    /// Independent check (G0.1): re-fetch sampled finalized slots with getBlock and compare tx sets.
+    VerifyChain {
+        #[arg(long)]
+        rec: PathBuf,
+        #[arg(long, default_value_t = 200)]
+        sample: usize,
+    },
+    /// Check that every venue program ID is an executable account on mainnet.
+    VerifyPrograms,
+}
+
+fn main() -> Result<()> {
+    let cli = Cli::parse();
+    let _ = rustls::crypto::ring::default_provider().install_default();
+    let rt = tokio::runtime::Builder::new_multi_thread().enable_all().build()?;
+    match cli.cmd {
+        Cmd::Record {
+            cluster,
+            feeds,
+            profile,
+            out,
+            duration_secs,
+            gap_grace_slots,
+            chaos_kills,
+            chaos_interval_secs,
+            chaos_feed,
+            rotate_secs,
+        } => {
+            let cluster_e: Cluster = cluster.parse()?;
+            let settings = Settings::load(&cli.env, cluster_e)?;
+            logging::init(Redactor::new(settings.secrets()), Some(&out.join("run.log")))?;
+            let venues = VenueRegistry::load(&cli.venues)?;
+            let programs = match profile.as_str() {
+                "venues" => Some(venues.program_ids()),
+                "all-nonvote" => None,
+                p => bail!("unknown profile {p}"),
+            };
+            let feeds: Vec<String> = feeds.split(',').map(|s| s.trim().to_string()).collect();
+            if programs.is_none() && feeds.iter().any(|f| f == "ws") {
+                bail!("ws feed needs the venues profile (logsSubscribe is per program)");
+            }
+            let opts = RecordOpts {
+                cluster,
+                feeds,
+                programs,
+                out,
+                duration_secs,
+                gap_grace_slots,
+                chaos_kills,
+                chaos_interval_secs,
+                chaos_feed,
+                rotate_secs,
+            };
+            rt.block_on(record(settings, opts))
+        }
+        Cmd::Replay { rec, out } => {
+            let mut f = std::fs::File::create(&out)?;
+            let r = replay::replay(&rec, &mut f)?;
+            println!("{}", serde_json::to_string_pretty(&r)?);
+            Ok(())
+        }
+        Cmd::Report { rec, recover_within_ms } => {
+            let lat = replay::latency_report(&rec)?;
+            let rec_rep = replay::recovery_report(&rec, recover_within_ms)?;
+            let live = rec.join("derived.live.txt");
+            let dup = if live.exists() { Some(replay::audit_duplicates(&live)?) } else { None };
+            let v = serde_json::json!({ "latency": lat, "recovery": rec_rep, "duplicate_audit_live_derived": dup });
+            println!("{}", serde_json::to_string_pretty(&v)?);
+            Ok(())
+        }
+        Cmd::VerifyChain { rec, sample } => rt.block_on(verify_chain(&cli.env, &rec, sample)),
+        Cmd::VerifyPrograms => rt.block_on(verify_programs(&cli.env, &cli.venues)),
+    }
+}
+
+struct RecordOpts {
+    cluster: String,
+    feeds: Vec<String>,
+    programs: Option<Vec<String>>,
+    out: PathBuf,
+    duration_secs: u64,
+    gap_grace_slots: u64,
+    chaos_kills: u64,
+    chaos_interval_secs: u64,
+    chaos_feed: String,
+    rotate_secs: u64,
+}
+
+fn git_commit() -> String {
+    std::process::Command::new("git")
+        .args(["rev-parse", "HEAD"])
+        .output()
+        .ok()
+        .filter(|o| o.status.success())
+        .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string())
+        .unwrap_or_else(|| "uncommitted".into())
+}
+
+fn host_of(url: &str) -> Result<String> {
+    let rest = url.split("://").nth(1).ok_or_else(|| anyhow!("bad url"))?;
+    Ok(rest.split(['/', ':', '?']).next().unwrap_or("").to_string())
+}
+
+/// Kill every TCP socket to `host` (G0.2 forced disconnect). Needs root (ss -K).
+async fn kill_connections(host: &str) -> Result<usize> {
+    let addrs: Vec<std::net::IpAddr> = tokio::net::lookup_host((host, 443)).await?.map(|a| a.ip()).collect();
+    let mut n = 0;
+    for ip in addrs {
+        let dst = if ip.is_ipv6() { format!("[{ip}]") } else { ip.to_string() };
+        let out = tokio::process::Command::new("ss").args(["-K", "-t", "dst", &dst]).output().await?;
+        n += String::from_utf8_lossy(&out.stdout).lines().filter(|l| l.contains("ESTAB")).count();
+    }
+    Ok(n)
+}
+
+async fn record(settings: Settings, o: RecordOpts) -> Result<()> {
+    std::fs::create_dir_all(&o.out)?;
+    let (tx, mut rx) = mpsc::channel::<RawMsg>(1 << 16);
+    let _ = logging::SDK_EVENTS.set(tx.clone());
+    let start = feed::control(
+        "start",
+        serde_json::json!({
+            "cluster": o.cluster, "feeds": o.feeds, "programs": o.programs,
+            "gap_grace_slots": o.gap_grace_slots, "commit": git_commit(),
+            "chaos_kills": o.chaos_kills, "chaos_interval_secs": o.chaos_interval_secs,
+        }),
+    );
+    let filter = match &o.programs {
+        Some(p) => ProgramFilter::Programs(p.iter().cloned().collect()),
+        None => ProgramFilter::AllNonVote,
+    };
+
+    // Recorder + pipeline thread: the single consumer. Records first, then processes, in arrival order.
+    let (act_tx, mut act_rx) = mpsc::unbounded_channel::<u64>();
+    let out_dir = o.out.clone();
+    let grace = o.gap_grace_slots;
+    let rotate = o.rotate_secs;
+    let consumer = std::thread::Builder::new().name("pipeline".into()).spawn(move || -> Result<serde_json::Value> {
+        let mut rec = recorder::Recorder::create(&out_dir, latency::mono_ns(), rotate, 500)?;
+        let derived = std::fs::File::create(out_dir.join("derived.live.txt"))?;
+        let mut w = replay::HashingWriter::new(std::io::BufWriter::with_capacity(1 << 20, derived));
+        let mut pipe = Pipeline::new(filter, grace);
+        let mut actions = Vec::new();
+        let mut last_status = latency::mono_ns();
+        let t0 = latency::mono_ns();
+        while let Some(m) = rx.blocking_recv() {
+            let is_stop = m.source == events::Source::Control && m.payload.starts_with(br#"{"event":"stop""#);
+            rec.write(&m)?;
+            pipe.process(&m, &mut w, &mut actions)?;
+            for a in actions.drain(..) {
+                let Action::BackfillBlock(s) = a;
+                let _ = act_tx.send(s);
+            }
+            let now = latency::mono_ns();
+            if now - last_status > 30_000_000_000 {
+                last_status = now;
+                let s = pipe.stats();
+                tracing::info!(
+                    elapsed_s = (now - t0) / 1_000_000_000,
+                    msgs = ?s.msgs, dups = ?s.dups, gaps = ?s.gaps,
+                    raw_mb = rec.bytes_raw / 1_000_000, disk_mb = rec.bytes_written / 1_000_000,
+                    "status"
+                );
+            }
+            if is_stop {
+                break;
+            }
+        }
+        let stats = pipe.finish(&mut w)?;
+        let sha = w.finish()?;
+        let (raw, disk) = (rec.bytes_raw, rec.bytes_written);
+        rec.close(latency::mono_ns())?;
+        Ok(serde_json::json!({ "derived_live_sha256": sha, "stats": stats, "raw_bytes": raw, "disk_bytes": disk,
+                               "duration_s": (latency::mono_ns() - t0) as f64 / 1e9 }))
+    })?;
+
+    tx.send(start).await.map_err(|_| anyhow!("consumer died"))?;
+    let (stop_tx, stop_rx) = watch::channel(false);
+    let mut tasks = Vec::new();
+    let rpc = Rpc::new(settings.rpc_url.clone());
+    if o.feeds.iter().any(|f| f == "grpc") {
+        tasks.push(tokio::spawn(feed::grpc::run(
+            settings.grpc_url.clone(),
+            settings.grpc_token.clone(),
+            o.programs.clone(),
+            tx.clone(),
+            stop_rx.clone(),
+        )));
+    }
+    if o.feeds.iter().any(|f| f == "ws") {
+        let programs = o.programs.clone().ok_or_else(|| anyhow!("ws needs programs"))?;
+        tasks.push(tokio::spawn(feed::ws::run(settings.ws_url.clone(), rpc.clone(), programs, tx.clone(), stop_rx.clone())));
+    }
+    // Gap backfill worker (finalized getBlock).
+    {
+        let rpc = rpc.clone();
+        let tx = tx.clone();
+        tokio::spawn(async move {
+            while let Some(slot) = act_rx.recv().await {
+                let m = rpc.get_block_msg(slot, "finalized").await;
+                if tx.send(m).await.is_err() {
+                    return;
+                }
+            }
+        });
+    }
+    // Chaos: forced disconnects.
+    if o.chaos_kills > 0 {
+        let host = host_of(if o.chaos_feed == "ws" { &settings.ws_url } else { &settings.grpc_url })?;
+        let feed_tag = if o.chaos_feed == "ws" { "ws" } else { "grpc" };
+        let tx = tx.clone();
+        let (n, every) = (o.chaos_kills, o.chaos_interval_secs);
+        tokio::spawn(async move {
+            // First kill after 2 intervals so the stream is warm; deterministic jitter in [0, 9] s.
+            tokio::time::sleep(Duration::from_secs(every)).await;
+            for i in 0..n {
+                tokio::time::sleep(Duration::from_secs(every + (i * 7) % 10)).await;
+                let killed = kill_connections(&host).await.unwrap_or(0);
+                tracing::info!(i, killed, "chaos kill");
+                let _ = tx.send(feed::control("chaos_kill", serde_json::json!({"i": i, "feed": feed_tag, "sockets": killed}))).await;
+            }
+        });
+    }
+
+    let ctrl_c = tokio::signal::ctrl_c();
+    if o.duration_secs > 0 {
+        tokio::select! {
+            _ = tokio::time::sleep(Duration::from_secs(o.duration_secs)) => {}
+            _ = ctrl_c => {}
+        }
+    } else {
+        ctrl_c.await?;
+    }
+    tracing::info!("stopping");
+    let _ = stop_tx.send(true);
+    for t in tasks {
+        let _ = tokio::time::timeout(Duration::from_secs(5), t).await;
+    }
+    tx.send(feed::control("stop", serde_json::json!({}))).await.map_err(|_| anyhow!("consumer died"))?;
+    let summary = tokio::task::spawn_blocking(move || consumer.join()).await?.map_err(|_| anyhow!("pipeline thread panicked"))??;
+    std::fs::write(o.out.join("summary.json"), serde_json::to_string_pretty(&summary)?)?;
+    println!("{}", serde_json::to_string_pretty(&summary)?);
+    Ok(())
+}
+
+/// G0.1 independent check: for a deterministic sample of finalized slots that have a gRPC BlockMeta,
+/// fetch the block with getBlock and compare the program-filtered signature set with the derived output.
+async fn verify_chain(env: &Path, rec: &Path, sample: usize) -> Result<()> {
+    let mut reader = recorder::Reader::open(rec)?;
+    let meta = replay::run_meta_from(&reader.next_msg()?.ok_or_else(|| anyhow!("empty"))?)?;
+    let settings = Settings::load(env, meta.cluster.parse()?)?;
+    logging::init(Redactor::new(settings.secrets()), None)?;
+    let derived = std::fs::read_to_string(rec.join("derived.live.txt")).context("derived.live.txt")?;
+    let mut finalized = std::collections::BTreeSet::new();
+    let mut with_meta = std::collections::BTreeSet::new();
+    let mut ours: std::collections::HashMap<u64, std::collections::BTreeSet<String>> = Default::default();
+    for line in derived.lines() {
+        let p: Vec<&str> = line.split(' ').collect();
+        match p[0] {
+            "S" if p.len() > 2 && p[2] == "2" => {
+                finalized.insert(p[1].parse::<u64>()?);
+            }
+            "M" if p.len() > 2 => {
+                with_meta.insert(p[2].parse::<u64>()?);
+            }
+            "T" if p.len() > 4 => {
+                ours.entry(p[2].parse()?).or_default().insert(p[4].to_string());
+            }
+            "L" if p.len() > 2 => {
+                ours.entry(p[1].parse()?).or_default().insert(p[2].to_string());
+            }
+            _ => {}
+        }
+    }
+    let cand: Vec<u64> = finalized.intersection(&with_meta).copied().collect();
+    if cand.len() < 120 {
+        bail!("too few finalized slots with meta ({})", cand.len());
+    }
+    let edge = (cand.len() / 10).min(200);
+    let inner = &cand[edge..cand.len() - edge];
+    let step = (inner.len() / sample.max(1)).max(1);
+    let picks: Vec<u64> = inner.iter().step_by(step).take(sample).copied().collect();
+    let rpc = Rpc::new(settings.rpc_url.clone());
+    let (mut checked, mut missing_total, mut extra_total, mut bad_slots, mut rpc_txs) = (0u64, 0u64, 0u64, 0u64, 0u64);
+    let mut examples = Vec::new();
+    for s in &picks {
+        let m = rpc.get_block_msg(*s, "finalized").await;
+        let norms = events::normalize(&m)?;
+        let Some(events::Norm::RpcBlock { block: Some(b), .. }) = norms.into_iter().next() else {
+            examples.push(format!("slot {s}: getBlock returned no block"));
+            bad_slots += 1;
+            continue;
+        };
+        let theirs: std::collections::BTreeSet<String> =
+            b.txs.iter().filter(|t| meta.filter.matches(t)).map(|t| bs58_sig(&t.sig)).collect();
+        rpc_txs += theirs.len() as u64;
+        let empty = Default::default();
+        let mine = ours.get(s).unwrap_or(&empty);
+        let missing = theirs.difference(mine).count() as u64;
+        let extra = mine.difference(&theirs).count() as u64;
+        if missing + extra > 0 {
+            bad_slots += 1;
+            if examples.len() < 10 {
+                examples.push(format!("slot {s}: missing {missing}, extra {extra}"));
+            }
+        }
+        missing_total += missing;
+        extra_total += extra;
+        checked += 1;
+    }
+    let v = serde_json::json!({
+        "finalized_slots_with_meta": cand.len(), "sampled": picks.len(), "checked": checked,
+        "rpc_filtered_txs": rpc_txs, "missing_in_ours": missing_total, "extra_in_ours": extra_total,
+        "slots_with_mismatch": bad_slots, "examples": examples,
+    });
+    println!("{}", serde_json::to_string_pretty(&v)?);
+    Ok(())
+}
+
+fn bs58_sig(sig: &[u8; 64]) -> String {
+    bs58::encode(sig).into_string()
+}
+
+async fn verify_programs(env: &Path, venues: &Path) -> Result<()> {
+    let settings = Settings::load(env, Cluster::Mainnet)?;
+    logging::init(Redactor::new(settings.secrets()), None)?;
+    let reg = VenueRegistry::load(venues)?;
+    let rpc = Rpc::new(settings.rpc_url.clone());
+    let ids = reg.program_ids();
+    let v = rpc
+        .call("getMultipleAccounts", serde_json::json!([ids, {"encoding": "base64", "dataSlice": {"offset": 0, "length": 0}}]))
+        .await?;
+    let arr = v["result"]["value"].as_array().ok_or_else(|| anyhow!("bad response"))?;
+    let mut ok = true;
+    for (venue, acc) in reg.venue.iter().zip(arr) {
+        let exec = acc["executable"].as_bool().unwrap_or(false);
+        let owner = acc["owner"].as_str().unwrap_or("-");
+        ok &= exec;
+        println!("{:<20} {:<46} executable={exec} owner={owner}", venue.name, venue.program_id);
+    }
+    let _ = std::io::stdout().flush();
+    if !ok {
+        bail!("some program IDs are not executable accounts");
+    }
+    Ok(())
+}

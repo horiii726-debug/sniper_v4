@@ -1,0 +1,13 @@
+[package]
+name = "events"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+helius-laserstream.workspace = true
+prost.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+bs58.workspace = true
+rustc-hash.workspace = true

@@ -1,0 +1,38 @@
+[workspace]
+resolver = "2"
+members = ["crates/config", "crates/latency", "crates/events", "crates/recorder", "crates/feed", "crates/replay", "crates/app"]
+
+[workspace.package]
+version = "0.4.0"
+edition = "2021"
+
+[workspace.dependencies]
+anyhow = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+toml = "0.8"
+dotenvy = "0.15"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["fmt", "env-filter", "json"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time", "signal", "net", "io-util", "process"] }
+futures = "0.3"
+helius-laserstream = { version = "0.10.0", default-features = false }
+prost = "0.14"
+tokio-tungstenite = { version = "0.24", features = ["rustls-tls-webpki-roots"] }
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "gzip", "json"] }
+rustls = { version = "0.23", default-features = false, features = ["ring", "std"] }
+hdrhistogram = "7"
+zstd = "0.13"
+sha2 = "0.10"
+bs58 = "0.5"
+base64 = "0.22"
+clap = { version = "4", features = ["derive"] }
+rustc-hash = "2"
+libc = "0.2"
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1
+debug = 1
+panic = "unwind"
