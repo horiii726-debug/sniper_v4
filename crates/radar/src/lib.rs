@@ -41,6 +41,11 @@ pub struct Params {
     pub slow_win_s: i64,
     pub slow_min_buyers: usize,
     pub slow_min_buy_sol: f64,
+    /// Price-lift rule (Radar 3, thin coins): over `slow_win_s`, last real-trade price >= lift x the
+    /// window's minimum price, with >= lift_min_buyers distinct real buyers since that minimum and
+    /// positive net flow since it. 0 disables.
+    pub lift: f64,
+    pub lift_min_buyers: usize,
 }
 
 impl Default for Params {
@@ -59,6 +64,8 @@ impl Default for Params {
             slow_win_s: 300,
             slow_min_buyers: usize::MAX,
             slow_min_buy_sol: f64::INFINITY,
+            lift: 0.0,
+            lift_min_buyers: 2,
         }
     }
 }
@@ -91,6 +98,8 @@ struct Coin {
     /// (time, trader, buy, sol) of real trades inside the window.
     win: VecDeque<(i64, u32, bool, f64)>,
     slow_win: VecDeque<(i64, u32, bool, f64)>,
+    /// (time, price) of real trades inside the slow window, parallel to `slow_win`.
+    prices: VecDeque<f64>,
     fast: Ewma,
     slow: Ewma,
     last_real_buy: i64,
@@ -138,6 +147,7 @@ impl Radar {
             first_time: t.time,
             win: VecDeque::new(),
             slow_win: VecDeque::new(),
+            prices: VecDeque::new(),
             fast: Ewma { r: 0.0, t: t.time as f64 },
             slow: Ewma { r: 0.0, t: t.time as f64 },
             last_real_buy: t.time,
@@ -153,8 +163,10 @@ impl Radar {
             c.win.pop_front();
         }
         c.slow_win.push_back((t.time, t.trader, t.buy, t.sol));
+        c.prices.push_back(t.price);
         while c.slow_win.front().is_some_and(|w| w.0 <= t.time - p.slow_win_s) {
             c.slow_win.pop_front();
+            c.prices.pop_front();
         }
         if t.buy {
             c.fast.add(t.time as f64, 1.0, p.tau_fast_s);
@@ -172,7 +184,7 @@ impl Radar {
             self.hot_max = self.hot_max.max(self.hot_now);
             return Some(Signal::Promote);
         }
-        if Self::slow_rule(&c.slow_win, &p) {
+        if Self::slow_rule(&c.slow_win, &p) || Self::lift_rule(&c.slow_win, &c.prices, &p) {
             c.hot = true;
             c.promoted_once = true;
             self.hot_now += 1;
@@ -233,6 +245,30 @@ impl Radar {
         buyers.sort_unstable();
         buyers.dedup();
         buyers.len() >= p.slow_min_buyers && b >= p.slow_min_buy_sol && b > s
+    }
+
+    fn lift_rule(w: &VecDeque<(i64, u32, bool, f64)>, prices: &VecDeque<f64>, p: &Params) -> bool {
+        if p.lift <= 0.0 || prices.len() < 2 {
+            return false;
+        }
+        let last = *prices.back().expect("non-empty");
+        let (imin, min) = prices.iter().enumerate().fold((0, f64::INFINITY), |a, (i, &x)| if x.is_finite() && x < a.1 { (i, x) } else { a });
+        if !(min > 0.0) || last < p.lift * min {
+            return false;
+        }
+        let (mut b, mut s) = (0.0, 0.0);
+        let mut buyers: Vec<u32> = Vec::new();
+        for &(_, tr, buy, sol) in w.iter().skip(imin + 1) {
+            if buy {
+                b += sol;
+                buyers.push(tr);
+            } else {
+                s += sol;
+            }
+        }
+        buyers.sort_unstable();
+        buyers.dedup();
+        buyers.len() >= p.lift_min_buyers && b > s
     }
 
     pub fn is_newborn(&self, coin: u32) -> Option<bool> {
@@ -306,6 +342,16 @@ mod tests {
         let mut out = Vec::new();
         r.sweep(60 + 4 + 301, &mut out);
         assert_eq!(out, vec![(1, Signal::Demote)]);
+    }
+
+    #[test]
+    fn price_lift_promotes_thin_coin_before_big_move() {
+        let p = Params { min_buyers: 100, lift: 1.15, lift_min_buyers: 2, ..Default::default() };
+        let mut r = Radar::new(p);
+        let mk = |time: i64, trader: u32, buy: bool, price: f64| Trade { time, order: time as u64, coin: 1, trader, buy, sol: 0.1, price };
+        assert_eq!(r.on_trade(&mk(0, 1, false, 1.0)), None);
+        assert_eq!(r.on_trade(&mk(10, 2, true, 1.05)), None); // +5%, one buyer
+        assert_eq!(r.on_trade(&mk(20, 3, true, 1.16)), Some(Signal::Promote)); // +16%, two buyers since min
     }
 
     #[test]

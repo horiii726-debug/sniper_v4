@@ -385,34 +385,44 @@ pub fn evaluate(ds: &Dataset, prep: &Prepared, p: Params) -> EvalResult {
     }
 }
 
-/// Grid search on the development recording only. Newborns are HOT by rule (Radar 1), so the grid tunes
-/// the awakening rule (Radar 3). Objective (fixed before looking at holdouts): maximize mean recall over
-/// the 2x and 5x tiers on coins already trading at the window start, subject to precision_2x >= naive
-/// precision_2x at the same number of promoted coins; ties -> fewer promoted coins.
-pub fn tune(ds: &Dataset, prep: &Prepared) -> (Params, Vec<EvalResult>) {
-    let mut all = Vec::new();
-    for &min_buyers in &[3usize, 4, 6] {
-        for &min_buy_sol in &[0.25, 0.5, 1.0] {
-            for &min_accel in &[1.0, 1.5, 2.0] {
-                for &slow_min_buyers in &[3usize, 4, 6, 8] {
-                    for &slow_min_buy_sol in &[0.5, 1.0, 2.0] {
-                        let p = Params {
-                            win_s: 60, min_buyers, min_buy_sol, min_accel, max_median_buy_sol: 1.0,
-                            slow_win_s: 300, slow_min_buyers, slow_min_buy_sol, ..Default::default()
-                        };
-                        all.push(evaluate(ds, prep, p));
+/// Grid search on DEVELOPMENT recordings only (summed counts over all of them). Newborns are HOT by
+/// rule (Radar 1); the grid tunes the awakening rules (Radar 3). Objective, fixed before looking at the
+/// final holdouts: maximize mean recall over the 2x and 5x tiers on pre-existing coins (summed), subject
+/// to precision_2x >= naive precision_2x on every recording; ties -> fewer promoted coins.
+pub fn tune(sets: &[(&Dataset, &Prepared)]) -> (Params, Vec<Vec<EvalResult>>) {
+    let mut grid = Vec::new();
+    for &min_buyers in &[3usize, 4] {
+        for &min_buy_sol in &[0.5, 1.0] {
+            for &min_accel in &[1.5, 2.0] {
+                for &slow_min_buyers in &[4usize, 6] {
+                    for &slow_min_buy_sol in &[1.0, 2.0] {
+                        for &(lift, lift_min_buyers) in
+                            &[(0.0, 2usize), (1.1, 2), (1.1, 3), (1.15, 2), (1.15, 3), (1.2, 2), (1.2, 3)]
+                        {
+                            grid.push(Params {
+                                win_s: 60, min_buyers, min_buy_sol, min_accel, max_median_buy_sol: 1.0,
+                                slow_win_s: 300, slow_min_buyers, slow_min_buy_sol, lift, lift_min_buyers,
+                                ..Default::default()
+                            });
+                        }
                     }
                 }
             }
         }
     }
-    let r = |t: &TierResult| if t.recall.is_finite() { t.recall } else { 0.0 };
-    let score = |e: &EvalResult| (r(&e.tiers_existing[0]) + r(&e.tiers_existing[2])) / 2.0;
-    let best = all
+    let all: Vec<Vec<EvalResult>> = grid.iter().map(|p| sets.iter().map(|(d, pr)| evaluate(d, pr, *p)).collect()).collect();
+    let recall = |rs: &Vec<EvalResult>, i: usize| {
+        let (c, n) = rs.iter().fold((0, 0), |a, e| (a.0 + e.tiers_existing[i].caught, a.1 + e.tiers_existing[i].runners));
+        if n == 0 { 0.0 } else { c as f64 / n as f64 }
+    };
+    let score = |rs: &Vec<EvalResult>| (recall(rs, 0) + recall(rs, 2)) / 2.0;
+    let promoted = |rs: &Vec<EvalResult>| rs.iter().map(|e| e.promoted_coins).sum::<usize>();
+    let best = grid
         .iter()
-        .filter(|e| e.precision_2x >= e.naive_precision_2x)
-        .max_by(|a, b| score(a).total_cmp(&score(b)).then(b.promoted_coins.cmp(&a.promoted_coins)))
-        .map(|e| e.params)
+        .zip(&all)
+        .filter(|(_, rs)| rs.iter().all(|e| e.precision_2x >= e.naive_precision_2x))
+        .max_by(|a, b| score(a.1).total_cmp(&score(b.1)).then(promoted(b.1).cmp(&promoted(a.1))))
+        .map(|(p, _)| *p)
         .unwrap_or_default();
     (best, all)
 }

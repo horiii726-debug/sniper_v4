@@ -112,8 +112,9 @@ enum Cmd {
     },
     /// Tune radar params on a DEVELOPMENT recording only; writes the frozen params file.
     RadarTune {
-        #[arg(long)]
-        rec: PathBuf,
+        /// Development recordings (repeatable). Never pass a final holdout here.
+        #[arg(long, required = true)]
+        rec: Vec<PathBuf>,
         #[arg(long, default_value = "config/radar_params.json")]
         params_out: PathBuf,
     },
@@ -203,13 +204,14 @@ fn main() -> Result<()> {
         Cmd::VerifyBackfill { rec } => verify_backfill(&rec),
         Cmd::Census { rec, out } => census::run(&rec, &out),
         Cmd::RadarTune { rec, params_out } => {
-            let ds = radar_eval::load(&rec)?;
-            let prep = radar_eval::prepare(&ds);
-            let (best, all) = radar_eval::tune(&ds, &prep);
-            let chosen = radar_eval::evaluate(&ds, &prep, best);
+            let dss: Vec<radar_eval::Dataset> = rec.iter().map(|r| radar_eval::load(r)).collect::<Result<_>>()?;
+            let preps: Vec<radar_eval::Prepared> = dss.iter().map(radar_eval::prepare).collect();
+            let sets: Vec<(&radar_eval::Dataset, &radar_eval::Prepared)> = dss.iter().zip(preps.iter()).collect();
+            let (best, all) = radar_eval::tune(&sets);
+            let chosen: Vec<_> = sets.iter().map(|(d, p)| radar_eval::evaluate(d, p, best)).collect();
             std::fs::write(&params_out, serde_json::to_string_pretty(&serde_json::json!({
                 "frozen_from": rec, "params": best, "grid_size": all.len(),
-                "objective": "newborns HOT by rule; awakening rule maximizes mean recall(2x,5x) on pre-existing coins s.t. precision_2x >= naive",
+                "objective": "newborns HOT by rule; awakening rules maximize summed mean recall(2x,5x) on pre-existing coins s.t. precision_2x >= naive on every dev recording",
             }))?)?;
             println!("{}", serde_json::to_string_pretty(&chosen)?);
             Ok(())
