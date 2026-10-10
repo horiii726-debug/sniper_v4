@@ -34,6 +34,20 @@ impl Rpc {
         Ok(v)
     }
 
+    /// Like `call`, also returning the decoded body size in bytes.
+    pub async fn call_bytes(&self, method: &str, params: Value) -> Result<(Value, u64)> {
+        let body = json!({ "jsonrpc": "2.0", "id": 1, "method": method, "params": params });
+        let resp = self.http.post(&self.url).json(&body).send().await.map_err(|e| anyhow!("{method}: {}", e.without_url()))?;
+        let status = resp.status();
+        let bytes = resp.bytes().await.map_err(|e| anyhow!("{method}: body: {}", e.without_url()))?;
+        let n = bytes.len() as u64;
+        let v: Value = serde_json::from_slice(&bytes).map_err(|_| anyhow!("{method}: http {status}, non-JSON body"))?;
+        if !status.is_success() && v.get("error").is_none() {
+            return Err(anyhow!("{method}: http {status}"));
+        }
+        Ok((v, n))
+    }
+
     /// `getBlock` with retries. Returns the RawMsg to record (block, skipped, or final error).
     pub async fn get_block_msg(&self, slot: u64, commitment: &str) -> RawMsg {
         let params = json!([slot, {

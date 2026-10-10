@@ -15,6 +15,7 @@ serde.workspace = true
 serde_json.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true
+futures.workspace = true
 rustls.workspace = true
 bs58.workspace = true
 config = { path = "../config" }

@@ -83,6 +83,29 @@ enum Cmd {
     },
     /// Check that every venue program ID is an executable account on mainnet.
     VerifyPrograms,
+    /// Historical backfill (G0.H1–H3): every slot of a past range via getBlocks + getBlock, venue txs only.
+    Backfill {
+        #[arg(long, default_value = "mainnet")]
+        cluster: String,
+        #[arg(long)]
+        out: PathBuf,
+        /// Last slot of the range (default: current finalized slot - 200).
+        #[arg(long)]
+        end_slot: Option<u64>,
+        /// Number of slots in the range (1 hour ~ 9,000 slots).
+        #[arg(long)]
+        slots: u64,
+        #[arg(long, default_value_t = 8)]
+        concurrency: usize,
+        /// Skipped slots (absent from getBlocks) re-checked with getBlock, as an independent confirmation.
+        #[arg(long, default_value_t = 30)]
+        skipped_spot_checks: usize,
+    },
+    /// G0.H1 check on a backfill recording: every slot fetched or confirmed skipped.
+    VerifyBackfill {
+        #[arg(long)]
+        rec: PathBuf,
+    },
 }
 
 fn main() -> Result<()> {
@@ -146,6 +169,13 @@ fn main() -> Result<()> {
         }
         Cmd::VerifyChain { rec, sample, outages } => rt.block_on(verify_chain(&cli.env, &rec, sample, outages)),
         Cmd::VerifyPrograms => rt.block_on(verify_programs(&cli.env, &cli.venues)),
+        Cmd::Backfill { cluster, out, end_slot, slots, concurrency, skipped_spot_checks } => {
+            let settings = Settings::load(&cli.env, cluster.parse()?)?;
+            logging::init(Redactor::new(settings.secrets()), Some(&out.join("run.log")))?;
+            let venues = VenueRegistry::load(&cli.venues)?;
+            rt.block_on(backfill(settings, cluster, venues.program_ids(), out, end_slot, slots, concurrency, skipped_spot_checks))
+        }
+        Cmd::VerifyBackfill { rec } => verify_backfill(&rec),
     }
 }
 
@@ -468,5 +498,133 @@ async fn verify_programs(env: &Path, venues: &Path) -> Result<()> {
     if !ok {
         bail!("some program IDs are not executable accounts");
     }
+    Ok(())
+}
+
+#[allow(clippy::too_many_arguments)]
+async fn backfill(
+    settings: Settings,
+    cluster: String,
+    programs: Vec<String>,
+    out: PathBuf,
+    end_slot: Option<u64>,
+    slots: u64,
+    concurrency: usize,
+    spot_checks: usize,
+) -> Result<()> {
+    use futures::StreamExt;
+    use std::sync::atomic::Ordering::Relaxed;
+    let rpc = Rpc::new(settings.rpc_url.clone());
+    let c = std::sync::Arc::new(feed::backfill::FetchCounters::default());
+    let end = match end_slot {
+        Some(e) => e,
+        None => {
+            let v = rpc.call("getSlot", serde_json::json!([{"commitment": "finalized"}])).await?;
+            v["result"].as_u64().ok_or_else(|| anyhow!("getSlot failed"))? - 200
+        }
+    };
+    let start = end + 1 - slots;
+    let t0 = latency::mono_ns();
+    let blocks = feed::backfill::confirmed_blocks(&rpc, start, end, &c).await?;
+    let listed: std::collections::HashSet<u64> = blocks.iter().copied().collect();
+    let skipped: Vec<u64> = (start..=end).filter(|s| !listed.contains(s)).collect();
+    tracing::info!(start, end, blocks = blocks.len(), skipped = skipped.len(), "backfill range");
+
+    let mut rec = recorder::Recorder::create(&out, latency::mono_ns(), 3600, 60_000)?.with_compression(9, 8 << 20);
+    rec.write(&feed::control("start", serde_json::json!({
+        "mode": "backfill", "cluster": cluster, "programs": programs, "gap_grace_slots": 150,
+        "commit": git_commit(), "start_slot": start, "end_slot": end,
+    })))?;
+    rec.write(&feed::control("getblocks", serde_json::json!({ "start": start, "end": end, "slots": blocks })))?;
+    // Spot-check: a deterministic sample of slots absent from getBlocks must be reported skipped by getBlock too.
+    let step = (skipped.len() / spot_checks.max(1)).max(1);
+    let checks: Vec<u64> = skipped.iter().step_by(step).take(spot_checks).copied().collect();
+    let pset: std::sync::Arc<std::collections::HashSet<String>> = std::sync::Arc::new(programs.iter().cloned().collect());
+    let mut work = blocks.clone();
+    work.extend(&checks);
+    let mut stream = Box::pin(feed::backfill::fetch_ordered(rpc.clone(), work, pset, concurrency, c.clone()));
+    let mut done = 0u64;
+    let mut last = latency::mono_ns();
+    while let Some(m) = stream.next().await {
+        rec.write(&m)?;
+        done += 1;
+        let now = latency::mono_ns();
+        if now - last > 30_000_000_000 {
+            last = now;
+            let el = (now - t0) as f64 / 1e9;
+            tracing::info!(done, of = blocks.len() + checks.len(), slots_per_s = format!("{:.1}", done as f64 / el),
+                retries = c.get_block_retries.load(Relaxed), decoded_mb = c.bytes_decoded.load(Relaxed) / 1_000_000,
+                disk_mb = rec.bytes_written / 1_000_000, "backfill progress");
+        }
+    }
+    rec.write(&feed::control("stop", serde_json::json!({})))?;
+    let disk = rec.bytes_written;
+    rec.close(latency::mono_ns())?;
+    let el = (latency::mono_ns() - t0) as f64 / 1e9;
+    let summary = serde_json::json!({
+        "cluster": settings_cluster_tag(&settings), "start_slot": start, "end_slot": end, "slots_in_range": slots,
+        "confirmed_blocks": blocks.len(), "skipped_per_getblocks": skipped.len(), "skipped_spot_checked": checks.len(),
+        "calls": { "getBlocks": c.get_blocks_calls.load(Relaxed), "getBlock": c.get_block_calls.load(Relaxed),
+                   "getBlock_retries": c.get_block_retries.load(Relaxed), "getSlot": if end_slot.is_none() { 1 } else { 0 } },
+        "bytes_decoded": c.bytes_decoded.load(Relaxed), "txs_total": c.txs_total.load(Relaxed), "txs_kept_venues": c.txs_kept.load(Relaxed),
+        "disk_bytes": disk, "elapsed_s": el,
+    });
+    std::fs::write(out.join("summary.json"), serde_json::to_string_pretty(&summary)?)?;
+    println!("{}", serde_json::to_string_pretty(&summary)?);
+    Ok(())
+}
+
+fn settings_cluster_tag(s: &Settings) -> &'static str {
+    match s.cluster {
+        Cluster::Mainnet => "mainnet",
+        Cluster::Devnet => "devnet",
+    }
+}
+
+/// G0.H1: reads only the recording. Every slot in the range must be either a fetched block or listed as
+/// skipped by the cluster; the spot-checked skipped slots must come back from getBlock as skipped.
+fn verify_backfill(rec: &Path) -> Result<()> {
+    let mut range = None;
+    let mut listed: std::collections::BTreeSet<u64> = Default::default();
+    let mut fetched_ok = std::collections::BTreeSet::new();
+    let mut fetched_none = std::collections::BTreeSet::new();
+    let mut errors = Vec::new();
+    for m in recorder::Reader::open(rec)? {
+        let m = m?;
+        for n in events::normalize(&m)? {
+            match n {
+                events::Norm::Control(v) if v["event"] == "start" => {
+                    range = Some((v["start_slot"].as_u64().unwrap_or(0), v["end_slot"].as_u64().unwrap_or(0)));
+                }
+                events::Norm::Control(v) if v["event"] == "getblocks" => {
+                    listed = v["slots"].as_array().map(|a| a.iter().filter_map(|x| x.as_u64()).collect()).unwrap_or_default();
+                }
+                events::Norm::RpcBlock { slot, block: Some(_), .. } => {
+                    fetched_ok.insert(slot);
+                }
+                events::Norm::RpcBlock { slot, block: None, error: None } => {
+                    fetched_none.insert(slot);
+                }
+                events::Norm::RpcBlock { slot, error: Some(e), .. } => errors.push(format!("{slot}: {e}")),
+                _ => {}
+            }
+        }
+    }
+    let (start, end) = range.ok_or_else(|| anyhow!("no start marker"))?;
+    let missing: Vec<u64> = listed.iter().filter(|s| !fetched_ok.contains(s)).copied().collect();
+    let unaccounted: Vec<u64> = (start..=end).filter(|s| !listed.contains(s) && !fetched_ok.contains(s) && !fetched_none.contains(s)).collect();
+    let skipped_listed_but_block: Vec<u64> = fetched_ok.iter().filter(|s| !listed.contains(s)).copied().collect();
+    let spot_contradictions: Vec<u64> = fetched_none.iter().filter(|s| listed.contains(s)).copied().collect();
+    let v = serde_json::json!({
+        "range": [start, end], "slots": end - start + 1, "listed_blocks": listed.len(), "fetched_blocks": fetched_ok.len(),
+        "confirmed_skipped_by_getblocks": (end - start + 1) as usize - listed.len(),
+        "spot_checked_skipped_confirmed": fetched_none.len(),
+        "missing_blocks": missing.len(), "missing_examples": missing.iter().take(10).collect::<Vec<_>>(),
+        "fetch_errors": errors.len(), "error_examples": errors.iter().take(5).collect::<Vec<_>>(),
+        "spot_check_contradictions": skipped_listed_but_block.len() + spot_contradictions.len(),
+        "unaccounted_slots_note": unaccounted.len(),
+        "G0_H1": if missing.is_empty() && errors.is_empty() && skipped_listed_but_block.is_empty() && spot_contradictions.is_empty() { "PASS" } else { "FAIL" },
+    });
+    println!("{}", serde_json::to_string_pretty(&v)?);
     Ok(())
 }

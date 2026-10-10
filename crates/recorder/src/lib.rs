@@ -22,6 +22,8 @@ pub struct Recorder {
     flush_ns: u64,
     pub bytes_raw: u64,
     pub bytes_written: u64,
+    level: i32,
+    frame_bytes: usize,
 }
 
 fn seg_path(dir: &Path, seq: u32) -> PathBuf {
@@ -47,7 +49,16 @@ impl Recorder {
             flush_ns: flush_ms * 1_000_000,
             bytes_raw: 0,
             bytes_written: 0,
+            level: 3,
+            frame_bytes: FRAME_BYTES,
         })
+    }
+
+    /// Bigger frames and a higher zstd level for bulk (backfill) recording. Format is unchanged.
+    pub fn with_compression(mut self, level: i32, frame_bytes: usize) -> Self {
+        self.level = level;
+        self.frame_bytes = frame_bytes;
+        self
     }
 
     pub fn write(&mut self, m: &RawMsg) -> Result<()> {
@@ -57,7 +68,7 @@ impl Recorder {
         self.buf.extend_from_slice(&(m.payload.len() as u32).to_le_bytes());
         self.buf.extend_from_slice(&m.payload);
         self.bytes_raw += (HEADER + m.payload.len()) as u64;
-        if self.buf.len() >= FRAME_BYTES || m.recv_mono_ns.saturating_sub(self.last_flush_mono) >= self.flush_ns {
+        if self.buf.len() >= self.frame_bytes || m.recv_mono_ns.saturating_sub(self.last_flush_mono) >= self.flush_ns {
             self.flush(m.recv_mono_ns)?;
         }
         Ok(())
@@ -68,7 +79,7 @@ impl Recorder {
         if self.buf.is_empty() {
             return Ok(());
         }
-        let frame = zstd::bulk::compress(&self.buf, 3)?;
+        let frame = zstd::bulk::compress(&self.buf, self.level)?;
         self.file.write_all(&frame)?;
         self.bytes_written += frame.len() as u64;
         self.buf.clear();

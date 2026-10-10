@@ -1,6 +1,7 @@
 //! Feed sources (V4 §3): LaserStream gRPC (primary), Solana WebSocket (fallback), JSON-RPC backfill.
 //! Every source pushes `RawMsg` into one bounded channel consumed by the recorder + pipeline thread.
 
+pub mod backfill;
 pub mod grpc;
 pub mod rpc;
 pub mod ws;
