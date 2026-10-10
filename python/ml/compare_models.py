@@ -6,12 +6,17 @@ import numpy as np, pandas as pd
 from sklearn.metrics import average_precision_score, roc_auc_score
 
 DEV, TEST, MODEL, FS = sys.argv[1].split(","), sys.argv[2].split(","), sys.argv[3], sys.argv[4]
-META = {"coin", "order", "time", "y_up2", "y_up5", "y_up10", "y_cont", "y_rug", "y_fwd_max", "y_peak2", "y_peak5", "y_peak10", "y_end30", "y_dump30s", "y_devsell10m"}
+META = {"coin", "order", "time", "y_up2", "y_up5", "y_up10", "y_cont", "y_rug", "y_fwd_max", "y_peak2", "y_peak5", "y_peak10", "y_end30", "y_dump30s", "y_devsell10m", "y_rugdead", "y_devdump"}
 data = {d: pd.read_csv(f"{d}/snapshots.csv") for d in DEV + TEST}
+# Rug = dies and never recovers within 30 min (a dump that later runs is NOT a rug: forensics show moonshots dump first).
+for d in data.values():
+    d["y_rugdead"] = ((d.y_end30 <= 0.2) & (d.y_peak2 == 0)).astype(int)
+    # Dev risk = creator sells within 10 min AND the coin dies (devs of runners also sell some).
+    d["y_devdump"] = ((d.y_devsell10m == 1) & (d.y_end30 <= 0.3) & (d.y_peak2 == 0)).astype(int)
 FEATS = [c for c in data[DEV[0]].columns if c not in META and (FS == "all" or not c.startswith("f"))]
 import os
 LABEL = os.environ.get("LABEL", "barrier")
-TARGETS = {"p_up2": "y_peak2", "p_up5": "y_peak5", "p_cont": "y_cont", "p_rug": "y_rug", "p_dump": "y_dump30s", "p_devsell": "y_devsell10m"} if LABEL == "peak" else {"p_up2": "y_up2", "p_up5": "y_up5", "p_cont": "y_cont", "p_rug": "y_rug"}
+TARGETS = {"p_up2": "y_peak2", "p_up5": "y_peak5", "p_cont": "y_cont", "p_rug": "y_rugdead", "p_dump": "y_dump30s", "p_devsell": "y_devdump"} if LABEL == "peak" else {"p_up2": "y_up2", "p_up5": "y_up5", "p_cont": "y_cont", "p_rug": "y_rug"}
 
 def fit_predict(name, tr, te_list, y):
     if name == "catboost":
@@ -37,7 +42,7 @@ def predict(tr, te_list):
         o["p_up5"] = np.minimum(o.p_up5, o.p_up2)
     return [o[["coin", "order"] + list(TARGETS)] for o in outs]
 
-tag = f"{MODEL}_{FS}" + ("_peak" if LABEL == "peak" else "")
+tag = f"{MODEL}_{FS}" + ("_peak" if LABEL == "peak" else "") + "_v2"
 for tr, te in [(DEV[0], DEV[1]), (DEV[1], DEV[0])]:
     predict(data[tr], [data[te]])[0].to_csv(f"{te}/scores_cross_{tag}.csv", index=False)
 full = pd.concat([data[d] for d in DEV], ignore_index=True)

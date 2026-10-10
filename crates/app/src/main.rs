@@ -389,8 +389,12 @@ fn main() -> Result<()> {
                 }
                 maxp.sort_by(|a, b| a.total_cmp(b));
                 let q = |f: f64| maxp.get(((maxp.len() as f64 - 1.0) * f) as usize).copied();
+                let examples: Vec<serde_json::Value> = if tier >= 10.0 {
+                    coins.iter().map(|c| { let d = &r.diag[*c as usize]; serde_json::json!({ "mint": &ev.mints[*c as usize][..8], "reachable": best[c],
+                        "snapshots": d.snapshots, "max_p2": d.max_p2, "snaps_over_threshold": d.snaps_over_entry, "blocked": d.blocked, "entered": d.entered }) }).collect()
+                } else { Vec::new() };
                 out.push(serde_json::json!({ "tier_reachable": tier, "runner_coins": coins.len(), "score_never_reached_entry_threshold": never_over,
-                    "entered": entered, "max_p2_median": q(0.5), "max_p2_p90": q(0.9), "block_counts_when_over_threshold": agg }));
+                    "entered": entered, "max_p2_median": q(0.5), "max_p2_p90": q(0.9), "block_counts_when_over_threshold": agg, "coins_10x": examples }));
             }
             let all_over: u32 = r.diag.iter().map(|d| d.snaps_over_entry).sum();
             let all_coins_over = r.diag.iter().filter(|d| d.snaps_over_entry > 0).count();

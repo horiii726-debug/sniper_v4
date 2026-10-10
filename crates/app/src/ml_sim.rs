@@ -147,6 +147,8 @@ pub struct Engine {
 pub struct Step {
     pub snapshot: Option<Vec<f32>>,
     pub dev_sell: bool,
+    /// Fraction of the creator's token balance sold in this event (0 if not a creator sell).
+    pub dev_sell_frac: f64,
 }
 
 impl Engine {
@@ -272,6 +274,11 @@ impl Engine {
         let delta = if e.buy { e.tokens as i64 } else { -(e.tokens as i64) };
         let b = c.bal.entry(e.user).or_insert(0);
         let before = *b;
+        let dev_sell_frac = if !e.buy && e.user == e.creator && e.tokens > 0 {
+            if before > 0 { (e.tokens as f64 / before as f64).min(1.0) } else { 1.0 }
+        } else {
+            0.0
+        };
         *b += delta;
         if before <= 0 && *b > 0 {
             c.holders += 1;
@@ -322,7 +329,7 @@ impl Engine {
         } else {
             None
         };
-        Step { snapshot, dev_sell }
+        Step { snapshot, dev_sell, dev_sell_frac }
     }
 
     pub fn pool_value(&self, coin: u32, tokens: u64, default_fee: u64) -> f64 {
@@ -350,9 +357,18 @@ impl Engine {
         }
     }
 
-    pub fn tradable(&self, coin: u32, min_quote_sol: f64) -> bool {
+    /// None if tradable, otherwise the reason.
+    pub fn untradable(&self, coin: u32, min_quote_sol: f64) -> Option<&'static str> {
         let p = &self.pools[coin as usize];
-        p.known && !(p.complete && !p.amm) && (p.quote_res as f64 / 1e9) >= min_quote_sol
+        if !p.known {
+            Some("pool_unknown")
+        } else if p.complete && !p.amm {
+            Some("migrating_curve_complete")
+        } else if (p.quote_res as f64 / 1e9) < min_quote_sol {
+            Some("low_liquidity")
+        } else {
+            None
+        }
     }
 
     pub fn quote_res_sol(&self, coin: u32) -> f64 {
@@ -710,8 +726,15 @@ pub struct MlStrategy {
     pub giveback: f64,
     /// Microstructure exit: P(drop >= 20% within 30 s) at or above this exits (1.0 disables).
     pub dump_exit: f32,
-    /// Entry veto: P(creator sells within 10 min) at or above this (1.0 disables).
+    /// Entry veto: P(creator sells within 10 min AND the coin dies) at or above this (1.0 disables).
     pub devsell_veto: f32,
+    /// Block entries this many seconds after a creator sell (0 = no block; devs of runners also sell).
+    pub dev_sold_block_s: i64,
+    /// The predicted-dump exit only protects profit: active once value >= this multiple of cost.
+    pub dump_exit_min_mult: f64,
+    /// DEV kill-switch: exit when a creator sell is at least this fraction of the creator's balance
+    /// (0.0 = any sell, the V4 spec rule).
+    pub dev_kill_min_frac: f64,
 }
 
 impl Default for MlStrategy {
@@ -736,6 +759,9 @@ impl Default for MlStrategy {
             giveback: 0.35,
             dump_exit: 1.0,
             devsell_veto: 1.0,
+            dev_sold_block_s: 0,
+            dump_exit_min_mult: 1.2,
+            dev_kill_min_frac: 0.0,
         }
     }
 }
@@ -936,7 +962,7 @@ pub fn simulate(ev: &Events, rp: RadarParams, sc: &Scores, st: &MlStrategy, c: &
             let p = pos.get_mut(&e.coin).expect("present");
             p.peak = p.peak.max(val);
             p.max_mult = p.max_mult.max(val / p.cost);
-            let mut reason = if step.dev_sell {
+            let mut reason = if step.dev_sell && step.dev_sell_frac >= st.dev_kill_min_frac {
                 Some("DevSell")
             } else if st.hard_stop < 1.0 && val <= (1.0 - st.hard_stop) * p.cost {
                 Some("HardStop")
@@ -952,7 +978,7 @@ pub fn simulate(ev: &Events, rp: RadarParams, sc: &Scores, st: &MlStrategy, c: &
                     let strong = x[18] < -0.5 && x[41] > x[9] && x[33] < 0.6;
                     if p_rug >= st.rug_veto {
                         reason = Some("RugModel");
-                    } else if s[4] >= st.dump_exit {
+                    } else if s[4] >= st.dump_exit && p.max_mult >= st.dump_exit_min_mult && val >= st.dump_exit_min_mult * p.cost {
                         reason = Some("DumpPredicted");
                     } else if strong {
                         reason = Some("StrongReversal");
@@ -996,10 +1022,10 @@ pub fn simulate(ev: &Events, rp: RadarParams, sc: &Scores, st: &MlStrategy, c: &
             Some("blacklisted")
         } else if last_exit.get(&e.coin).is_some_and(|t| e.time - t < st.reentry_cooldown_s) {
             Some("reentry_cooldown")
-        } else if eng.dev_sold_within(e.coin, e.time, 300) {
+        } else if st.dev_sold_block_s > 0 && eng.dev_sold_within(e.coin, e.time, st.dev_sold_block_s) {
             Some("dev_sold_recently")
-        } else if !eng.tradable(e.coin, st.min_quote_res_sol) {
-            Some("not_tradable_or_low_liquidity")
+        } else if let Some(r) = eng.untradable(e.coin, st.min_quote_res_sol) {
+            Some(r)
         } else {
             None
         };
@@ -1058,12 +1084,17 @@ pub fn simulate(ev: &Events, rp: RadarParams, sc: &Scores, st: &MlStrategy, c: &
 pub fn tune(dev: &[(&Events, &Scores, f64)], rp: RadarParams, c: &Costs) -> (MlStrategy, Vec<(MlStrategy, Vec<f64>)>) {
     use rayon::prelude::*;
     let mut grid = Vec::new();
-    for &entry_p2 in &[0.3f32, 0.4, 0.5, 0.6] {
-        for &dump_exit in &[0.3f32, 0.5, 1.0] {
-            for &devsell_veto in &[0.2f32, 0.35, 1.0] {
-                for &exit_cont in &[0.15f32, 0.3] {
-                    for &(max_positions, size_frac) in &[(6usize, 0.15), (10, 0.1)] {
-                        grid.push(MlStrategy { entry_p2, dump_exit, devsell_veto, exit_cont, max_positions, size_frac, ..Default::default() });
+    for &entry_p2 in &[0.4f32, 0.5, 0.6] {
+        for &(dump_exit_min_mult, giveback_arm, giveback) in &[(1.2, 1.5, 0.35), (2.0, 2.0, 0.5), (3.0, 3.0, 0.5)] {
+            for &dev_kill_min_frac in &[0.0, 0.3, 0.6] {
+                for &devsell_veto in &[0.2f32, 1.0] {
+                    for &exit_cont in &[0.15f32, 0.3] {
+                        for &reentry_cooldown_s in &[60i64, 300] {
+                            grid.push(MlStrategy {
+                                entry_p2, dump_exit: 0.5, dump_exit_min_mult, giveback_arm, giveback, dev_kill_min_frac, devsell_veto,
+                                exit_cont, reentry_cooldown_s, max_positions: 10, size_frac: 0.1, ..Default::default()
+                            });
+                        }
                     }
                 }
             }
