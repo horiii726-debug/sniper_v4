@@ -266,6 +266,8 @@ pub struct RecoveryReport {
 pub fn recovery_report(rec: &Path, recover_within_ms: f64) -> Result<RecoveryReport> {
     let mut kills: Vec<KillRecovery> = Vec::new();
     let mut pending: Option<(usize, String, u64, bool)> = None; // (kill idx, feed, kill mono, saw_error)
+    // The SDK's error marker can be recorded just before the kill marker (the kill returns after the socket dies).
+    let mut last_err_mono: u64 = 0;
     for m in Reader::open(rec)? {
         let m = m?;
         if m.source == Source::Control {
@@ -273,9 +275,11 @@ pub fn recovery_report(rec: &Path, recover_within_ms: f64) -> Result<RecoveryRep
             match v["event"].as_str() {
                 Some("chaos_kill") => {
                     kills.push(KillRecovery { kill_index: kills.len() as u64, kill_wall_ns: m.recv_wall_ns, recover_ms: None });
-                    pending = Some((kills.len() - 1, v["feed"].as_str().unwrap_or("grpc").to_string(), m.recv_mono_ns, false));
+                    let recent_err = last_err_mono > 0 && m.recv_mono_ns.saturating_sub(last_err_mono) < 5_000_000_000;
+                    pending = Some((kills.len() - 1, v["feed"].as_str().unwrap_or("grpc").to_string(), m.recv_mono_ns, recent_err));
                 }
                 Some("grpc_stream_error") | Some("ws_disconnected") => {
+                    last_err_mono = m.recv_mono_ns;
                     if let Some(p) = pending.as_mut() {
                         p.3 = true;
                     }

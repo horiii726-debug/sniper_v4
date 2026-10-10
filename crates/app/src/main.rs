@@ -76,6 +76,10 @@ enum Cmd {
         rec: PathBuf,
         #[arg(long, default_value_t = 200)]
         sample: usize,
+        /// Check every slot inside each disconnect window (from the last slot seen before the
+        /// disconnect marker to 10 slots after the first slot seen after it) instead of sampling.
+        #[arg(long)]
+        outages: bool,
     },
     /// Check that every venue program ID is an executable account on mainnet.
     VerifyPrograms,
@@ -140,7 +144,7 @@ fn main() -> Result<()> {
             println!("{}", serde_json::to_string_pretty(&v)?);
             Ok(())
         }
-        Cmd::VerifyChain { rec, sample } => rt.block_on(verify_chain(&cli.env, &rec, sample)),
+        Cmd::VerifyChain { rec, sample, outages } => rt.block_on(verify_chain(&cli.env, &rec, sample, outages)),
         Cmd::VerifyPrograms => rt.block_on(verify_programs(&cli.env, &cli.venues)),
     }
 }
@@ -317,7 +321,7 @@ async fn record(settings: Settings, o: RecordOpts) -> Result<()> {
 
 /// G0.1 independent check: for a deterministic sample of finalized slots that have a gRPC BlockMeta,
 /// fetch the block with getBlock and compare the program-filtered signature set with the derived output.
-async fn verify_chain(env: &Path, rec: &Path, sample: usize) -> Result<()> {
+async fn verify_chain(env: &Path, rec: &Path, sample: usize, outages: bool) -> Result<()> {
     let mut reader = recorder::Reader::open(rec)?;
     let meta = replay::run_meta_from(&reader.next_msg()?.ok_or_else(|| anyhow!("empty"))?)?;
     let settings = Settings::load(env, meta.cluster.parse()?)?;
@@ -326,8 +330,28 @@ async fn verify_chain(env: &Path, rec: &Path, sample: usize) -> Result<()> {
     let mut finalized = std::collections::BTreeSet::new();
     let mut with_meta = std::collections::BTreeSet::new();
     let mut ours: std::collections::HashMap<u64, std::collections::BTreeSet<String>> = Default::default();
+    // WS-only recordings have no BlockMeta: slots announced by slotNotification and rooted are the candidates.
+    let mut ws_slots = std::collections::BTreeSet::new();
+    let mut max_root = 0u64;
+    let mut windows: Vec<(u64, u64)> = Vec::new();
+    let mut last_slot_seen = 0u64;
+    let mut open_from: Option<u64> = None;
     for line in derived.lines() {
         let p: Vec<&str> = line.split(' ').collect();
+        let line_slot = match p[0] {
+            "T" | "M" if p.len() > 2 => p[2].parse::<u64>().ok(),
+            "L" | "W" | "S" if p.len() > 1 => p[1].parse::<u64>().ok(),
+            _ => None,
+        };
+        if let Some(ls) = line_slot {
+            if let Some(from) = open_from.take() {
+                windows.push((from, ls + 10));
+            }
+            last_slot_seen = last_slot_seen.max(ls);
+        }
+        if p[0] == "C" && p.len() > 1 && (p[1] == "ws_disconnected" || p[1] == "grpc_stream_error" || p[1] == "chaos_kill") {
+            open_from.get_or_insert(last_slot_seen);
+        }
         match p[0] {
             "S" if p.len() > 2 && p[2] == "2" => {
                 finalized.insert(p[1].parse::<u64>()?);
@@ -338,30 +362,59 @@ async fn verify_chain(env: &Path, rec: &Path, sample: usize) -> Result<()> {
             "T" if p.len() > 4 => {
                 ours.entry(p[2].parse()?).or_default().insert(p[4].to_string());
             }
+            "W" if p.len() > 3 => {
+                ws_slots.insert(p[1].parse::<u64>()?);
+                max_root = max_root.max(p[3].parse::<u64>()?);
+            }
             "L" if p.len() > 2 => {
                 ours.entry(p[1].parse()?).or_default().insert(p[2].to_string());
             }
             _ => {}
         }
     }
-    let cand: Vec<u64> = finalized.intersection(&with_meta).copied().collect();
+    let cand: Vec<u64> = if with_meta.is_empty() {
+        ws_slots.range(..=max_root).copied().collect()
+    } else {
+        finalized.intersection(&with_meta).copied().collect()
+    };
     if cand.len() < 120 {
         bail!("too few finalized slots with meta ({})", cand.len());
     }
     let edge = (cand.len() / 10).min(200);
     let inner = &cand[edge..cand.len() - edge];
     let step = (inner.len() / sample.max(1)).max(1);
-    let picks: Vec<u64> = inner.iter().step_by(step).take(sample).copied().collect();
+    let picks: Vec<u64> = if outages {
+        // Every slot number in each window, whether or not we saw it: getBlock says which ones have blocks.
+        let mut v: Vec<u64> = windows.iter().flat_map(|(a, b)| *a..=*b).collect();
+        v.sort();
+        v.dedup();
+        v
+    } else {
+        inner.iter().step_by(step).take(sample).copied().collect()
+    };
     let rpc = Rpc::new(settings.rpc_url.clone());
     let (mut checked, mut missing_total, mut extra_total, mut bad_slots, mut rpc_txs) = (0u64, 0u64, 0u64, 0u64, 0u64);
+    let (mut skipped_no_block, mut rpc_errors) = (0u64, 0u64);
     let mut examples = Vec::new();
     for s in &picks {
         let m = rpc.get_block_msg(*s, "finalized").await;
         let norms = events::normalize(&m)?;
-        let Some(events::Norm::RpcBlock { block: Some(b), .. }) = norms.into_iter().next() else {
-            examples.push(format!("slot {s}: getBlock returned no block"));
-            bad_slots += 1;
-            continue;
+        let b = match norms.into_iter().next() {
+            Some(events::Norm::RpcBlock { block: Some(b), .. }) => b,
+            Some(events::Norm::RpcBlock { block: None, error: None, .. }) => {
+                // Leader skipped the slot: nothing to compare, but we must not hold data for it either.
+                if ours.get(s).is_some_and(|x| !x.is_empty()) {
+                    bad_slots += 1;
+                    examples.push(format!("slot {s}: skipped per RPC but we have txs"));
+                }
+                skipped_no_block += 1;
+                continue;
+            }
+            _ => {
+                rpc_errors += 1;
+                examples.push(format!("slot {s}: getBlock error"));
+                continue;
+            }
         };
         let theirs: std::collections::BTreeSet<String> =
             b.txs.iter().filter(|t| meta.filter.matches(t)).map(|t| bs58_sig(&t.sig)).collect();
@@ -381,8 +434,9 @@ async fn verify_chain(env: &Path, rec: &Path, sample: usize) -> Result<()> {
         checked += 1;
     }
     let v = serde_json::json!({
-        "finalized_slots_with_meta": cand.len(), "sampled": picks.len(), "checked": checked,
-        "rpc_filtered_txs": rpc_txs, "missing_in_ours": missing_total, "extra_in_ours": extra_total,
+        "finalized_slots_with_meta": cand.len(), "mode": if outages { "outage_windows" } else { "sample" },
+        "outage_windows": windows.len(), "sampled": picks.len(), "checked": checked,
+        "rpc_filtered_txs": rpc_txs, "skipped_no_block": skipped_no_block, "rpc_errors": rpc_errors, "missing_in_ours": missing_total, "extra_in_ours": extra_total,
         "slots_with_mismatch": bad_slots, "examples": examples,
     });
     println!("{}", serde_json::to_string_pretty(&v)?);
