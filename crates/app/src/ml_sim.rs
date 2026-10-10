@@ -735,6 +735,9 @@ pub struct MlStrategy {
     /// DEV kill-switch: exit when a creator sell is at least this fraction of the creator's balance
     /// (0.0 = any sell, the V4 spec rule).
     pub dev_kill_min_frac: f64,
+    /// Hold through momentum / dump / give-back exits while the model still sees P(>= 2x from now) at or
+    /// above this (1.0 disables). Rug and DEV kill-switch exits are never suppressed.
+    pub hold_if_p2_above: f32,
 }
 
 impl Default for MlStrategy {
@@ -762,6 +765,7 @@ impl Default for MlStrategy {
             dev_sold_block_s: 0,
             dump_exit_min_mult: 1.2,
             dev_kill_min_frac: 0.0,
+            hold_if_p2_above: 1.0,
         }
     }
 }
@@ -840,6 +844,8 @@ struct Pos {
     low_count: u32,
     low_since: Option<i64>,
     p2: f32,
+    /// Latest P(>= 2x) seen for this coin while held.
+    last_p2: f32,
 }
 
 fn hash01(a: u64, b: u64) -> f64 {
@@ -893,7 +899,7 @@ pub fn simulate(ev: &Events, rp: RadarParams, sc: &Scores, st: &MlStrategy, c: &
                     }
                     let cost = lam as f64 / 1e9;
                     cash -= cost;
-                    pos.insert(coin, Pos { tokens: toks as u64, cost, entry_t: cur_t, peak: cost, max_mult: 1.0, low_count: 0, low_since: None, p2 });
+                    pos.insert(coin, Pos { tokens: toks as u64, cost, entry_t: cur_t, peak: cost, max_mult: 1.0, low_count: 0, low_since: None, p2, last_p2: p2 });
                 }
                 Order::Sell(coin, reason) => {
                     busy.remove(&coin);
@@ -966,7 +972,7 @@ pub fn simulate(ev: &Events, rp: RadarParams, sc: &Scores, st: &MlStrategy, c: &
                 Some("DevSell")
             } else if st.hard_stop < 1.0 && val <= (1.0 - st.hard_stop) * p.cost {
                 Some("HardStop")
-            } else if st.giveback > 0.0 && p.max_mult >= st.giveback_arm && val <= (1.0 - st.giveback) * p.peak {
+            } else if st.giveback > 0.0 && p.max_mult >= st.giveback_arm && val <= (1.0 - st.giveback) * p.peak && p.last_p2 < st.hold_if_p2_above {
                 Some("GiveBackFromPeak")
             } else {
                 None
@@ -974,10 +980,15 @@ pub fn simulate(ev: &Events, rp: RadarParams, sc: &Scores, st: &MlStrategy, c: &
             if reason.is_none() {
                 if let (Some(x), Some(s)) = (&step.snapshot, sc.get(&e.order)) {
                     let (p_cont, p_rug) = (s[2], s[3]);
+                    p.last_p2 = s[0];
+                    let hold = s[0] >= st.hold_if_p2_above;
                     // Strong reversal override (§22.3): money leaving, sellers outnumber buyers, price well off the high.
                     let strong = x[18] < -0.5 && x[41] > x[9] && x[33] < 0.6;
                     if p_rug >= st.rug_veto {
                         reason = Some("RugModel");
+                    } else if hold {
+                        p.low_count = 0;
+                        p.low_since = None;
                     } else if s[4] >= st.dump_exit && p.max_mult >= st.dump_exit_min_mult && val >= st.dump_exit_min_mult * p.cost {
                         reason = Some("DumpPredicted");
                     } else if strong {
@@ -1085,15 +1096,20 @@ pub fn tune(dev: &[(&Events, &Scores, f64)], rp: RadarParams, c: &Costs) -> (MlS
     use rayon::prelude::*;
     let mut grid = Vec::new();
     for &entry_p2 in &[0.4f32, 0.5, 0.6] {
-        for &(dump_exit_min_mult, giveback_arm, giveback) in &[(1.2, 1.5, 0.35), (2.0, 2.0, 0.5), (3.0, 3.0, 0.5)] {
-            for &dev_kill_min_frac in &[0.0, 0.3, 0.6] {
+        for &(dump_exit_min_mult, giveback_arm, giveback) in &[(1.2, 1.5, 0.35), (2.0, 2.0, 0.5)] {
+            for &dev_kill_min_frac in &[0.0, 0.5] {
                 for &devsell_veto in &[0.2f32, 1.0] {
                     for &exit_cont in &[0.15f32, 0.3] {
                         for &reentry_cooldown_s in &[60i64, 300] {
-                            grid.push(MlStrategy {
-                                entry_p2, dump_exit: 0.5, dump_exit_min_mult, giveback_arm, giveback, dev_kill_min_frac, devsell_veto,
-                                exit_cont, reentry_cooldown_s, max_positions: 10, size_frac: 0.1, ..Default::default()
-                            });
+                            for &hold_if_p2_above in &[1.0f32, 0.5, 0.6] {
+                                for &min_quote_res_sol in &[1.0, 5.0] {
+                                    grid.push(MlStrategy {
+                                        entry_p2, dump_exit: 0.5, dump_exit_min_mult, giveback_arm, giveback, dev_kill_min_frac, devsell_veto,
+                                        exit_cont, reentry_cooldown_s, hold_if_p2_above, min_quote_res_sol, max_positions: 10, size_frac: 0.1,
+                                        ..Default::default()
+                                    });
+                                }
+                            }
                         }
                     }
                 }
