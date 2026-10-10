@@ -1,0 +1,265 @@
+{
+ "features": [
+  "age_s",
+  "newborn",
+  "on_amm",
+  "quote_res_sol",
+  "curve_progress",
+  "fee_bps",
+  "n_trades_15s",
+  "n_trades_60s",
+  "n_trades_300s",
+  "buyers_15s",
+  "buyers_60s",
+  "sellers_60s",
+  "buy_sol_15s",
+  "buy_sol_60s",
+  "sell_sol_15s",
+  "sell_sol_60s",
+  "net_flow_15s",
+  "net_flow_60s",
+  "flow_imb_60s",
+  "median_buy_60s",
+  "max_buy_60s",
+  "dust_share_60s",
+  "repeat_buyer_share_60s",
+  "new_wallet_share_60s",
+  "top_buyer_share_60s",
+  "ewma_fast",
+  "ewma_slow",
+  "accel",
+  "secs_since_real_buy",
+  "ret_5s",
+  "ret_15s",
+  "ret_60s",
+  "ret_300s",
+  "price_vs_high300",
+  "price_vs_low300",
+  "mult_since_first",
+  "price_vs_vwap60",
+  "creator_sold",
+  "creator_sell_sol",
+  "creator_buy_sol",
+  "secs_since_hot",
+  "sellers_15s",
+  "buy_sell_count_ratio_60s"
+ ],
+ "oos": {
+  "train data/bf_1h -> data/h1d": {
+   "p_up2": {
+    "auc": 0.8111,
+    "pr_auc": 0.1755,
+    "base_rate": 0.0613
+   },
+   "p_up5": {
+    "auc": 0.8737,
+    "pr_auc": 0.0355,
+    "base_rate": 0.0065
+   },
+   "p_cont": {
+    "auc": 0.818,
+    "pr_auc": 0.3277,
+    "base_rate": 0.1314
+   },
+   "p_rug": {
+    "auc": 0.9241,
+    "pr_auc": 0.355,
+    "base_rate": 0.0533
+   },
+   "top1pct_by_p_up2": {
+    "n": 513,
+    "up2": 0.234,
+    "up5": 0.043,
+    "up10": 0.0175
+   }
+  },
+  "train data/h1d -> data/bf_1h": {
+   "p_up2": {
+    "auc": 0.8715,
+    "pr_auc": 0.2171,
+    "base_rate": 0.057
+   },
+   "p_up5": {
+    "auc": 0.8843,
+    "pr_auc": 0.0507,
+    "base_rate": 0.0097
+   },
+   "p_cont": {
+    "auc": 0.8703,
+    "pr_auc": 0.3894,
+    "base_rate": 0.1209
+   },
+   "p_rug": {
+    "auc": 0.9342,
+    "pr_auc": 0.5988,
+    "base_rate": 0.0933
+   },
+   "top1pct_by_p_up2": {
+    "n": 363,
+    "up2": 0.229,
+    "up5": 0.039,
+    "up10": 0.0165
+   }
+  },
+  "final -> data/h7d": {
+   "p_up2": {
+    "auc": 0.8453,
+    "pr_auc": 0.213,
+    "base_rate": 0.0619
+   },
+   "p_up5": {
+    "auc": 0.8942,
+    "pr_auc": 0.0499,
+    "base_rate": 0.0099
+   },
+   "p_cont": {
+    "auc": 0.8434,
+    "pr_auc": 0.3543,
+    "base_rate": 0.1291
+   },
+   "p_rug": {
+    "auc": 0.9279,
+    "pr_auc": 0.4946,
+    "base_rate": 0.0653
+   },
+   "top1pct_by_p_up2": {
+    "n": 422,
+    "up2": 0.301,
+    "up5": 0.071,
+    "up10": 0.0237
+   }
+  },
+  "final -> data/h30d": {
+   "p_up2": {
+    "auc": 0.8499,
+    "pr_auc": 0.1818,
+    "base_rate": 0.0515
+   },
+   "p_up5": {
+    "auc": 0.8683,
+    "pr_auc": 0.0734,
+    "base_rate": 0.0074
+   },
+   "p_cont": {
+    "auc": 0.8491,
+    "pr_auc": 0.354,
+    "base_rate": 0.1251
+   },
+   "p_rug": {
+    "auc": 0.9405,
+    "pr_auc": 0.6244,
+    "base_rate": 0.0567
+   },
+   "top1pct_by_p_up2": {
+    "n": 474,
+    "up2": 0.213,
+    "up5": 0.053,
+    "up10": 0.019
+   }
+  }
+ },
+ "importance_p_up2_top15": [
+  [
+   "quote_res_sol",
+   30.84595962435579
+  ],
+  [
+   "fee_bps",
+   7.466530882952974
+  ],
+  [
+   "age_s",
+   7.343119987161904
+  ],
+  [
+   "secs_since_hot",
+   5.32251942436331
+  ],
+  [
+   "mult_since_first",
+   5.106591265182271
+  ],
+  [
+   "creator_buy_sol",
+   3.207475624990409
+  ],
+  [
+   "ewma_slow",
+   3.1353460391298302
+  ],
+  [
+   "price_vs_high300",
+   2.83916052699548
+  ],
+  [
+   "dust_share_60s",
+   2.5543398864514026
+  ],
+  [
+   "on_amm",
+   2.5340957789065284
+  ],
+  [
+   "n_trades_300s",
+   2.513685499823888
+  ],
+  [
+   "repeat_buyer_share_60s",
+   2.493308986812707
+  ],
+  [
+   "max_buy_60s",
+   2.233421138946111
+  ],
+  [
+   "curve_progress",
+   2.2189278515235036
+  ],
+  [
+   "price_vs_low300",
+   2.1584078677133562
+  ]
+ ],
+ "importance_p_cont_top10": [
+  [
+   "quote_res_sol",
+   15.634703698481353
+  ],
+  [
+   "fee_bps",
+   9.680278527927383
+  ],
+  [
+   "price_vs_low300",
+   6.903355880499224
+  ],
+  [
+   "age_s",
+   6.697588103953294
+  ],
+  [
+   "mult_since_first",
+   4.985205597795241
+  ],
+  [
+   "creator_buy_sol",
+   3.796212048925917
+  ],
+  [
+   "price_vs_high300",
+   3.7738194054082306
+  ],
+  [
+   "ewma_slow",
+   3.441290733156304
+  ],
+  [
+   "n_trades_300s",
+   3.4252582797446687
+  ],
+  [
+   "secs_since_hot",
+   3.3204882062399936
+  ]
+ ]
+}

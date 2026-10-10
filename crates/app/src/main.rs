@@ -2,9 +2,11 @@
 
 mod backtest;
 mod census;
+mod diagnose;
 mod pump_check;
 mod radar_eval;
 mod logging;
+mod ml_sim;
 
 use anyhow::{anyhow, bail, Context, Result};
 use clap::{Parser, Subcommand};
@@ -156,6 +158,31 @@ enum Cmd {
         #[arg(long, default_value_t = 0.15)]
         buy_fail_prob: f64,
     },
+    /// Forensics of the exploratory backtest (runners not monetised, losing trades).
+    Diagnose {
+        #[arg(long, required = true)]
+        rec: Vec<PathBuf>,
+        #[arg(long, default_value = "config/radar_params.json")]
+        radar_params: PathBuf,
+    },
+    /// Write causal feature snapshots + forward labels (<rec>/snapshots.csv) for ML training.
+    Snapshots {
+        #[arg(long, required = true)]
+        rec: Vec<PathBuf>,
+        #[arg(long, default_value = "config/radar_params.json")]
+        radar_params: PathBuf,
+    },
+    /// EXPLORATORY ML backtest: thresholds tuned on --dev (out-of-sample cross scores), then --test.
+    BacktestMl {
+        #[arg(long, required = true)]
+        dev: Vec<PathBuf>,
+        #[arg(long, required = true)]
+        test: Vec<PathBuf>,
+        #[arg(long, default_value = "config/radar_params.json")]
+        radar_params: PathBuf,
+        #[arg(long, default_value = "reports/backtest_ml_exploratory.json")]
+        out: PathBuf,
+    },
     /// G0.H1 check on a backfill recording: every slot fetched or confirmed skipped.
     VerifyBackfill {
         #[arg(long)]
@@ -264,6 +291,42 @@ fn main() -> Result<()> {
             }
             std::fs::write(&out, serde_json::to_string_pretty(&rep)?)?;
             std::fs::write("config/strategy_params.json", serde_json::to_string_pretty(&best)?)?;
+            println!("written {}", out.display());
+            Ok(())
+        }
+        Cmd::Diagnose { rec, radar_params } => diagnose::run(&rec, &radar_params),
+        Cmd::Snapshots { rec, radar_params } => {
+            let rp: radar::Params = serde_json::from_value(serde_json::from_str::<serde_json::Value>(&std::fs::read_to_string(&radar_params)?)?["params"].clone())?;
+            for r in &rec {
+                let ev = backtest::load(r)?;
+                let n = ml_sim::write_snapshots(&ev, rp, &r.join("snapshots.csv"))?;
+                println!("{}: {n} snapshots", r.display());
+            }
+            Ok(())
+        }
+        Cmd::BacktestMl { dev, test, radar_params, out } => {
+            let rp: radar::Params = serde_json::from_value(serde_json::from_str::<serde_json::Value>(&std::fs::read_to_string(&radar_params)?)?["params"].clone())?;
+            let costs = backtest::Costs::default();
+            let load = |r: &PathBuf, scores: &str| -> Result<(String, backtest::Events, ml_sim::Scores, f64)> {
+                let e = backtest::load(r)?;
+                let usd = backtest::sol_usd_at(e.window.0)?;
+                Ok((r.display().to_string(), e, ml_sim::read_scores(&r.join(scores))?, usd))
+            };
+            let devs: Vec<_> = dev.iter().map(|r| load(r, "scores_cross.csv")).collect::<Result<_>>()?;
+            let tests: Vec<_> = test.iter().map(|r| load(r, "scores_final.csv")).collect::<Result<_>>()?;
+            let refs: Vec<(&backtest::Events, &ml_sim::Scores, f64)> = devs.iter().map(|(_, e, s, u)| (e, s, *u)).collect();
+            let (best, grid) = ml_sim::tune(&refs, rp, &costs);
+            let mut windows = Vec::new();
+            for (role, set) in [("dev (cross-model OOS scores)", &devs), ("test (final model, never seen)", &tests)] {
+                for (name, e, s, usd) in set.iter() {
+                    windows.push(serde_json::json!({ "role": role, "recording": name, "report": ml_sim::simulate(e, rp, s, &best, &costs, *usd) }));
+                }
+            }
+            let rep = serde_json::json!({ "label": "EXPLORATORY ML BACKTEST (pre-gate, user-requested); pump.fun curve + PumpSwap SOL pools",
+                "strategy_frozen_on_dev": best, "costs": costs, "grid_size": grid.len(), "windows": windows,
+                "grid_dev_returns": grid.iter().map(|(s, r)| serde_json::json!({"s": s, "dev_returns": r})).collect::<Vec<_>>() });
+            std::fs::write(&out, serde_json::to_string_pretty(&rep)?)?;
+            std::fs::write("config/ml_strategy_params.json", serde_json::to_string_pretty(&best)?)?;
             println!("written {}", out.display());
             Ok(())
         }

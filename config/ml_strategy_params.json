@@ -1,0 +1,16 @@
+{
+  "entry_p2": 0.7,
+  "entry_p5": 0.0,
+  "rug_veto": 0.5,
+  "exit_cont": 0.35,
+  "exit_k": 2,
+  "exit_persist_s": 10,
+  "hard_stop": 0.6,
+  "size_frac": 0.2,
+  "max_positions": 6,
+  "max_impact": 0.02,
+  "min_quote_res_sol": 5.0,
+  "inactivity_s": 120,
+  "scout_s": 300,
+  "reentry_cooldown_s": 300
+}

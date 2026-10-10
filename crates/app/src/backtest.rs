@@ -233,6 +233,15 @@ fn ewma_at(e: &(f64, f64), t: f64, tau: f64) -> f64 {
     e.0 * (-(t - e.1) / tau).exp()
 }
 
+/// Per-coin trace of the decision path (filled when diagnostics are on).
+#[derive(Debug, Serialize, Clone, Default)]
+pub struct CoinDiag {
+    pub first_hot_time: Option<i64>,
+    /// First condition that blocked an entry evaluation, counted per real buy while HOT and flat.
+    pub blocked: std::collections::BTreeMap<&'static str, u32>,
+    pub entries: Vec<(i64, f64)>,
+}
+
 #[derive(Debug, Serialize, Clone)]
 pub struct TradeRec {
     pub mint: String,
@@ -269,6 +278,8 @@ pub struct Report {
     pub best_trade_ret: f64,
     pub worst_trade_ret: f64,
     pub trades_list: Vec<TradeRec>,
+    #[serde(skip)]
+    pub diag: Vec<CoinDiag>,
 }
 
 fn hash01(a: u64, b: u64) -> f64 {
@@ -295,6 +306,7 @@ pub fn simulate(ev: &Events, st: &Strategy, c: &Costs, radar_p: RadarParams, sta
     let mut max_dd = 0.0f64;
     let mut last_sweep = i64::MIN;
     let mut sig = Vec::new();
+    let mut diag: Vec<CoinDiag> = vec![CoinDiag::default(); nc];
     let txc = c.tx_cost_lamports as f64 / 1e9;
     let fee_of = |p: &Pool| if p.fee_bps > 0 { p.fee_bps } else { c.default_fee_bps };
     let value_of = |p: &Pool, tokens: u64| -> f64 {
@@ -460,6 +472,7 @@ pub fn simulate(ev: &Events, st: &Strategy, c: &Costs, radar_p: RadarParams, sta
         let tr = Trade { time: e.time, order: e.order, coin: e.coin, trader: e.user, buy: e.buy, sol: solf, price };
         if radar.on_trade(&tr) == Some(Signal::Promote) {
             hot.insert(e.coin);
+            diag[e.coin as usize].first_hot_time.get_or_insert(e.time - ev.window.0);
         }
         // 4) Position management for this coin (P0 first).
         if let Some(ps) = pos.get_mut(&e.coin) {
@@ -497,18 +510,38 @@ pub fn simulate(ev: &Events, st: &Strategy, c: &Costs, radar_p: RadarParams, sta
             continue;
         }
         // 5) Entry gate (rule mode, §20.1 without ML).
-        if !(real && e.buy) || !hot.contains(&e.coin) || pos.len() >= st.max_positions {
+        if !(real && e.buy) || !hot.contains(&e.coin) {
+            continue;
+        }
+        let dg = &mut diag[e.coin as usize];
+        let mut block = |r: &'static str| *dg.blocked.entry(r).or_default() += 1;
+        if pos.len() >= st.max_positions {
+            block("max_positions");
             continue;
         }
         let cst = &cs[e.coin as usize];
-        if cst.blacklisted || cst.pending || cst.last_exit.is_some_and(|t| e.time - t < st.reentry_cooldown_secs) {
+        if cst.blacklisted {
+            block("blacklisted_after_dev_sell");
+            continue;
+        }
+        if cst.pending {
+            continue;
+        }
+        if cst.last_exit.is_some_and(|t| e.time - t < st.reentry_cooldown_secs) {
+            block("reentry_cooldown");
             continue;
         }
         if cst.dev_sell_time.is_some_and(|t| e.time - t < 300) {
+            block("dev_sold_recently");
             continue;
         }
         let pool = pools[e.coin as usize];
-        if !pool.known || (pool.complete && !pool.amm) || (pool.quote_res as f64 / 1e9) < st.entry_min_quote_res_sol {
+        if !pool.known || (pool.complete && !pool.amm) {
+            block("curve_complete_waiting_amm");
+            continue;
+        }
+        if (pool.quote_res as f64 / 1e9) < st.entry_min_quote_res_sol {
+            block("low_liquidity");
             continue;
         }
         let mut buyers: Vec<u32> = Vec::new();
@@ -525,19 +558,27 @@ pub fn simulate(ev: &Events, st: &Strategy, c: &Costs, radar_p: RadarParams, sta
         }
         buyers.sort_unstable();
         buyers.dedup();
-        if buyers.len() < st.entry_buyers_60s || bs - ss < st.entry_min_flow_sol || bs <= ss {
+        if buyers.len() < st.entry_buyers_60s {
+            block("few_buyers_60s");
+            continue;
+        }
+        if bs - ss < st.entry_min_flow_sol || bs <= ss {
+            block("net_flow_not_positive");
             continue;
         }
         if ss > 0.0 && bs / ss > st.entry_max_buy_sell_ratio {
+            block("buy_sell_ratio_too_high");
             continue;
         }
         sizes.sort_by(|a, b| a.total_cmp(b));
         if sizes[sizes.len() / 2] > st.entry_max_median_buy_sol {
+            block("median_buy_too_big");
             continue;
         }
         let young = (e.time - cst.first_time) < TAU_SLOW as i64;
         let accel = ewma_at(&cst.fast, e.time as f64, TAU_FAST) / (ewma_at(&cst.slow, e.time as f64, TAU_SLOW) + 1e-9);
         if !young && accel < st.entry_min_accel {
+            block("accel_too_low");
             continue;
         }
         // Size: fraction of equity, capped by price impact (2·size/Q approximates CPMM impact).
@@ -545,8 +586,10 @@ pub fn simulate(ev: &Events, st: &Strategy, c: &Costs, radar_p: RadarParams, sta
         let q = pool.quote_res as f64 / 1e9;
         let size = (st.size_frac * equity).min(st.max_impact * q / 2.0);
         if size < 0.005 || cash < size + 3.0 * txc {
+            block("no_cash_or_size_too_small");
             continue;
         }
+        dg.entries.push((e.time - ev.window.0, size));
         cs[e.coin as usize].pending = true;
         pending.push((e.slot + c.latency_slots, Order::Buy { coin: e.coin, lamports: (size * 1e9) as u64 }));
     }
@@ -585,7 +628,26 @@ pub fn simulate(ev: &Events, st: &Strategy, c: &Costs, radar_p: RadarParams, sta
         best_trade_ret: trades.iter().map(|t| t.ret).fold(f64::NEG_INFINITY, f64::max),
         worst_trade_ret: trades.iter().map(|t| t.ret).fold(f64::INFINITY, f64::min),
         trades_list: trades,
+        diag,
     }
+}
+
+/// Marginal price after each event (quote/token reserves); curve until completion, then the AMM pool.
+pub fn price_paths(ev: &Events) -> Vec<Vec<(i64, f64)>> {
+    let mut out: Vec<Vec<(i64, f64)>> = vec![Vec::new(); ev.mints.len()];
+    let mut on_amm = vec![false; ev.mints.len()];
+    for e in &ev.evs {
+        let c = e.coin as usize;
+        if e.amm {
+            on_amm[c] = true;
+        } else if on_amm[c] {
+            continue;
+        }
+        if e.token_res > 0 {
+            out[c].push((e.time - ev.window.0, e.quote_res as f64 / e.token_res as f64));
+        }
+    }
+    out
 }
 
 /// SOL/USD close of the 1-minute candle at `unix_s` (Binance public API; accounting only).

@@ -1,0 +1,1576 @@
+{
+  "strategy": {
+    "entry_buyers_60s": 5,
+    "entry_max_buy_sell_ratio": 4.0,
+    "entry_max_median_buy_sol": 0.3,
+    "entry_min_accel": 3.0,
+    "entry_min_flow_sol": 0.0,
+    "entry_min_quote_res_sol": 5.0,
+    "hard_stop": 0.3,
+    "inactivity_secs": 90,
+    "max_impact": 0.02,
+    "max_positions": 5,
+    "mee_drawdown": 0.3,
+    "mee_fast_vs_peak": 0.25,
+    "reentry_cooldown_secs": 300,
+    "scout_secs": 180,
+    "size_frac": 0.1,
+    "trailing_only": null
+  },
+  "windows": [
+    {
+      "entry_price_vs_60s_before": {
+        "median": 1.045465046369742,
+        "p75": 1.3568736767548768,
+        "p90": 2.44459797639178
+      },
+      "final_usd": 50.11887430945002,
+      "losing_trades_by_exit": {
+        "DevSell": {
+          "n": 11,
+          "usd": -14.667674138700002
+        },
+        "EndOfWindow": {
+          "n": 2,
+          "usd": -0.3726492531
+        },
+        "HardStop": {
+          "n": 56,
+          "usd": -113.50919490840006
+        },
+        "Inactivity": {
+          "n": 8,
+          "usd": -1.9070912434500031
+        },
+        "Mee": {
+          "n": 43,
+          "usd": -17.0124356598
+        },
+        "Scout": {
+          "n": 8,
+          "usd": -3.167660428800001
+        }
+      },
+      "network_costs_usd": 18.421200000000013,
+      "recording": "data/bf_1h",
+      "tiers": [
+        {
+          "base_in_first_60s": 29,
+          "entered_any_time": 77,
+          "entered_during_run": 52,
+          "examples_11x": [],
+          "exit_reasons_in_run": {
+            "DevSell": 8,
+            "EndOfWindow": 4,
+            "HardStop": 15,
+            "Mee": 24,
+            "Scout": 1
+          },
+          "hot_before_cross30": 273,
+          "hot_only_after_cross30": 12,
+          "instant_jump_runners": 190,
+          "median_max_mult_while_held": 1.2106555604231397,
+          "median_realized_mult": 0.9747122085142894,
+          "median_run_mult": 5.814070487367453,
+          "never_hot": 6,
+          "not_entered_top_block_reason": {
+            "buy_sell_ratio_too_high": 2,
+            "dev_sold_recently": 5,
+            "few_buyers_60s": 11,
+            "low_liquidity": 4,
+            "max_positions": 210,
+            "never_hot": 6,
+            "reentry_cooldown": 1
+          },
+          "profitable_in_run": 19,
+          "runners": 291,
+          "tier": 2.0,
+          "upside_from_first_hot_to_peak": {
+            ">=10x": 11,
+            ">=2x": 159,
+            ">=5x": 28,
+            "median": 2.158077450975165,
+            "n": 279,
+            "p25": 1.661257360356454,
+            "p75": 3.0008489976950625
+          }
+        },
+        {
+          "base_in_first_60s": 6,
+          "entered_any_time": 39,
+          "entered_during_run": 29,
+          "examples_11x": [],
+          "exit_reasons_in_run": {
+            "DevSell": 5,
+            "EndOfWindow": 4,
+            "HardStop": 12,
+            "Mee": 7,
+            "Scout": 1
+          },
+          "hot_before_cross30": 95,
+          "hot_only_after_cross30": 1,
+          "instant_jump_runners": 75,
+          "median_max_mult_while_held": 1.4048410749110054,
+          "median_realized_mult": 0.9542500016566334,
+          "median_run_mult": 12.895211056223754,
+          "never_hot": 1,
+          "not_entered_top_block_reason": {
+            "buy_sell_ratio_too_high": 1,
+            "dev_sold_recently": 1,
+            "few_buyers_60s": 1,
+            "low_liquidity": 2,
+            "max_positions": 61,
+            "never_hot": 1,
+            "reentry_cooldown": 1
+          },
+          "profitable_in_run": 11,
+          "runners": 97,
+          "tier": 5.0,
+          "upside_from_first_hot_to_peak": {
+            ">=10x": 11,
+            ">=2x": 69,
+            ">=5x": 28,
+            "median": 3.747948440952355,
+            "n": 95,
+            "p25": 1.83196776131686,
+            "p75": 6.0613027059278055
+          }
+        },
+        {
+          "base_in_first_60s": 1,
+          "entered_any_time": 21,
+          "entered_during_run": 18,
+          "examples_11x": [
+            {
+              "base_t": 0,
+              "cross30_t": 1,
+              "entries": [
+                [
+                  7,
+                  0.09107997100583676
+                ]
+              ],
+              "first_hot_t": 1,
+              "mint": "ATcNwcCCrKy2gd6mJXyNeyhGXiPU9meAU5K3BeUtpump",
+              "peak_t": 43,
+              "run": 19.24043174670022,
+              "top_blocks": {
+                "few_buyers_60s": 9,
+                "max_positions": 93,
+                "reentry_cooldown": 4
+              },
+              "trades": [
+                {
+                  "entry_t": 7,
+                  "exit_t": 10,
+                  "max_mult_held": 1.0,
+                  "reason": "HardStop",
+                  "ret": -0.6319837133745404
+                }
+              ]
+            },
+            {
+              "base_t": 66,
+              "cross30_t": 67,
+              "entries": [],
+              "first_hot_t": 66,
+              "mint": "2hrFufwiUa51RBCJ8sgcAGV736VoPspaChtV9E5ypump",
+              "peak_t": 295,
+              "run": 12.172059621894702,
+              "top_blocks": {
+                "few_buyers_60s": 3,
+                "low_liquidity": 10,
+                "max_positions": 60
+              },
+              "trades": null
+            },
+            {
+              "base_t": 181,
+              "cross30_t": 182,
+              "entries": [],
+              "first_hot_t": 148,
+              "mint": "6tZHBy4v59KBzEGZ2TMHuocadg15VJExZVZzpfHspump",
+              "peak_t": 208,
+              "run": 14.398756893163245,
+              "top_blocks": {
+                "dev_sold_recently": 2,
+                "max_positions": 91
+              },
+              "trades": null
+            },
+            {
+              "base_t": 148,
+              "cross30_t": 148,
+              "entries": [
+                [
+                  214,
+                  0.0793324304058368
+                ]
+              ],
+              "first_hot_t": 148,
+              "mint": "8A9Eh2jcu84igP9H8g448FxMuKd8JF5iVmrP7ARVpump",
+              "peak_t": 717,
+              "run": 12.579602714883686,
+              "top_blocks": {
+                "accel_too_low": 347,
+                "max_positions": 3403,
+                "median_buy_too_big": 2,
+                "net_flow_not_positive": 460,
+                "reentry_cooldown": 215
+              },
+              "trades": [
+                {
+                  "entry_t": 214,
+                  "exit_t": 228,
+                  "max_mult_held": 1.0,
+                  "reason": "HardStop",
+                  "ret": -0.20840253431895442
+                }
+              ]
+            },
+            {
+              "base_t": 279,
+              "cross30_t": 280,
+              "entries": [],
+              "first_hot_t": 263,
+              "mint": "7uBJ3E7Bg2pAP6Kdt6kGpMcJE2ZZSjC5mbCTQWbpump",
+              "peak_t": 320,
+              "run": 17.599388866179154,
+              "top_blocks": {
+                "dev_sold_recently": 5,
+                "few_buyers_60s": 1,
+                "max_positions": 55
+              },
+              "trades": null
+            },
+            {
+              "base_t": 276,
+              "cross30_t": 293,
+              "entries": [],
+              "first_hot_t": 276,
+              "mint": "4qc4AMSL6NFkkX3AeYbAf2NV9bNH7LvorhRkufxvpump",
+              "peak_t": 324,
+              "run": 20.05014635663982,
+              "top_blocks": {
+                "buy_sell_ratio_too_high": 1,
+                "dev_sold_recently": 7,
+                "max_positions": 134,
+                "net_flow_not_positive": 8
+              },
+              "trades": null
+            },
+            {
+              "base_t": 295,
+              "cross30_t": 295,
+              "entries": [],
+              "first_hot_t": 295,
+              "mint": "DmBSq4t78VP55FLGNM5s23idoMLGJaW98ZzrXe9Xpump",
+              "peak_t": 300,
+              "run": 14.431113674800601,
+              "top_blocks": {
+                "max_positions": 34
+              },
+              "trades": null
+            },
+            {
+              "base_t": 296,
+              "cross30_t": 299,
+              "entries": [
+                [
+                  372,
+                  0.06777633870583678
+                ]
+              ],
+              "first_hot_t": 296,
+              "mint": "4n8neQiebzNJhoTaiDY5Cx9PeeE2UwE2R4wN1P4mpump",
+              "peak_t": 374,
+              "run": 20.518592151235946,
+              "top_blocks": {
+                "blacklisted_after_dev_sell": 4,
+                "max_positions": 48
+              },
+              "trades": [
+                {
+                  "entry_t": 373,
+                  "exit_t": 377,
+                  "max_mult_held": 1.58764344866198,
+                  "reason": "DevSell",
+                  "ret": 0.30070096200818347
+                }
+              ]
+            },
+            {
+              "base_t": 347,
+              "cross30_t": 348,
+              "entries": [],
+              "first_hot_t": 343,
+              "mint": "3GvHDXuSJTp7GHEecjqnRYdSE8uL3gsy5QqC7wB6pump",
+              "peak_t": 444,
+              "run": 30.111050449702812,
+              "top_blocks": {
+                "dev_sold_recently": 59,
+                "few_buyers_60s": 2,
+                "max_positions": 246
+              },
+              "trades": null
+            },
+            {
+              "base_t": 451,
+              "cross30_t": 453,
+              "entries": [],
+              "first_hot_t": 434,
+              "mint": "47FGgwpMJZVibDuudqedW69NEe3mnVPMBAsboMWfpump",
+              "peak_t": 474,
+              "run": 25.42707970554103,
+              "top_blocks": {
+                "few_buyers_60s": 1,
+                "max_positions": 31
+              },
+              "trades": null
+            },
+            {
+              "base_t": 494,
+              "cross30_t": 494,
+              "entries": [
+                [
+                  570,
+                  0.053663660605836785
+                ]
+              ],
+              "first_hot_t": 494,
+              "mint": "u7XNK4pbxXgWzBwqidDV2TtsXwLqqxtjmGfw1H8pump",
+              "peak_t": 1962,
+              "run": 3898.529059847361,
+              "top_blocks": {
+                "buy_sell_ratio_too_high": 15,
+                "few_buyers_60s": 9,
+                "max_positions": 189,
+                "median_buy_too_big": 28,
+                "net_flow_not_positive": 6,
+                "reentry_cooldown": 13
+              },
+              "trades": [
+                {
+                  "entry_t": 571,
+                  "exit_t": 754,
+                  "max_mult_held": 1.0036785228588583,
+                  "reason": "Scout",
+                  "ret": -0.014424518958298898
+                }
+              ]
+            },
+            {
+              "base_t": 518,
+              "cross30_t": 519,
+              "entries": [
+                [
+                  521,
+                  0.055268217705836786
+                ]
+              ],
+              "first_hot_t": 503,
+              "mint": "7nS9vPNwauYyc8oWfJTiyHSfFCYXLZxtkn2NV4Aopump",
+              "peak_t": 545,
+              "run": 12.895211056223754,
+              "top_blocks": {
+                "few_buyers_60s": 4,
+                "low_liquidity": 1,
+                "max_positions": 49,
+                "reentry_cooldown": 23
+              },
+              "trades": [
+                {
+                  "entry_t": 522,
+                  "exit_t": 561,
+                  "max_mult_held": 5.844266913839467,
+                  "reason": "HardStop",
+                  "ret": -0.3543603309840083
+                }
+              ]
+            }
+          ],
+          "exit_reasons_in_run": {
+            "DevSell": 3,
+            "EndOfWindow": 4,
+            "HardStop": 6,
+            "Mee": 4,
+            "Scout": 1
+          },
+          "hot_before_cross30": 38,
+          "hot_only_after_cross30": 0,
+          "instant_jump_runners": 33,
+          "median_max_mult_while_held": 1.58764344866198,
+          "median_realized_mult": 1.1294111861552039,
+          "median_run_mult": 21.11603392560215,
+          "never_hot": 0,
+          "not_entered_top_block_reason": {
+            "buy_sell_ratio_too_high": 1,
+            "low_liquidity": 1,
+            "max_positions": 18
+          },
+          "profitable_in_run": 9,
+          "runners": 38,
+          "tier": 11.0,
+          "upside_from_first_hot_to_peak": {
+            ">=10x": 11,
+            ">=2x": 26,
+            ">=5x": 19,
+            "median": 6.2716673979954525,
+            "n": 37,
+            "p25": 1.481930829491078,
+            "p75": 10.569284109150916
+          }
+        }
+      ],
+      "trades": 156,
+      "venue_fees_est_usd": 17.74919123855624
+    },
+    {
+      "entry_price_vs_60s_before": {
+        "median": 1.104497319948203,
+        "p75": 1.3456963215402438,
+        "p90": 2.1639080297330304
+      },
+      "final_usd": 49.79214573959004,
+      "losing_trades_by_exit": {
+        "DevSell": {
+          "n": 7,
+          "usd": -11.1837912543
+        },
+        "EndOfWindow": {
+          "n": 3,
+          "usd": -0.6401727383799993
+        },
+        "HardStop": {
+          "n": 32,
+          "usd": -77.19017137258
+        },
+        "Inactivity": {
+          "n": 13,
+          "usd": -6.417084753589998
+        },
+        "Mee": {
+          "n": 59,
+          "usd": -41.42603486917001
+        },
+        "Scout": {
+          "n": 3,
+          "usd": -0.8251590622800011
+        }
+      },
+      "network_costs_usd": 18.624305000000014,
+      "recording": "data/h1d",
+      "tiers": [
+        {
+          "base_in_first_60s": 20,
+          "entered_any_time": 65,
+          "entered_during_run": 43,
+          "examples_11x": [],
+          "exit_reasons_in_run": {
+            "DevSell": 5,
+            "EndOfWindow": 1,
+            "HardStop": 8,
+            "Mee": 30
+          },
+          "hot_before_cross30": 277,
+          "hot_only_after_cross30": 6,
+          "instant_jump_runners": 177,
+          "median_max_mult_while_held": 1.378285928595263,
+          "median_realized_mult": 1.0239731184391303,
+          "median_run_mult": 5.098159068120337,
+          "never_hot": 1,
+          "not_entered_top_block_reason": {
+            "buy_sell_ratio_too_high": 1,
+            "dev_sold_recently": 4,
+            "few_buyers_60s": 7,
+            "max_positions": 226,
+            "median_buy_too_big": 2,
+            "never_hot": 1
+          },
+          "profitable_in_run": 22,
+          "runners": 284,
+          "tier": 2.0,
+          "upside_from_first_hot_to_peak": {
+            ">=10x": 9,
+            ">=2x": 173,
+            ">=5x": 32,
+            "median": 2.2619843398161317,
+            "n": 276,
+            "p25": 1.6498834362248498,
+            "p75": 3.3232209398695796
+          }
+        },
+        {
+          "base_in_first_60s": 4,
+          "entered_any_time": 25,
+          "entered_during_run": 21,
+          "examples_11x": [],
+          "exit_reasons_in_run": {
+            "DevSell": 3,
+            "EndOfWindow": 1,
+            "HardStop": 7,
+            "Mee": 11
+          },
+          "hot_before_cross30": 85,
+          "hot_only_after_cross30": 3,
+          "instant_jump_runners": 69,
+          "median_max_mult_while_held": 1.7328719656931717,
+          "median_realized_mult": 1.0040295191004984,
+          "median_run_mult": 8.618049183624203,
+          "never_hot": 0,
+          "not_entered_top_block_reason": {
+            "dev_sold_recently": 3,
+            "max_positions": 64
+          },
+          "profitable_in_run": 9,
+          "runners": 88,
+          "tier": 5.0,
+          "upside_from_first_hot_to_peak": {
+            ">=10x": 9,
+            ">=2x": 78,
+            ">=5x": 32,
+            "median": 3.8019268191314466,
+            "n": 88,
+            "p25": 2.603445016918716,
+            "p75": 5.609449159154165
+          }
+        },
+        {
+          "base_in_first_60s": 3,
+          "entered_any_time": 11,
+          "entered_during_run": 10,
+          "examples_11x": [
+            {
+              "base_t": 1,
+              "cross30_t": 1,
+              "entries": [],
+              "first_hot_t": 3,
+              "mint": "3PyDjuHvjB7eSqdXDJkjQo3LyzYaV7eyKVwkrVDepump",
+              "peak_t": 35,
+              "run": 34.554870087138745,
+              "top_blocks": {
+                "low_liquidity": 1,
+                "max_positions": 143
+              },
+              "trades": null
+            },
+            {
+              "base_t": 23,
+              "cross30_t": 30,
+              "entries": [],
+              "first_hot_t": 0,
+              "mint": "5MS2zt6GU3KU4r8qn2gZc8W2yKdtPkLVxFDRe8WJpump",
+              "peak_t": 2210,
+              "run": 13.972771887709904,
+              "top_blocks": {
+                "max_positions": 6381,
+                "median_buy_too_big": 1145,
+                "net_flow_not_positive": 372
+              },
+              "trades": null
+            },
+            {
+              "base_t": 20,
+              "cross30_t": 20,
+              "entries": [],
+              "first_hot_t": 20,
+              "mint": "EcvBm1MDtbczzhums87Kz3GA9YFFkHNygS5QQKQepump",
+              "peak_t": 2229,
+              "run": 361.9984617306787,
+              "top_blocks": {
+                "accel_too_low": 103,
+                "buy_sell_ratio_too_high": 10,
+                "max_positions": 478,
+                "median_buy_too_big": 1
+              },
+              "trades": null
+            },
+            {
+              "base_t": 118,
+              "cross30_t": 118,
+              "entries": [],
+              "first_hot_t": 118,
+              "mint": "ApnjkRk27LpppFF5AD6XVycdwHnEeEGKtCk6Sqaqpump",
+              "peak_t": 2228,
+              "run": 30.633457168955655,
+              "top_blocks": {
+                "accel_too_low": 81,
+                "buy_sell_ratio_too_high": 155,
+                "max_positions": 923
+              },
+              "trades": null
+            },
+            {
+              "base_t": 176,
+              "cross30_t": 176,
+              "entries": [
+                [
+                  285,
+                  0.0887503224037004
+                ]
+              ],
+              "first_hot_t": 176,
+              "mint": "CubFbC9LjCEbRE2mGkie35pUMZDWvpyPCo9o4wNrpump",
+              "peak_t": 434,
+              "run": 18.32297941558245,
+              "top_blocks": {
+                "buy_sell_ratio_too_high": 2,
+                "few_buyers_60s": 7,
+                "max_positions": 565,
+                "median_buy_too_big": 10,
+                "net_flow_not_positive": 9,
+                "reentry_cooldown": 27
+              },
+              "trades": [
+                {
+                  "entry_t": 286,
+                  "exit_t": 303,
+                  "max_mult_held": 1.0,
+                  "reason": "HardStop",
+                  "ret": -0.23933654522153144
+                }
+              ]
+            },
+            {
+              "base_t": 334,
+              "cross30_t": 336,
+              "entries": [],
+              "first_hot_t": 259,
+              "mint": "9Nhx3YGAz9AbMNnBxyV8pP5FjazJF1eSmnMrTDATpump",
+              "peak_t": 426,
+              "run": 18.314425167985767,
+              "top_blocks": {
+                "few_buyers_60s": 3,
+                "max_positions": 76
+              },
+              "trades": null
+            },
+            {
+              "base_t": 342,
+              "cross30_t": 342,
+              "entries": [
+                [
+                  398,
+                  0.0687370762037004
+                ]
+              ],
+              "first_hot_t": 342,
+              "mint": "DH9BUP3BCwEMfYLt5SWnggX7G71eZaS2sf6UEXARpump",
+              "peak_t": 1811,
+              "run": 17.509922174843332,
+              "top_blocks": {
+                "accel_too_low": 75,
+                "buy_sell_ratio_too_high": 34,
+                "max_positions": 1118,
+                "median_buy_too_big": 9,
+                "net_flow_not_positive": 161,
+                "reentry_cooldown": 59
+              },
+              "trades": [
+                {
+                  "entry_t": 398,
+                  "exit_t": 999,
+                  "max_mult_held": 2.362195956662457,
+                  "reason": "Mee",
+                  "ret": 0.19908670962917918
+                }
+              ]
+            },
+            {
+              "base_t": 502,
+              "cross30_t": 503,
+              "entries": [],
+              "first_hot_t": 491,
+              "mint": "DTKH4wy8Ym3MMsRjtGCcPAZ5Da7GxGbjpwqzfBWapump",
+              "peak_t": 527,
+              "run": 16.6345874706919,
+              "top_blocks": {
+                "dev_sold_recently": 2,
+                "max_positions": 27
+              },
+              "trades": null
+            },
+            {
+              "base_t": 601,
+              "cross30_t": 602,
+              "entries": [],
+              "first_hot_t": 597,
+              "mint": "D9LfvaaUNg8s8ic4dDgMAa1aAxFaqbr8nRZwapgjpump",
+              "peak_t": 623,
+              "run": 11.51079348074048,
+              "top_blocks": {
+                "max_positions": 34
+              },
+              "trades": null
+            },
+            {
+              "base_t": 701,
+              "cross30_t": 701,
+              "entries": [],
+              "first_hot_t": 701,
+              "mint": "EKxmzoB4SyeNdain1XwShFJ5Zixuf16EkepUQsd5pump",
+              "peak_t": 765,
+              "run": 37.66652755072311,
+              "top_blocks": {
+                "buy_sell_ratio_too_high": 30,
+                "max_positions": 231,
+                "median_buy_too_big": 3,
+                "net_flow_not_positive": 1
+              },
+              "trades": null
+            },
+            {
+              "base_t": 779,
+              "cross30_t": 779,
+              "entries": [],
+              "first_hot_t": 779,
+              "mint": "EonLn1hVrWnsJVyncMnbPVnxoFWtv9YpL8EmsdWpump",
+              "peak_t": 1526,
+              "run": 12.26891032912583,
+              "top_blocks": {
+                "accel_too_low": 31,
+                "buy_sell_ratio_too_high": 44,
+                "dev_sold_recently": 1,
+                "few_buyers_60s": 4,
+                "max_positions": 329,
+                "median_buy_too_big": 4,
+                "net_flow_not_positive": 4
+              },
+              "trades": null
+            },
+            {
+              "base_t": 1012,
+              "cross30_t": 1014,
+              "entries": [],
+              "first_hot_t": 866,
+              "mint": "HCZUtG5xvgyF4mrRJHvQJ8iWBTrS3FezSWyZWU7Apump",
+              "peak_t": 1137,
+              "run": 18.223296643814447,
+              "top_blocks": {
+                "dev_sold_recently": 1,
+                "few_buyers_60s": 2,
+                "max_positions": 14
+              },
+              "trades": null
+            }
+          ],
+          "exit_reasons_in_run": {
+            "DevSell": 1,
+            "EndOfWindow": 1,
+            "HardStop": 4,
+            "Mee": 4
+          },
+          "hot_before_cross30": 32,
+          "hot_only_after_cross30": 1,
+          "instant_jump_runners": 31,
+          "median_max_mult_while_held": 2.3335555263732832,
+          "median_realized_mult": 1.2165312501800338,
+          "median_run_mult": 18.32297941558245,
+          "never_hot": 0,
+          "not_entered_top_block_reason": {
+            "dev_sold_recently": 1,
+            "max_positions": 22
+          },
+          "profitable_in_run": 5,
+          "runners": 33,
+          "tier": 11.0,
+          "upside_from_first_hot_to_peak": {
+            ">=10x": 9,
+            ">=2x": 29,
+            ">=5x": 17,
+            "median": 5.352916550623235,
+            "n": 33,
+            "p25": 3.210861589051066,
+            "p75": 10.411116091907767
+          }
+        }
+      ],
+      "trades": 157,
+      "venue_fees_est_usd": 23.885008333432747
+    },
+    {
+      "entry_price_vs_60s_before": {
+        "median": 1.1059368370399907,
+        "p75": 1.4643421715830718,
+        "p90": 2.4617599903481615
+      },
+      "final_usd": 15.608591661490024,
+      "losing_trades_by_exit": {
+        "DevSell": {
+          "n": 5,
+          "usd": -7.358057621670001
+        },
+        "HardStop": {
+          "n": 23,
+          "usd": -81.64954299222
+        },
+        "Inactivity": {
+          "n": 2,
+          "usd": -0.5569410749699997
+        },
+        "Mee": {
+          "n": 19,
+          "usd": -10.939301910390004
+        },
+        "Scout": {
+          "n": 2,
+          "usd": -0.28883483979000024
+        }
+      },
+      "network_costs_usd": 7.661535000000005,
+      "recording": "data/h7d",
+      "tiers": [
+        {
+          "base_in_first_60s": 16,
+          "entered_any_time": 29,
+          "entered_during_run": 23,
+          "examples_11x": [],
+          "exit_reasons_in_run": {
+            "DevSell": 2,
+            "EndOfWindow": 1,
+            "HardStop": 12,
+            "Mee": 8,
+            "Scout": 1
+          },
+          "hot_before_cross30": 291,
+          "hot_only_after_cross30": 7,
+          "instant_jump_runners": 222,
+          "median_max_mult_while_held": 1.642784316586748,
+          "median_realized_mult": 0.73268997475686,
+          "median_run_mult": 10.53582792598578,
+          "never_hot": 3,
+          "not_entered_top_block_reason": {
+            "accel_too_low": 6,
+            "buy_sell_ratio_too_high": 14,
+            "dev_sold_recently": 18,
+            "few_buyers_60s": 51,
+            "low_liquidity": 3,
+            "max_positions": 147,
+            "median_buy_too_big": 23,
+            "net_flow_not_positive": 4,
+            "never_hot": 3,
+            "no_cash_or_size_too_small": 9
+          },
+          "profitable_in_run": 6,
+          "runners": 301,
+          "tier": 2.0,
+          "upside_from_first_hot_to_peak": {
+            ">=10x": 11,
+            ">=2x": 165,
+            ">=5x": 33,
+            "median": 2.094389893566893,
+            "n": 298,
+            "p25": 1.5716294309377745,
+            "p75": 3.0455491111304682
+          }
+        },
+        {
+          "base_in_first_60s": 8,
+          "entered_any_time": 17,
+          "entered_during_run": 16,
+          "examples_11x": [],
+          "exit_reasons_in_run": {
+            "DevSell": 1,
+            "EndOfWindow": 1,
+            "HardStop": 10,
+            "Mee": 4,
+            "Scout": 1
+          },
+          "hot_before_cross30": 86,
+          "hot_only_after_cross30": 5,
+          "instant_jump_runners": 75,
+          "median_max_mult_while_held": 1.513840940956856,
+          "median_realized_mult": 0.6499440166512183,
+          "median_run_mult": 20.019041994030857,
+          "never_hot": 1,
+          "not_entered_top_block_reason": {
+            "accel_too_low": 4,
+            "buy_sell_ratio_too_high": 3,
+            "dev_sold_recently": 6,
+            "few_buyers_60s": 11,
+            "low_liquidity": 1,
+            "max_positions": 37,
+            "median_buy_too_big": 5,
+            "net_flow_not_positive": 3,
+            "never_hot": 1,
+            "no_cash_or_size_too_small": 5
+          },
+          "profitable_in_run": 4,
+          "runners": 92,
+          "tier": 5.0,
+          "upside_from_first_hot_to_peak": {
+            ">=10x": 11,
+            ">=2x": 72,
+            ">=5x": 33,
+            "median": 3.6653128663709724,
+            "n": 91,
+            "p25": 2.2987348097623195,
+            "p75": 6.656746521721311
+          }
+        },
+        {
+          "base_in_first_60s": 3,
+          "entered_any_time": 10,
+          "entered_during_run": 10,
+          "examples_11x": [
+            {
+              "base_t": 4,
+              "cross30_t": 7,
+              "entries": [],
+              "first_hot_t": 13,
+              "mint": "2bKMsf9qmdr969KsxFJn8FUwCoK3onBUZ1HgPxisnjcF",
+              "peak_t": 48,
+              "run": 90.95096202460483,
+              "top_blocks": {
+                "max_positions": 36
+              },
+              "trades": null
+            },
+            {
+              "base_t": 1,
+              "cross30_t": 32,
+              "entries": [],
+              "first_hot_t": 60,
+              "mint": "CCW3ZKn5YGUyBG9QsJdsGWdUAJ94obeQH2LTTpCNpump",
+              "peak_t": 99,
+              "run": 67.70618573412918,
+              "top_blocks": {
+                "low_liquidity": 1,
+                "max_positions": 146
+              },
+              "trades": null
+            },
+            {
+              "base_t": 48,
+              "cross30_t": 52,
+              "entries": [],
+              "first_hot_t": 14,
+              "mint": "Ecx3MyE4GcB94rjSUP1S1izcz4FMR2bcVGmCWQXqpump",
+              "peak_t": 127,
+              "run": 14.208672339115642,
+              "top_blocks": {
+                "max_positions": 76
+              },
+              "trades": null
+            },
+            {
+              "base_t": 65,
+              "cross30_t": 116,
+              "entries": [],
+              "first_hot_t": 31,
+              "mint": "DDoW8iHh3fBULNi5uMBxb6vNdtixN61Z4CBoHwqipump",
+              "peak_t": 135,
+              "run": 91.53923021694963,
+              "top_blocks": {
+                "dev_sold_recently": 1,
+                "max_positions": 132
+              },
+              "trades": null
+            },
+            {
+              "base_t": 126,
+              "cross30_t": 127,
+              "entries": [
+                [
+                  143,
+                  0.08271298789739252
+                ]
+              ],
+              "first_hot_t": 88,
+              "mint": "6fTANB2Jxbm7na8ZSmGMzrNuyenbGubdswn1in3r2kN1",
+              "peak_t": 174,
+              "run": 28.936636888422736,
+              "top_blocks": {
+                "max_positions": 33
+              },
+              "trades": [
+                {
+                  "entry_t": 143,
+                  "exit_t": 176,
+                  "max_mult_held": 2.5663300492339856,
+                  "reason": "DevSell",
+                  "ret": -0.35781994017248486
+                }
+              ]
+            },
+            {
+              "base_t": 93,
+              "cross30_t": 94,
+              "entries": [],
+              "first_hot_t": 90,
+              "mint": "25ASQhDeqN6fbTZBStiLbpBZgRMDBpE71LLhsWDKpump",
+              "peak_t": 113,
+              "run": 27.13724690405282,
+              "top_blocks": {
+                "max_positions": 27
+              },
+              "trades": null
+            },
+            {
+              "base_t": 173,
+              "cross30_t": 173,
+              "entries": [
+                [
+                  394,
+                  0.05278403889739253
+                ]
+              ],
+              "first_hot_t": 173,
+              "mint": "FHJz7bUCRWT5VAeN81gorzLLajFEdDng5d7ZAg9zjpjJ",
+              "peak_t": 1240,
+              "run": 20.45318371472792,
+              "top_blocks": {
+                "buy_sell_ratio_too_high": 1,
+                "few_buyers_60s": 1,
+                "max_positions": 59,
+                "median_buy_too_big": 2,
+                "reentry_cooldown": 1
+              },
+              "trades": [
+                {
+                  "entry_t": 395,
+                  "exit_t": 1241,
+                  "max_mult_held": 2.3464320975216033,
+                  "reason": "HardStop",
+                  "ret": -0.8763315614197654
+                }
+              ]
+            },
+            {
+              "base_t": 325,
+              "cross30_t": 325,
+              "entries": [
+                [
+                  441,
+                  0.056975173197392516
+                ]
+              ],
+              "first_hot_t": 325,
+              "mint": "G9U1BFePPWPmcegmbWoRyxVY9A6Zwyjoa51HFCMYW3UP",
+              "peak_t": 475,
+              "run": 13.725991986306793,
+              "top_blocks": {
+                "few_buyers_60s": 8,
+                "max_positions": 1071,
+                "median_buy_too_big": 17,
+                "net_flow_not_positive": 8,
+                "reentry_cooldown": 57
+              },
+              "trades": [
+                {
+                  "entry_t": 442,
+                  "exit_t": 537,
+                  "max_mult_held": 1.6498673202800105,
+                  "reason": "HardStop",
+                  "ret": -0.19287090355038694
+                }
+              ]
+            },
+            {
+              "base_t": 364,
+              "cross30_t": 365,
+              "entries": [
+                [
+                  358,
+                  0.05344976239739252
+                ]
+              ],
+              "first_hot_t": 350,
+              "mint": "8gQTYYcYzNbXKBQTdWK3x37bvb4iqMBVgnatei8Spump",
+              "peak_t": 379,
+              "run": 20.019041994030857,
+              "top_blocks": {
+                "max_positions": 47,
+                "reentry_cooldown": 1
+              },
+              "trades": [
+                {
+                  "entry_t": 359,
+                  "exit_t": 363,
+                  "max_mult_held": 1.513840940956856,
+                  "reason": "HardStop",
+                  "ret": -0.3947671617003578
+                }
+              ]
+            },
+            {
+              "base_t": 367,
+              "cross30_t": 367,
+              "entries": [
+                [
+                  393,
+                  0.05339477959739252
+                ]
+              ],
+              "first_hot_t": 367,
+              "mint": "9Cjuz8r2RkYY1RmJJ9rHpY2StfwMGpGbzvs15MUTpump",
+              "peak_t": 1356,
+              "run": 14.9933345421289,
+              "top_blocks": {
+                "buy_sell_ratio_too_high": 152,
+                "few_buyers_60s": 3,
+                "max_positions": 175
+              },
+              "trades": null
+            },
+            {
+              "base_t": 414,
+              "cross30_t": 416,
+              "entries": [],
+              "first_hot_t": 402,
+              "mint": "EFA9gSiaVp2Jp1fEwq99nTk7zBBdH9aobMt692K6pump",
+              "peak_t": 457,
+              "run": 32.374836056345536,
+              "top_blocks": {
+                "max_positions": 53
+              },
+              "trades": null
+            },
+            {
+              "base_t": 440,
+              "cross30_t": 594,
+              "entries": [],
+              "first_hot_t": 440,
+              "mint": "9wc2gqjJXp3wEi2gQQu22i5BYy3fetgvaLCEN2CJWB3h",
+              "peak_t": 1388,
+              "run": 11.308787776684218,
+              "top_blocks": {
+                "accel_too_low": 283,
+                "buy_sell_ratio_too_high": 11,
+                "few_buyers_60s": 2,
+                "max_positions": 276,
+                "median_buy_too_big": 47,
+                "net_flow_not_positive": 171,
+                "no_cash_or_size_too_small": 6
+              },
+              "trades": null
+            }
+          ],
+          "exit_reasons_in_run": {
+            "DevSell": 1,
+            "EndOfWindow": 1,
+            "HardStop": 5,
+            "Mee": 2,
+            "Scout": 1
+          },
+          "hot_before_cross30": 31,
+          "hot_only_after_cross30": 2,
+          "instant_jump_runners": 25,
+          "median_max_mult_while_held": 2.052786461999159,
+          "median_realized_mult": 0.8212954263429793,
+          "median_run_mult": 28.936636888422736,
+          "never_hot": 0,
+          "not_entered_top_block_reason": {
+            "accel_too_low": 3,
+            "buy_sell_ratio_too_high": 2,
+            "dev_sold_recently": 2,
+            "few_buyers_60s": 3,
+            "max_positions": 11,
+            "median_buy_too_big": 1,
+            "no_cash_or_size_too_small": 1
+          },
+          "profitable_in_run": 3,
+          "runners": 33,
+          "tier": 11.0,
+          "upside_from_first_hot_to_peak": {
+            ">=10x": 11,
+            ">=2x": 26,
+            ">=5x": 17,
+            "median": 5.560861109476276,
+            "n": 33,
+            "p25": 2.019210195549992,
+            "p75": 11.421668411831059
+          }
+        }
+      ],
+      "trades": 62,
+      "venue_fees_est_usd": 10.11231946902975
+    },
+    {
+      "entry_price_vs_60s_before": {
+        "median": 1.0545531191333977,
+        "p75": 1.2823238456618022,
+        "p90": 2.1851450313444074
+      },
+      "final_usd": 42.55667127920005,
+      "losing_trades_by_exit": {
+        "DevSell": {
+          "n": 6,
+          "usd": -15.202973129520002
+        },
+        "HardStop": {
+          "n": 17,
+          "usd": -42.870324783399994
+        },
+        "Inactivity": {
+          "n": 8,
+          "usd": -2.618304471639998
+        },
+        "Mee": {
+          "n": 23,
+          "usd": -21.29675218112001
+        },
+        "Scout": {
+          "n": 1,
+          "usd": -0.22227446295000033
+        }
+      },
+      "network_costs_usd": 7.931770000000006,
+      "recording": "data/h30d",
+      "tiers": [
+        {
+          "base_in_first_60s": 13,
+          "entered_any_time": 32,
+          "entered_during_run": 19,
+          "examples_11x": [],
+          "exit_reasons_in_run": {
+            "DevSell": 4,
+            "EndOfWindow": 1,
+            "HardStop": 4,
+            "Mee": 10
+          },
+          "hot_before_cross30": 226,
+          "hot_only_after_cross30": 4,
+          "instant_jump_runners": 165,
+          "median_max_mult_while_held": 1.2635049621823748,
+          "median_realized_mult": 1.072772549160434,
+          "median_run_mult": 5.798633563815893,
+          "never_hot": 3,
+          "not_entered_top_block_reason": {
+            "buy_sell_ratio_too_high": 1,
+            "dev_sold_recently": 20,
+            "few_buyers_60s": 2,
+            "low_liquidity": 1,
+            "max_positions": 177,
+            "median_buy_too_big": 5,
+            "net_flow_not_positive": 3,
+            "never_hot": 3,
+            "no_cash_or_size_too_small": 2
+          },
+          "profitable_in_run": 10,
+          "runners": 233,
+          "tier": 2.0,
+          "upside_from_first_hot_to_peak": {
+            ">=10x": 12,
+            ">=2x": 110,
+            ">=5x": 30,
+            "median": 1.973754696697197,
+            "n": 224,
+            "p25": 1.5113798485313918,
+            "p75": 3.0614679993091665
+          }
+        },
+        {
+          "base_in_first_60s": 4,
+          "entered_any_time": 16,
+          "entered_during_run": 12,
+          "examples_11x": [],
+          "exit_reasons_in_run": {
+            "DevSell": 2,
+            "EndOfWindow": 1,
+            "HardStop": 4,
+            "Mee": 5
+          },
+          "hot_before_cross30": 80,
+          "hot_only_after_cross30": 2,
+          "instant_jump_runners": 67,
+          "median_max_mult_while_held": 1.225359963007384,
+          "median_realized_mult": 0.9215207922866325,
+          "median_run_mult": 17.588884108368884,
+          "never_hot": 2,
+          "not_entered_top_block_reason": {
+            "dev_sold_recently": 6,
+            "few_buyers_60s": 2,
+            "low_liquidity": 1,
+            "max_positions": 58,
+            "net_flow_not_positive": 2,
+            "never_hot": 2,
+            "no_cash_or_size_too_small": 1
+          },
+          "profitable_in_run": 5,
+          "runners": 84,
+          "tier": 5.0,
+          "upside_from_first_hot_to_peak": {
+            ">=10x": 12,
+            ">=2x": 53,
+            ">=5x": 30,
+            "median": 3.472798761023193,
+            "n": 82,
+            "p25": 1.6068885365558085,
+            "p75": 6.053323104093695
+          }
+        },
+        {
+          "base_in_first_60s": 4,
+          "entered_any_time": 8,
+          "entered_during_run": 7,
+          "examples_11x": [
+            {
+              "base_t": 10,
+              "cross30_t": 16,
+              "entries": [],
+              "first_hot_t": 1,
+              "mint": "6vq1kg5GTSLMmqQWwcLMbEEnmgZLbarQuEMvaUyTpump",
+              "peak_t": 33,
+              "run": 16.57118529650651,
+              "top_blocks": {
+                "low_liquidity": 12,
+                "max_positions": 172
+              },
+              "trades": null
+            },
+            {
+              "base_t": 21,
+              "cross30_t": 25,
+              "entries": [
+                [
+                  4,
+                  0.09691750629673819
+                ]
+              ],
+              "first_hot_t": 1,
+              "mint": "D6ka9GpWvM1jySBgQUpLy6Pbe9pTP3tdDUBXuu42pump",
+              "peak_t": 582,
+              "run": 24.637438839130677,
+              "top_blocks": {
+                "accel_too_low": 407,
+                "few_buyers_60s": 2,
+                "max_positions": 4995,
+                "net_flow_not_positive": 566,
+                "reentry_cooldown": 32
+              },
+              "trades": [
+                {
+                  "entry_t": 5,
+                  "exit_t": 22,
+                  "max_mult_held": 1.2418737539531817,
+                  "reason": "Mee",
+                  "ret": -0.21591925554149635
+                }
+              ]
+            },
+            {
+              "base_t": 380,
+              "cross30_t": 380,
+              "entries": [],
+              "first_hot_t": null,
+              "mint": "HDe4qcjpT24uHE59Qtsfi54fwkYKaMLhHH9te39Rpump",
+              "peak_t": 1908,
+              "run": 26.718905591812135,
+              "top_blocks": {},
+              "trades": null
+            },
+            {
+              "base_t": 36,
+              "cross30_t": 36,
+              "entries": [],
+              "first_hot_t": 39,
+              "mint": "525gRjXkp68S21U31XDYnYqBoYco8A5YR5CzQEGxpump",
+              "peak_t": 51,
+              "run": 24.887489103012854,
+              "top_blocks": {
+                "dev_sold_recently": 1,
+                "max_positions": 139
+              },
+              "trades": null
+            },
+            {
+              "base_t": 60,
+              "cross30_t": 62,
+              "entries": [
+                [
+                  76,
+                  0.09500763669673822
+                ]
+              ],
+              "first_hot_t": 67,
+              "mint": "5HJvCg1DjjBtFxo5iGaEJ4W5qHVByp5ac64YGFkGpump",
+              "peak_t": 152,
+              "run": 53.97690492523276,
+              "top_blocks": {
+                "blacklisted_after_dev_sell": 29,
+                "max_positions": 381
+              },
+              "trades": [
+                {
+                  "entry_t": 77,
+                  "exit_t": 80,
+                  "max_mult_held": 1.3751518246386005,
+                  "reason": "DevSell",
+                  "ret": -0.08807761915937612
+                }
+              ]
+            },
+            {
+              "base_t": 51,
+              "cross30_t": 51,
+              "entries": [],
+              "first_hot_t": 51,
+              "mint": "VQjTFqvH3MqXv9oEREGV8YTkMyq2ra59u6BzNh8pump",
+              "peak_t": 2606,
+              "run": 22.690072649856855,
+              "top_blocks": {
+                "dev_sold_recently": 1,
+                "few_buyers_60s": 31,
+                "max_positions": 120
+              },
+              "trades": null
+            },
+            {
+              "base_t": 85,
+              "cross30_t": 85,
+              "entries": [],
+              "first_hot_t": 85,
+              "mint": "BTKYQ17VuuJyNuru1CyyJJnumrJXErcE1HagkfHS6FLe",
+              "peak_t": 216,
+              "run": 43.97837039857633,
+              "top_blocks": {
+                "accel_too_low": 99,
+                "max_positions": 2048,
+                "net_flow_not_positive": 63
+              },
+              "trades": null
+            },
+            {
+              "base_t": 146,
+              "cross30_t": 147,
+              "entries": [
+                [
+                  206,
+                  0.09346108519673821
+                ]
+              ],
+              "first_hot_t": 100,
+              "mint": "A2pfrhfanJkFqVjm5W1dX6LHMhiVYn7asayuK7xMpump",
+              "peak_t": 225,
+              "run": 12.912255380477719,
+              "top_blocks": {
+                "max_positions": 583,
+                "reentry_cooldown": 18
+              },
+              "trades": [
+                {
+                  "entry_t": 207,
+                  "exit_t": 209,
+                  "max_mult_held": 1.0,
+                  "reason": "HardStop",
+                  "ret": -0.13076654793876227
+                }
+              ]
+            },
+            {
+              "base_t": 203,
+              "cross30_t": 205,
+              "entries": [],
+              "first_hot_t": 201,
+              "mint": "5oGiN8276XHi88Qd5hm8FYpyr7D2XAKkjdvQ765qpump",
+              "peak_t": 247,
+              "run": 20.32372556171445,
+              "top_blocks": {
+                "low_liquidity": 18,
+                "max_positions": 199
+              },
+              "trades": null
+            },
+            {
+              "base_t": 245,
+              "cross30_t": 245,
+              "entries": [],
+              "first_hot_t": 245,
+              "mint": "FXd7qWuesiRCgcfZic1PkKUj2uybW71JhKtBnTcqpump",
+              "peak_t": 2603,
+              "run": 25.504319902906275,
+              "top_blocks": {
+                "accel_too_low": 63,
+                "buy_sell_ratio_too_high": 10,
+                "few_buyers_60s": 3,
+                "max_positions": 247
+              },
+              "trades": null
+            },
+            {
+              "base_t": 350,
+              "cross30_t": 350,
+              "entries": [],
+              "first_hot_t": 350,
+              "mint": "Awzaq2s75uJAmPJBWHc9PwS7H7LfCiAp1KRJxh3kpump",
+              "peak_t": 1331,
+              "run": 66.66455103368848,
+              "top_blocks": {
+                "accel_too_low": 652,
+                "buy_sell_ratio_too_high": 7,
+                "dev_sold_recently": 95,
+                "max_positions": 4895,
+                "net_flow_not_positive": 952
+              },
+              "trades": null
+            },
+            {
+              "base_t": 427,
+              "cross30_t": 427,
+              "entries": [
+                [
+                  491,
+                  0.07813316569673823
+                ]
+              ],
+              "first_hot_t": 427,
+              "mint": "BPMgEry5uJY8EEFeWsrBBSRDCUNj5S1sZsmkYyNopump",
+              "peak_t": 706,
+              "run": 17.588884108368884,
+              "top_blocks": {
+                "buy_sell_ratio_too_high": 4,
+                "max_positions": 296,
+                "net_flow_not_positive": 1,
+                "reentry_cooldown": 39
+              },
+              "trades": [
+                {
+                  "entry_t": 492,
+                  "exit_t": 800,
+                  "max_mult_held": 2.316167545497485,
+                  "reason": "Mee",
+                  "ret": 0.21293806459023842
+                }
+              ]
+            }
+          ],
+          "exit_reasons_in_run": {
+            "DevSell": 2,
+            "EndOfWindow": 1,
+            "HardStop": 3,
+            "Mee": 1
+          },
+          "hot_before_cross30": 41,
+          "hot_only_after_cross30": 2,
+          "instant_jump_runners": 40,
+          "median_max_mult_while_held": 1.225359963007384,
+          "median_realized_mult": 0.9215207922866325,
+          "median_run_mult": 46.474874475761865,
+          "never_hot": 1,
+          "not_entered_top_block_reason": {
+            "dev_sold_recently": 1,
+            "max_positions": 32,
+            "net_flow_not_positive": 2,
+            "never_hot": 1,
+            "no_cash_or_size_too_small": 1
+          },
+          "profitable_in_run": 3,
+          "runners": 44,
+          "tier": 11.0,
+          "upside_from_first_hot_to_peak": {
+            ">=10x": 11,
+            ">=2x": 23,
+            ">=5x": 16,
+            "median": 2.5001272973102124,
+            "n": 43,
+            "p25": 1.2685340493777348,
+            "p75": 9.503737995357602
+          }
+        }
+      ],
+      "trades": 72,
+      "venue_fees_est_usd": 13.428646731319251
+    }
+  ]
+}
