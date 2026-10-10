@@ -1,0 +1,626 @@
+//! EXPLORATORY rule-based backtest (run at the user's explicit request before the Stage 1–3 gates
+//! have formally passed). Universe: pump.fun curve + PumpSwap SOL pools, the venues whose pool math is
+//! validated (`pump-check`). No ML. One entry per signal (no scale-in), exit 100% (no partial TP).
+//!
+//! Causality: the simulator walks events in chain order. A decision taken while processing an event
+//! of slot s is filled when the first event of a slot > s + latency arrives, against the pool state
+//! after all events up to slot s + latency (we land last in that slot: conservative for chases).
+//! Costs: venue fee from the latest event (fallback 125 bps), a fixed network cost per transaction
+//! (base + priority + tip), and a deterministic pseudo-random failure rate for buys (fee paid, no fill).
+
+use anyhow::{anyhow, Result};
+use decoder::pump::{buy_tokens_out, sell_quote_out, Venue};
+use decoder::txview::TxView;
+use radar::{Params as RadarParams, Radar, Signal, Trade};
+use rustc_hash::{FxHashMap, FxHashSet};
+use serde::{Deserialize, Serialize};
+use std::collections::VecDeque;
+use std::path::Path;
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Ev {
+    pub slot: u64,
+    pub order: u64,
+    pub time: i64,
+    pub coin: u32,
+    pub amm: bool,
+    pub buy: bool,
+    pub sol: u64,
+    pub tokens: u64,
+    pub user: u32,
+    pub creator: u32,
+    pub quote_res: u128,
+    pub token_res: u128,
+    pub real_quote: u64,
+    pub real_token: u64,
+    pub fee_bps: u64,
+    pub complete: bool,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct Events {
+    pub evs: Vec<Ev>,
+    pub mints: Vec<String>,
+    pub window: (i64, i64),
+}
+
+/// Decode a recording into pump/PumpSwap events, cached as `<rec>/pump_events.bin`.
+pub fn load(rec: &Path) -> Result<Events> {
+    let cache = rec.join("pump_events.bin");
+    if cache.exists() {
+        return Ok(bincode::deserialize(&std::fs::read(&cache)?)?);
+    }
+    let mut dec = crate::pump_check::load_decoder()?;
+    let mut mints: FxHashMap<String, u32> = FxHashMap::default();
+    let mut users: FxHashMap<String, u32> = FxHashMap::default();
+    let mut evs = Vec::new();
+    let (mut t0, mut t1) = (i64::MAX, i64::MIN);
+    for m in recorder::Reader::open(rec)? {
+        let m = m?;
+        if m.source != events::Source::Rpc {
+            continue;
+        }
+        let v: serde_json::Value = serde_json::from_slice(&m.payload)?;
+        let r = &v["result"];
+        if r.is_null() {
+            continue;
+        }
+        let slot = v["params"]["slot"].as_u64().ok_or_else(|| anyhow!("no slot"))?;
+        let time = r["blockTime"].as_i64().unwrap_or(0);
+        t0 = t0.min(time);
+        t1 = t1.max(time);
+        for (i, t) in r["transactions"].as_array().map(|a| a.as_slice()).unwrap_or(&[]).iter().enumerate() {
+            let Some(tx) = TxView::parse(t) else { continue };
+            for (k, e) in dec.decode(&tx).into_iter().enumerate() {
+                let n = mints.len() as u32;
+                let coin = *mints.entry(e.mint).or_insert(n);
+                let n = users.len() as u32;
+                let user = *users.entry(e.user).or_insert(n);
+                let n = users.len() as u32;
+                let creator = *users.entry(e.creator).or_insert(n);
+                evs.push(Ev {
+                    slot,
+                    order: (slot << 24) | ((i as u64) << 8) | k as u64,
+                    time,
+                    coin,
+                    amm: e.venue == Venue::Amm,
+                    buy: e.buy,
+                    sol: e.sol,
+                    tokens: e.tokens,
+                    user,
+                    creator,
+                    quote_res: e.quote_res,
+                    token_res: e.token_res,
+                    real_quote: e.real_quote,
+                    real_token: e.real_token,
+                    fee_bps: e.fee_bps,
+                    complete: e.complete,
+                });
+            }
+        }
+    }
+    evs.sort_by_key(|e| e.order);
+    let mut names = vec![String::new(); mints.len()];
+    for (m, i) in mints {
+        names[i as usize] = m;
+    }
+    let out = Events { evs, mints: names, window: (t0, t1) };
+    std::fs::write(&cache, bincode::serialize(&out)?)?;
+    Ok(out)
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+pub struct Strategy {
+    pub entry_buyers_60s: usize,
+    pub entry_max_median_buy_sol: f64,
+    pub entry_min_flow_sol: f64,
+    pub entry_max_buy_sell_ratio: f64,
+    pub entry_min_accel: f64,
+    pub entry_min_quote_res_sol: f64,
+    pub size_frac: f64,
+    pub max_positions: usize,
+    pub max_impact: f64,
+    pub hard_stop: f64,
+    pub mee_fast_vs_peak: f64,
+    pub mee_drawdown: f64,
+    pub scout_secs: i64,
+    pub inactivity_secs: i64,
+    pub reentry_cooldown_secs: i64,
+    /// Baseline exit instead of MEE: fixed trailing stop from the post-entry peak value.
+    pub trailing_only: Option<f64>,
+}
+
+impl Default for Strategy {
+    fn default() -> Self {
+        Self {
+            entry_buyers_60s: 10,
+            entry_max_median_buy_sol: 1.0,
+            entry_min_flow_sol: 0.0,
+            entry_max_buy_sell_ratio: 4.0,
+            entry_min_accel: 1.5,
+            entry_min_quote_res_sol: 5.0,
+            size_frac: 0.10,
+            max_positions: 5,
+            max_impact: 0.02,
+            hard_stop: 0.5,
+            mee_fast_vs_peak: 0.25,
+            mee_drawdown: 0.4,
+            scout_secs: 180,
+            inactivity_secs: 90,
+            reentry_cooldown_secs: 300,
+            trailing_only: None,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+pub struct Costs {
+    pub latency_slots: u64,
+    /// Lamports per transaction: base fee + priority fee + tip.
+    pub tx_cost_lamports: u64,
+    pub buy_fail_prob: f64,
+    pub default_fee_bps: u64,
+}
+
+impl Default for Costs {
+    fn default() -> Self {
+        Self { latency_slots: 2, tx_cost_lamports: 500_000, buy_fail_prob: 0.15, default_fee_bps: 125 }
+    }
+}
+
+#[derive(Default, Clone, Copy)]
+struct Pool {
+    quote_res: u128,
+    token_res: u128,
+    real_quote: u64,
+    real_token: u64,
+    fee_bps: u64,
+    amm: bool,
+    complete: bool,
+    known: bool,
+}
+
+struct Pos {
+    tokens: u64,
+    cost: f64,
+    entry_time: i64,
+    peak_value: f64,
+    peak_fast: f64,
+    first_10x: bool,
+    max_mult: f64,
+}
+
+#[derive(Clone, Copy, PartialEq, Debug)]
+enum Reason {
+    DevSell,
+    HardStop,
+    Mee,
+    Trailing,
+    Scout,
+    Inactivity,
+    EndOfWindow,
+}
+
+enum Order {
+    Buy { coin: u32, lamports: u64 },
+    Sell { coin: u32, reason: Reason },
+}
+
+#[derive(Default)]
+struct CoinState {
+    win: VecDeque<(i64, u32, bool, f64)>,
+    flow30: VecDeque<(i64, f64)>,
+    fast: (f64, f64),
+    slow: (f64, f64),
+    first_time: i64,
+    last_real_buy: i64,
+    dev_sell_time: Option<i64>,
+    blacklisted: bool,
+    last_exit: Option<i64>,
+    pending: bool,
+}
+
+const TAU_FAST: f64 = 10.0;
+const TAU_SLOW: f64 = 120.0;
+const REAL_MIN_SOL: f64 = 0.01;
+
+fn ewma(e: &mut (f64, f64), t: f64, v: f64, tau: f64) {
+    e.0 = e.0 * (-(t - e.1) / tau).exp() + v / tau;
+    e.1 = t;
+}
+
+fn ewma_at(e: &(f64, f64), t: f64, tau: f64) -> f64 {
+    e.0 * (-(t - e.1) / tau).exp()
+}
+
+#[derive(Debug, Serialize, Clone)]
+pub struct TradeRec {
+    pub mint: String,
+    pub entry_time: i64,
+    pub exit_time: i64,
+    pub cost_sol: f64,
+    pub proceeds_sol: f64,
+    pub pnl_sol: f64,
+    pub ret: f64,
+    pub reason: String,
+    /// Best value multiple the position reached while held (value / cost).
+    pub max_mult_held: f64,
+}
+
+#[derive(Debug, Serialize, Clone)]
+pub struct Report {
+    pub window_s: i64,
+    pub sol_usd: f64,
+    pub start_usd: f64,
+    pub final_usd: f64,
+    pub return_pct: f64,
+    pub trades: usize,
+    pub wins: usize,
+    pub win_rate: f64,
+    pub avg_win_sol: f64,
+    pub avg_loss_sol: f64,
+    pub expectancy_sol: f64,
+    pub expectancy_excl_top1pct_sol: f64,
+    pub max_drawdown_pct: f64,
+    pub failed_buys: usize,
+    pub tx_costs_sol: f64,
+    pub exits_by_reason: std::collections::BTreeMap<String, usize>,
+    pub positions_reaching_10x: usize,
+    pub best_trade_ret: f64,
+    pub worst_trade_ret: f64,
+    pub trades_list: Vec<TradeRec>,
+}
+
+fn hash01(a: u64, b: u64) -> f64 {
+    let mut x = a.wrapping_mul(0x9E3779B97F4A7C15) ^ b.wrapping_mul(0xC2B2AE3D27D4EB4F);
+    x ^= x >> 31;
+    x = x.wrapping_mul(0xBF58476D1CE4E5B9);
+    x ^= x >> 29;
+    (x >> 11) as f64 / (1u64 << 53) as f64
+}
+
+pub fn simulate(ev: &Events, st: &Strategy, c: &Costs, radar_p: RadarParams, start_sol: f64, sol_usd: f64) -> Report {
+    let nc = ev.mints.len();
+    let mut pools: Vec<Pool> = vec![Pool::default(); nc];
+    let mut cs: Vec<CoinState> = (0..nc).map(|_| CoinState::default()).collect();
+    let mut radar = Radar::new(radar_p).with_newborn_after(ev.window.0 + 60);
+    let mut hot: FxHashSet<u32> = FxHashSet::default();
+    let mut cash = start_sol;
+    let mut pos: FxHashMap<u32, Pos> = FxHashMap::default();
+    let mut pending: Vec<(u64, Order)> = Vec::new();
+    let mut trades: Vec<TradeRec> = Vec::new();
+    let mut failed_buys = 0usize;
+    let mut tx_costs = 0.0;
+    let mut peak_eq = start_sol;
+    let mut max_dd = 0.0f64;
+    let mut last_sweep = i64::MIN;
+    let mut sig = Vec::new();
+    let txc = c.tx_cost_lamports as f64 / 1e9;
+    let fee_of = |p: &Pool| if p.fee_bps > 0 { p.fee_bps } else { c.default_fee_bps };
+    let value_of = |p: &Pool, tokens: u64| -> f64 {
+        if !p.known || tokens == 0 {
+            return 0.0;
+        }
+        let mut q = sell_quote_out(p.quote_res, p.token_res, tokens, if p.fee_bps > 0 { p.fee_bps } else { c.default_fee_bps });
+        if !p.amm {
+            q = q.min(p.real_quote as u128);
+        }
+        q as f64 / 1e9
+    };
+
+    let mut i = 0usize;
+    let evs = &ev.evs;
+    while i <= evs.len() {
+        let cur_slot = if i < evs.len() { evs[i].slot } else { u64::MAX };
+        let cur_time = if i < evs.len() { evs[i].time } else { ev.window.1 + 1 };
+        // 1) Execute pending orders whose target slot is complete.
+        let mut k = 0;
+        while k < pending.len() {
+            if pending[k].0 < cur_slot {
+                let (_, o) = pending.swap_remove(k);
+                match o {
+                    Order::Buy { coin, lamports } => {
+                        let st_c = &mut cs[coin as usize];
+                        st_c.pending = false;
+                        let p = pools[coin as usize];
+                        cash -= txc;
+                        tx_costs += txc;
+                        if hash01(coin as u64, cur_slot) < c.buy_fail_prob || !p.known || (p.complete && !p.amm) {
+                            failed_buys += 1;
+                            continue;
+                        }
+                        let mut toks = buy_tokens_out(p.quote_res, p.token_res, lamports, fee_of(&p));
+                        if !p.amm {
+                            toks = toks.min(p.real_token as u128);
+                        }
+                        if toks == 0 {
+                            failed_buys += 1;
+                            continue;
+                        }
+                        cash -= lamports as f64 / 1e9;
+                        let cost = lamports as f64 / 1e9;
+                        pos.insert(coin, Pos { tokens: toks as u64, cost, entry_time: cur_time, peak_value: cost, peak_fast: 0.0, first_10x: false, max_mult: 1.0 });
+                    }
+                    Order::Sell { coin, reason } => {
+                        let Some(ps) = pos.remove(&coin) else { continue };
+                        cs[coin as usize].pending = false;
+                        cash -= txc;
+                        tx_costs += txc;
+                        let proceeds = value_of(&pools[coin as usize], ps.tokens);
+                        cash += proceeds;
+                        cs[coin as usize].last_exit = Some(cur_time);
+                        if reason == Reason::DevSell {
+                            cs[coin as usize].blacklisted = true;
+                        }
+                        let pnl = proceeds - ps.cost - 2.0 * txc;
+                        trades.push(TradeRec {
+                            mint: ev.mints[coin as usize].clone(),
+                            entry_time: ps.entry_time - ev.window.0,
+                            exit_time: cur_time - ev.window.0,
+                            cost_sol: ps.cost,
+                            proceeds_sol: proceeds,
+                            pnl_sol: pnl,
+                            ret: pnl / (ps.cost + 2.0 * txc),
+                            reason: format!("{reason:?}"),
+                            max_mult_held: ps.max_mult,
+                        });
+                    }
+                }
+            } else {
+                k += 1;
+            }
+        }
+        if i == evs.len() {
+            // End of window: liquidate everything at the final state.
+            let open: Vec<u32> = pos.keys().copied().collect();
+            if open.is_empty() {
+                break;
+            }
+            for coin in open {
+                pending.push((0, Order::Sell { coin, reason: Reason::EndOfWindow }));
+            }
+            continue;
+        }
+        let e = &evs[i];
+        i += 1;
+        // 2) Time-based checks (inactivity, scout) once per second.
+        if e.time > last_sweep {
+            last_sweep = e.time;
+            radar.sweep(e.time, &mut sig);
+            for (cid, s) in sig.drain(..) {
+                if s == Signal::Demote {
+                    hot.remove(&cid);
+                }
+            }
+            let ids: Vec<u32> = pos.keys().copied().collect();
+            for coin in ids {
+                let c_s = &cs[coin as usize];
+                if c_s.pending {
+                    continue;
+                }
+                let ps = &pos[&coin];
+                let val = value_of(&pools[coin as usize], ps.tokens);
+                let reason = if e.time - c_s.last_real_buy > st.inactivity_secs {
+                    Some(Reason::Inactivity)
+                } else if e.time - ps.entry_time > st.scout_secs && ps.peak_value < ps.cost * 1.2 && val < ps.cost {
+                    Some(Reason::Scout)
+                } else {
+                    None
+                };
+                if let Some(r) = reason {
+                    cs[coin as usize].pending = true;
+                    pending.push((e.slot + c.latency_slots, Order::Sell { coin, reason: r }));
+                }
+            }
+            // Equity / drawdown.
+            let eq = cash + pos.iter().map(|(cid, p)| value_of(&pools[*cid as usize], p.tokens)).sum::<f64>();
+            peak_eq = peak_eq.max(eq);
+            max_dd = max_dd.max(1.0 - eq / peak_eq);
+        }
+        // 3) Apply the market event.
+        let p = &mut pools[e.coin as usize];
+        if e.amm || !p.amm {
+            *p = Pool {
+                quote_res: e.quote_res,
+                token_res: e.token_res,
+                real_quote: e.real_quote,
+                real_token: e.real_token,
+                fee_bps: e.fee_bps,
+                amm: e.amm,
+                complete: e.complete,
+                known: true,
+            };
+        }
+        let solf = e.sol as f64 / 1e9;
+        let price = if e.tokens > 0 { solf / e.tokens as f64 } else { 0.0 };
+        let cstate = &mut cs[e.coin as usize];
+        if cstate.first_time == 0 {
+            cstate.first_time = e.time;
+        }
+        let real = solf >= REAL_MIN_SOL;
+        if real {
+            cstate.win.push_back((e.time, e.user, e.buy, solf));
+            cstate.flow30.push_back((e.time, if e.buy { solf } else { -solf }));
+            if e.buy {
+                ewma(&mut cstate.fast, e.time as f64, 1.0, TAU_FAST);
+                ewma(&mut cstate.slow, e.time as f64, 1.0, TAU_SLOW);
+                cstate.last_real_buy = e.time;
+            }
+        }
+        while cstate.win.front().is_some_and(|w| w.0 <= e.time - 60) {
+            cstate.win.pop_front();
+        }
+        while cstate.flow30.front().is_some_and(|w| w.0 <= e.time - 30) {
+            cstate.flow30.pop_front();
+        }
+        let dev_sell = !e.buy && e.user == e.creator && e.tokens > 0;
+        if dev_sell {
+            cstate.dev_sell_time = Some(e.time);
+        }
+        let tr = Trade { time: e.time, order: e.order, coin: e.coin, trader: e.user, buy: e.buy, sol: solf, price };
+        if radar.on_trade(&tr) == Some(Signal::Promote) {
+            hot.insert(e.coin);
+        }
+        // 4) Position management for this coin (P0 first).
+        if let Some(ps) = pos.get_mut(&e.coin) {
+            if !cs[e.coin as usize].pending {
+                let pool = pools[e.coin as usize];
+                let val = value_of(&pool, ps.tokens);
+                ps.peak_value = ps.peak_value.max(val);
+                ps.max_mult = ps.max_mult.max(val / ps.cost);
+                if val >= 10.0 * ps.cost {
+                    ps.first_10x = true;
+                }
+                let cst = &cs[e.coin as usize];
+                let fast = ewma_at(&cst.fast, e.time as f64, TAU_FAST);
+                ps.peak_fast = ps.peak_fast.max(fast);
+                let flow30: f64 = cst.flow30.iter().map(|x| x.1).sum();
+                let reason = if dev_sell {
+                    Some(Reason::DevSell)
+                } else if val <= (1.0 - st.hard_stop) * ps.cost {
+                    Some(Reason::HardStop)
+                } else if let Some(tr_dd) = st.trailing_only {
+                    (val <= (1.0 - tr_dd) * ps.peak_value).then_some(Reason::Trailing)
+                } else if (fast < st.mee_fast_vs_peak * ps.peak_fast && flow30 < 0.0)
+                    || (val <= (1.0 - st.mee_drawdown) * ps.peak_value && fast < 0.5 * ps.peak_fast)
+                {
+                    Some(Reason::Mee)
+                } else {
+                    None
+                };
+                if let Some(r) = reason {
+                    let lat = if r == Reason::DevSell { 1 } else { c.latency_slots };
+                    cs[e.coin as usize].pending = true;
+                    pending.push((e.slot + lat, Order::Sell { coin: e.coin, reason: r }));
+                }
+            }
+            continue;
+        }
+        // 5) Entry gate (rule mode, §20.1 without ML).
+        if !(real && e.buy) || !hot.contains(&e.coin) || pos.len() >= st.max_positions {
+            continue;
+        }
+        let cst = &cs[e.coin as usize];
+        if cst.blacklisted || cst.pending || cst.last_exit.is_some_and(|t| e.time - t < st.reentry_cooldown_secs) {
+            continue;
+        }
+        if cst.dev_sell_time.is_some_and(|t| e.time - t < 300) {
+            continue;
+        }
+        let pool = pools[e.coin as usize];
+        if !pool.known || (pool.complete && !pool.amm) || (pool.quote_res as f64 / 1e9) < st.entry_min_quote_res_sol {
+            continue;
+        }
+        let mut buyers: Vec<u32> = Vec::new();
+        let (mut bs, mut ss) = (0.0, 0.0);
+        let mut sizes: Vec<f64> = Vec::new();
+        for &(_, u, b, s) in &cst.win {
+            if b {
+                buyers.push(u);
+                bs += s;
+                sizes.push(s);
+            } else {
+                ss += s;
+            }
+        }
+        buyers.sort_unstable();
+        buyers.dedup();
+        if buyers.len() < st.entry_buyers_60s || bs - ss < st.entry_min_flow_sol || bs <= ss {
+            continue;
+        }
+        if ss > 0.0 && bs / ss > st.entry_max_buy_sell_ratio {
+            continue;
+        }
+        sizes.sort_by(|a, b| a.total_cmp(b));
+        if sizes[sizes.len() / 2] > st.entry_max_median_buy_sol {
+            continue;
+        }
+        let young = (e.time - cst.first_time) < TAU_SLOW as i64;
+        let accel = ewma_at(&cst.fast, e.time as f64, TAU_FAST) / (ewma_at(&cst.slow, e.time as f64, TAU_SLOW) + 1e-9);
+        if !young && accel < st.entry_min_accel {
+            continue;
+        }
+        // Size: fraction of equity, capped by price impact (2·size/Q approximates CPMM impact).
+        let equity = cash + pos.iter().map(|(cid, p)| value_of(&pools[*cid as usize], p.tokens)).sum::<f64>();
+        let q = pool.quote_res as f64 / 1e9;
+        let size = (st.size_frac * equity).min(st.max_impact * q / 2.0);
+        if size < 0.005 || cash < size + 3.0 * txc {
+            continue;
+        }
+        cs[e.coin as usize].pending = true;
+        pending.push((e.slot + c.latency_slots, Order::Buy { coin: e.coin, lamports: (size * 1e9) as u64 }));
+    }
+
+    let final_sol = cash;
+    let n = trades.len();
+    let wins: Vec<&TradeRec> = trades.iter().filter(|t| t.pnl_sol > 0.0).collect();
+    let losses: Vec<&TradeRec> = trades.iter().filter(|t| t.pnl_sol <= 0.0).collect();
+    let avg = |v: &[&TradeRec]| if v.is_empty() { 0.0 } else { v.iter().map(|t| t.pnl_sol).sum::<f64>() / v.len() as f64 };
+    let mut pnls: Vec<f64> = trades.iter().map(|t| t.pnl_sol).collect();
+    pnls.sort_by(|a, b| b.total_cmp(a));
+    let drop = (n as f64 * 0.01).ceil() as usize;
+    let excl: Vec<f64> = pnls.iter().skip(drop.min(n)).copied().collect();
+    let mut reasons = std::collections::BTreeMap::new();
+    for t in &trades {
+        *reasons.entry(t.reason.clone()).or_insert(0) += 1;
+    }
+    Report {
+        window_s: ev.window.1 - ev.window.0,
+        sol_usd,
+        start_usd: start_sol * sol_usd,
+        final_usd: final_sol * sol_usd,
+        return_pct: (final_sol / start_sol - 1.0) * 100.0,
+        trades: n,
+        wins: wins.len(),
+        win_rate: if n > 0 { wins.len() as f64 / n as f64 } else { 0.0 },
+        avg_win_sol: avg(&wins),
+        avg_loss_sol: avg(&losses),
+        expectancy_sol: if n > 0 { pnls.iter().sum::<f64>() / n as f64 } else { 0.0 },
+        expectancy_excl_top1pct_sol: if excl.is_empty() { 0.0 } else { excl.iter().sum::<f64>() / excl.len() as f64 },
+        max_drawdown_pct: max_dd * 100.0,
+        failed_buys,
+        tx_costs_sol: tx_costs,
+        exits_by_reason: reasons,
+        positions_reaching_10x: trades.iter().filter(|t| t.max_mult_held >= 10.0).count(),
+        best_trade_ret: trades.iter().map(|t| t.ret).fold(f64::NEG_INFINITY, f64::max),
+        worst_trade_ret: trades.iter().map(|t| t.ret).fold(f64::INFINITY, f64::min),
+        trades_list: trades,
+    }
+}
+
+/// SOL/USD close of the 1-minute candle at `unix_s` (Binance public API; accounting only).
+pub fn sol_usd_at(unix_s: i64) -> Result<f64> {
+    let url = format!("https://api.binance.com/api/v3/klines?symbol=SOLUSDT&interval=1m&startTime={}&limit=1", unix_s * 1000);
+    let out = std::process::Command::new("curl").args(["-s", "-m", "20", &url]).output()?;
+    let v: serde_json::Value = serde_json::from_slice(&out.stdout)?;
+    v[0][4].as_str().and_then(|s| s.parse().ok()).ok_or_else(|| anyhow!("no SOL price for {unix_s}"))
+}
+
+/// Grid on development windows only. Selection: maximize the WORST window return (robustness),
+/// fixed before looking at the test windows.
+pub fn tune(dev: &[(&Events, f64)], costs: &Costs, rp: RadarParams) -> (Strategy, Vec<(Strategy, Vec<f64>)>) {
+    let mut all = Vec::new();
+    for &b in &[5usize, 10, 20] {
+        for &med in &[0.3, 1.0] {
+            for &acc in &[1.5, 3.0] {
+                for &dd in &[0.3, 0.5] {
+                    for &stop in &[0.3, 0.5] {
+                        let s = Strategy { entry_buyers_60s: b, entry_max_median_buy_sol: med, entry_min_accel: acc, mee_drawdown: dd, hard_stop: stop, ..Default::default() };
+                        let rets: Vec<f64> = dev.iter().map(|(e, usd)| simulate(e, &s, costs, rp, 100.0 / usd, *usd).return_pct).collect();
+                        all.push((s, rets));
+                    }
+                }
+            }
+        }
+    }
+    let best = all
+        .iter()
+        .max_by(|a, b| {
+            let wa = a.1.iter().cloned().fold(f64::INFINITY, f64::min);
+            let wb = b.1.iter().cloned().fold(f64::INFINITY, f64::min);
+            wa.total_cmp(&wb)
+        })
+        .map(|x| x.0)
+        .unwrap_or_default();
+    (best, all)
+}

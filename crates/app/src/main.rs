@@ -1,6 +1,8 @@
 //! Stage 0 binary: record live feeds, replay recordings, and produce Gate 0 measurements.
 
+mod backtest;
 mod census;
+mod pump_check;
 mod radar_eval;
 mod logging;
 
@@ -127,6 +129,33 @@ enum Cmd {
         #[arg(long)]
         out: Option<PathBuf>,
     },
+    /// Verify pump.fun / PumpSwap decoding vs the reference decoder, and the pool math.
+    PumpCheck {
+        #[arg(long)]
+        rec: PathBuf,
+        /// Dump the first N decoded events per venue as JSON lines to this file and stop after M blocks.
+        #[arg(long)]
+        dump: Option<PathBuf>,
+        #[arg(long, default_value_t = 0)]
+        max_blocks: usize,
+    },
+    /// EXPLORATORY rule-based backtest with $100: tune on --dev windows only, report every window.
+    Backtest {
+        #[arg(long, required = true)]
+        dev: Vec<PathBuf>,
+        #[arg(long, required = true)]
+        test: Vec<PathBuf>,
+        #[arg(long, default_value = "config/radar_params.json")]
+        radar_params: PathBuf,
+        #[arg(long, default_value = "reports/backtest_exploratory.json")]
+        out: PathBuf,
+        #[arg(long, default_value_t = 2)]
+        latency_slots: u64,
+        #[arg(long, default_value_t = 500_000)]
+        tx_cost_lamports: u64,
+        #[arg(long, default_value_t = 0.15)]
+        buy_fail_prob: f64,
+    },
     /// G0.H1 check on a backfill recording: every slot fetched or confirmed skipped.
     VerifyBackfill {
         #[arg(long)]
@@ -203,6 +232,42 @@ fn main() -> Result<()> {
         }
         Cmd::VerifyBackfill { rec } => verify_backfill(&rec),
         Cmd::Census { rec, out } => census::run(&rec, &out),
+        Cmd::Backtest { dev, test, radar_params, out, latency_slots, tx_cost_lamports, buy_fail_prob } => {
+            let v: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(&radar_params)?)?;
+            let rp: radar::Params = serde_json::from_value(v["params"].clone())?;
+            let costs = backtest::Costs { latency_slots, tx_cost_lamports, buy_fail_prob, ..Default::default() };
+            let load = |r: &PathBuf| -> Result<(String, backtest::Events, f64)> {
+                let e = backtest::load(r)?;
+                let usd = backtest::sol_usd_at(e.window.0)?;
+                Ok((r.display().to_string(), e, usd))
+            };
+            let devs: Vec<_> = dev.iter().map(load).collect::<Result<_>>()?;
+            let tests: Vec<_> = test.iter().map(load).collect::<Result<_>>()?;
+            let dev_refs: Vec<(&backtest::Events, f64)> = devs.iter().map(|(_, e, u)| (e, *u)).collect();
+            let (best, grid) = backtest::tune(&dev_refs, &costs, rp);
+            let mut windows = Vec::new();
+            for (role, set) in [("dev", &devs), ("test", &tests)] {
+                for (name, e, usd) in set.iter() {
+                    let r = backtest::simulate(e, &best, &costs, rp, 100.0 / usd, *usd);
+                    let base = backtest::simulate(e, &backtest::Strategy { trailing_only: Some(0.3), ..best }, &costs, rp, 100.0 / usd, *usd);
+                    windows.push(serde_json::json!({ "role": role, "recording": name, "mee": r,
+                        "baseline_trailing30": { "final_usd": base.final_usd, "return_pct": base.return_pct, "trades": base.trades,
+                            "win_rate": base.win_rate, "max_drawdown_pct": base.max_drawdown_pct } }));
+                }
+            }
+            let rep = serde_json::json!({
+                "label": "EXPLORATORY RULE-BASED BACKTEST (pre-gate, user-requested); pump.fun curve + PumpSwap SOL pools only",
+                "strategy_frozen_on_dev": best, "costs": costs, "radar_params": rp, "grid_size": grid.len(), "windows": windows,
+            });
+            if let Some(d) = out.parent() {
+                std::fs::create_dir_all(d)?;
+            }
+            std::fs::write(&out, serde_json::to_string_pretty(&rep)?)?;
+            std::fs::write("config/strategy_params.json", serde_json::to_string_pretty(&best)?)?;
+            println!("written {}", out.display());
+            Ok(())
+        }
+        Cmd::PumpCheck { rec, dump, max_blocks } => pump_check::run(&rec, dump.as_deref(), max_blocks),
         Cmd::RadarTune { rec, params_out } => {
             let dss: Vec<radar_eval::Dataset> = rec.iter().map(|r| radar_eval::load(r)).collect::<Result<_>>()?;
             let preps: Vec<radar_eval::Prepared> = dss.iter().map(radar_eval::prepare).collect();

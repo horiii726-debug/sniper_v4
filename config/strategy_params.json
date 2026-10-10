@@ -1,0 +1,18 @@
+{
+  "entry_buyers_60s": 5,
+  "entry_max_median_buy_sol": 0.3,
+  "entry_min_flow_sol": 0.0,
+  "entry_max_buy_sell_ratio": 4.0,
+  "entry_min_accel": 3.0,
+  "entry_min_quote_res_sol": 5.0,
+  "size_frac": 0.1,
+  "max_positions": 5,
+  "max_impact": 0.02,
+  "hard_stop": 0.3,
+  "mee_fast_vs_peak": 0.25,
+  "mee_drawdown": 0.3,
+  "scout_secs": 180,
+  "inactivity_secs": 90,
+  "reentry_cooldown_secs": 300,
+  "trailing_only": null
+}

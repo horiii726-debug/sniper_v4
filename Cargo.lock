@@ -87,6 +87,7 @@ name = "app"
 version = "0.4.0"
 dependencies = [
  "anyhow",
+ "bincode",
  "bs58",
  "clap",
  "config",
@@ -274,6 +275,15 @@ name = "base64"
 version = "0.23.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ac07cdecf99051d9a5238b80f35af32cdeba5b336e55d957b318b50137e18da5"
+
+[[package]]
+name = "bincode"
+version = "1.3.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b1f45e9417d87227c7a56d22e471c6206462cba514c7590c09aff4cf6d1ddcad"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "bitflags"
@@ -517,9 +527,12 @@ checksum = "4583a4551df46e2792f82ceeac45e850d2e2d5debba0b91f102385cda5b11f06"
 name = "decoder"
 version = "0.4.0"
 dependencies = [
+ "base64 0.22.1",
+ "bs58",
  "rustc-hash",
  "serde",
  "serde_json",
+ "sha2",
 ]
 
 [[package]]
