@@ -16,14 +16,17 @@ use std::collections::VecDeque;
 use std::io::Write;
 
 const REAL_MIN_SOL: f64 = 0.01;
-const SNAP_EVERY_S: i64 = 5;
+const SNAP_EVERY_S: i64 = 2;
 const STICKY_S: i64 = 600;
 const TAU_FAST: f64 = 10.0;
 const TAU_SLOW: f64 = 120.0;
+/// Hawkes kernel decay per slot: fast ~ 10 slots, slow ~ 100 slots.
+const HK_FAST: f64 = 0.1;
+const HK_SLOW: f64 = 0.01;
 /// pump.fun initial real token reserves (raw, 6 decimals): 793.1M tokens.
 const CURVE_INITIAL_REAL_TOKEN: f64 = 793_100_000_000_000.0;
 
-pub const FEATURES: [&str; 43] = [
+pub const FEATURES: [&str; 72] = [
     "age_s", "newborn", "on_amm", "quote_res_sol", "curve_progress", "fee_bps",
     "n_trades_15s", "n_trades_60s", "n_trades_300s", "buyers_15s", "buyers_60s", "sellers_60s",
     "buy_sol_15s", "buy_sol_60s", "sell_sol_15s", "sell_sol_60s", "net_flow_15s", "net_flow_60s", "flow_imb_60s",
@@ -32,6 +35,24 @@ pub const FEATURES: [&str; 43] = [
     "ret_5s", "ret_15s", "ret_60s", "ret_300s", "price_vs_high300", "price_vs_low300", "mult_since_first",
     "price_vs_vwap60", "creator_sold", "creator_sell_sol", "creator_buy_sol", "secs_since_hot", "sellers_15s",
     "buy_sell_count_ratio_60s",
+    // Candidate groups from the literature review (kept only if they pass the OOS ablation):
+    // F1 curve fill speed (arXiv 2602.14860)
+    "f1_sol_in_curve", "f1_sol_per_trade", "f1_trades_since_first",
+    // F2 bundles + early-buyer concentration (arXiv 2602.13480)
+    "f2_bundle_buy_share", "f2_bundle_txs_60s", "f2_early20_supply_share", "f2_top10_holder_share",
+    // F4 wash trades + multi-sell transactions (arXiv 2609.10246)
+    "f4_wash_share_60s", "f4_multi_sell_txs_60s",
+    // F6 holder count dynamics (arXiv 2603.24625)
+    "f6_holders", "f6_holders_vs_max",
+    // F7 same-slot buy bursts (La Morgia et al.)
+    "f7_max_slot_buyers_60s", "f7_slot_buy_std_60s",
+    // F8 trade arrival (V4 §11.6) + Hawkes self-exciting intensity (V4 §28 research candidate), slot units
+    "f8_dt_median20", "f8_dt_p90_20", "f8_dt_cv20", "f8_last_dt", "f8_cluster_share20",
+    "f8_hawkes_fast", "f8_hawkes_slow", "f8_hawkes_ratio", "f8_hawkes_buy_sell_ratio",
+    // DEV exposure: creator's share of tokens held by observed wallets, net SOL in, ever sold
+    "dev_hold_share", "dev_net_sol", "dev_ever_sold",
+    // Microstructure for exits: sell pressure in the last 5 s
+    "sellers_5s", "sell_sol_5s", "buy_sol_5s", "max_sell_15s",
 ];
 
 #[derive(Default, Clone, Copy)]
@@ -74,6 +95,32 @@ struct Coin {
     creator_buy_sol: f64,
     dev_sell_time: Option<i64>,
     on_amm: bool,
+    n_trades: u64,
+    // F2/F6: token balances per wallet (observed trades only), early buyers, bundle accounting.
+    bal: FxHashMap<u32, i64>,
+    holders: i64,
+    holders_max: i64,
+    early: Vec<u32>,
+    buy_sol_total: f64,
+    bundle_buy_sol: f64,
+    // Current transaction grouping: (tx key, buyers in it, buy SOL in it, sellers in it, users who bought).
+    cur_tx: u64,
+    cur_tx_buyers: Vec<u32>,
+    cur_tx_buy_sol: f64,
+    cur_tx_sellers: Vec<u32>,
+    /// (time, kind) markers: 1 = bundle tx (>= 2 distinct buyers), 2 = wash (same user buy+sell in tx), 3 = multi-sell tx.
+    tx_marks: VecDeque<(i64, u8)>,
+    /// (time, slot, distinct buyers in that slot) for the last 60 s.
+    slot_buys: VecDeque<(i64, u64, u32)>,
+    cur_slot: u64,
+    cur_slot_buyers: Vec<u32>,
+    // F8: last 21 trade slots; Hawkes intensities (all / buys / sells) with exponential kernels.
+    trade_slots: VecDeque<u64>,
+    hk_fast: (f64, u64),
+    hk_slow: (f64, u64),
+    hk_buy: (f64, u64),
+    hk_sell: (f64, u64),
+    creator: Option<u32>,
 }
 
 fn ewma(e: &mut (f64, f64), t: f64, tau: f64) {
@@ -116,6 +163,32 @@ impl Engine {
         }
     }
 
+    /// Close the coin's current transaction group (bundle / wash / multi-sell markers).
+    fn close_tx(c: &mut Coin, t: i64) {
+        if c.cur_tx == 0 {
+            return;
+        }
+        let mut b = c.cur_tx_buyers.clone();
+        b.sort_unstable();
+        b.dedup();
+        let mut s = c.cur_tx_sellers.clone();
+        s.sort_unstable();
+        s.dedup();
+        if b.len() >= 2 {
+            c.bundle_buy_sol += c.cur_tx_buy_sol;
+            c.tx_marks.push_back((t, 1));
+        }
+        if b.iter().any(|u| s.binary_search(u).is_ok()) {
+            c.tx_marks.push_back((t, 2));
+        }
+        if s.len() >= 2 {
+            c.tx_marks.push_back((t, 3));
+        }
+        c.cur_tx_buyers.clear();
+        c.cur_tx_sellers.clear();
+        c.cur_tx_buy_sol = 0.0;
+    }
+
     pub fn apply(&mut self, e: &crate::backtest::Ev) -> Step {
         if e.time > self.last_sweep {
             self.last_sweep = e.time;
@@ -145,6 +218,70 @@ impl Engine {
         }
         c.on_amm |= e.amm;
         c.last_event = e.time;
+        c.n_trades += 1;
+        c.creator.get_or_insert(e.creator);
+        // Transaction / slot grouping (events of one transaction are consecutive in chain order).
+        let tx = (e.order >> 8) + 1;
+        if tx != c.cur_tx {
+            Self::close_tx(c, e.time);
+            c.cur_tx = tx;
+        }
+        if e.buy {
+            c.cur_tx_buyers.push(e.user);
+            c.cur_tx_buy_sol += solf;
+            c.buy_sol_total += solf;
+        } else {
+            c.cur_tx_sellers.push(e.user);
+        }
+        if e.slot != c.cur_slot {
+            if c.cur_slot != 0 && !c.cur_slot_buyers.is_empty() {
+                let mut b = std::mem::take(&mut c.cur_slot_buyers);
+                b.sort_unstable();
+                b.dedup();
+                c.slot_buys.push_back((e.time, c.cur_slot, b.len() as u32));
+            }
+            c.cur_slot = e.slot;
+            c.cur_slot_buyers.clear();
+        }
+        if e.buy && solf >= REAL_MIN_SOL {
+            c.cur_slot_buyers.push(e.user);
+        }
+        while c.tx_marks.front().is_some_and(|x| x.0 <= e.time - 60) {
+            c.tx_marks.pop_front();
+        }
+        while c.slot_buys.front().is_some_and(|x| x.0 <= e.time - 60) {
+            c.slot_buys.pop_front();
+        }
+        // F8 arrival + Hawkes (lambda <- lambda * exp(-beta * dslot) + 1).
+        c.trade_slots.push_back(e.slot);
+        if c.trade_slots.len() > 21 {
+            c.trade_slots.pop_front();
+        }
+        let hk = |h: &mut (f64, u64), slot: u64, beta: f64| {
+            h.0 = h.0 * (-(beta * slot.saturating_sub(h.1) as f64)).exp() + 1.0;
+            h.1 = slot;
+        };
+        hk(&mut c.hk_fast, e.slot, HK_FAST);
+        hk(&mut c.hk_slow, e.slot, HK_SLOW);
+        if e.buy {
+            hk(&mut c.hk_buy, e.slot, HK_FAST);
+        } else {
+            hk(&mut c.hk_sell, e.slot, HK_FAST);
+        }
+        // Balances / holders.
+        let delta = if e.buy { e.tokens as i64 } else { -(e.tokens as i64) };
+        let b = c.bal.entry(e.user).or_insert(0);
+        let before = *b;
+        *b += delta;
+        if before <= 0 && *b > 0 {
+            c.holders += 1;
+        } else if before > 0 && *b <= 0 {
+            c.holders -= 1;
+        }
+        c.holders_max = c.holders_max.max(c.holders);
+        if e.buy && c.early.len() < 20 && !c.early.contains(&e.user) {
+            c.early.push(e.user);
+        }
         self.first_seen.entry(e.user).or_insert(e.time);
         c.tr.push_back((e.time, e.user, e.buy, solf));
         while c.tr.front().is_some_and(|x| x.0 <= e.time - 300) {
@@ -352,6 +489,91 @@ impl Engine {
             c.hot_time.map(|h| (t - h) as f32).unwrap_or(-1.0),
             sellers15.len() as f32,
             (nb60 as f32) / (ns60 as f32 + 1.0),
+            // F1
+            if p.amm { -1.0 } else { (p.real_quote as f64 / 1e9) as f32 },
+            if p.amm { -1.0 } else { (p.real_quote as f64 / 1e9 / c.n_trades.max(1) as f64) as f32 },
+            c.n_trades as f32,
+            // F2
+            (c.bundle_buy_sol / (c.buy_sol_total + 1e-9)) as f32,
+            c.tx_marks.iter().filter(|x| x.1 == 1).count() as f32,
+            {
+                let held: i64 = c.bal.values().filter(|v| **v > 0).sum();
+                let early: i64 = c.early.iter().filter_map(|u| c.bal.get(u)).filter(|v| **v > 0).sum();
+                if held > 0 { early as f32 / held as f32 } else { 0.0 }
+            },
+            {
+                let mut v: Vec<i64> = c.bal.values().copied().filter(|v| *v > 0).collect();
+                let held: i64 = v.iter().sum();
+                v.sort_unstable_by(|a, b| b.cmp(a));
+                if held > 0 { v.iter().take(10).sum::<i64>() as f32 / held as f32 } else { 0.0 }
+            },
+            // F4
+            c.tx_marks.iter().filter(|x| x.1 == 2).count() as f32 / (n60 as f32 + 1.0),
+            c.tx_marks.iter().filter(|x| x.1 == 3).count() as f32,
+            // F6
+            c.holders as f32,
+            if c.holders_max > 0 { c.holders as f32 / c.holders_max as f32 } else { 1.0 },
+            // F7
+            c.slot_buys.iter().map(|x| x.2).max().unwrap_or(0) as f32,
+            {
+                let v: Vec<f64> = c.slot_buys.iter().map(|x| x.2 as f64).collect();
+                if v.len() < 2 { 0.0 } else {
+                    let m = v.iter().sum::<f64>() / v.len() as f64;
+                    (v.iter().map(|x| (x - m).powi(2)).sum::<f64>() / (v.len() - 1) as f64).sqrt() as f32
+                }
+            },
+            // F8
+            {
+                let mut d: Vec<f64> = c.trade_slots.iter().zip(c.trade_slots.iter().skip(1)).map(|(a, b)| (b - a) as f64).collect();
+                d.sort_by(|a, b| a.total_cmp(b));
+                if d.is_empty() { -1.0 } else { d[d.len() / 2] as f32 }
+            },
+            {
+                let mut d: Vec<f64> = c.trade_slots.iter().zip(c.trade_slots.iter().skip(1)).map(|(a, b)| (b - a) as f64).collect();
+                d.sort_by(|a, b| a.total_cmp(b));
+                if d.is_empty() { -1.0 } else { d[((d.len() - 1) as f64 * 0.9) as usize] as f32 }
+            },
+            {
+                let d: Vec<f64> = c.trade_slots.iter().zip(c.trade_slots.iter().skip(1)).map(|(a, b)| (b - a) as f64).collect();
+                if d.len() < 2 { -1.0 } else {
+                    let m = d.iter().sum::<f64>() / d.len() as f64;
+                    let sd = (d.iter().map(|x| (x - m).powi(2)).sum::<f64>() / (d.len() - 1) as f64).sqrt();
+                    if m > 0.0 { (sd / m) as f32 } else { 0.0 }
+                }
+            },
+            {
+                let n = c.trade_slots.len();
+                if n >= 2 { (c.trade_slots[n - 1] - c.trade_slots[n - 2]) as f32 } else { -1.0 }
+            },
+            {
+                let d: Vec<u64> = c.trade_slots.iter().zip(c.trade_slots.iter().skip(1)).map(|(a, b)| b - a).collect();
+                if d.is_empty() { 0.0 } else { d.iter().filter(|x| **x <= 1).count() as f32 / d.len() as f32 }
+            },
+            c.hk_fast.0 as f32,
+            c.hk_slow.0 as f32,
+            (c.hk_fast.0 / (c.hk_slow.0 + 1e-9)) as f32,
+            {
+                // decay both to the current slot before comparing
+                let now = c.cur_slot;
+                let b = c.hk_buy.0 * (-(HK_FAST * now.saturating_sub(c.hk_buy.1) as f64)).exp();
+                let s = c.hk_sell.0 * (-(HK_FAST * now.saturating_sub(c.hk_sell.1) as f64)).exp();
+                (b / (s + 0.1)) as f32
+            },
+            {
+                let held: i64 = c.bal.values().filter(|v| **v > 0).sum();
+                let dev = c.creator.and_then(|cr| c.bal.get(&cr)).copied().unwrap_or(0).max(0);
+                if held > 0 { dev as f32 / held as f32 } else { 0.0 }
+            },
+            (c.creator_buy_sol - c.creator_sell_sol) as f32,
+            c.dev_sell_time.is_some() as u8 as f32,
+            {
+                let mut s5 = FxHashSet::default();
+                for &(_, u, b, sz) in win(5) { if !b && sz >= REAL_MIN_SOL { s5.insert(u); } }
+                s5.len() as f32
+            },
+            win(5).filter(|x| !x.2).map(|x| x.3).sum::<f64>() as f32,
+            win(5).filter(|x| x.2).map(|x| x.3).sum::<f64>() as f32,
+            win(15).filter(|x| !x.2).map(|x| x.3).fold(0.0, f64::max) as f32,
         ]
     }
 }
@@ -376,7 +598,7 @@ fn paths(ev: &Events) -> Vec<Vec<(i64, f64)>> {
 
 /// Labels from time t: p0 = first price at time >= t + 1.
 /// (up2, up5, up10 before -50% within 900 s; cont = +30% before -25% within 300 s; rug = <= 0.2 p0 within 300 s; fwd max mult 900 s)
-fn labels(path: &[(i64, f64)], t: i64) -> Option<[f32; 6]> {
+fn labels(path: &[(i64, f64)], t: i64, dev_sells: &[i64]) -> Option<[f32; 12]> {
     let i0 = path.partition_point(|x| x.0 < t + 1);
     let p0 = path.get(i0)?.1;
     if p0 <= 0.0 {
@@ -387,6 +609,15 @@ fn labels(path: &[(i64, f64)], t: i64) -> Option<[f32; 6]> {
     let mut cont: Option<bool> = None;
     let mut rug = 0f32;
     let mut mx = 1.0f64;
+    // Peak within 30 min WITHOUT a -50% barrier (no-stop-loss holding), and the multiple at the horizon end.
+    let mut peak30 = 1.0f64;
+    let mut end30 = 1.0f64;
+    for &(tt, p) in &path[i0..] {
+        if tt <= t + 1800 {
+            peak30 = peak30.max(p / p0);
+            end30 = p / p0;
+        }
+    }
     for &(tt, p) in &path[i0..] {
         if tt > t + 900 {
             break;
@@ -416,28 +647,40 @@ fn labels(path: &[(i64, f64)], t: i64) -> Option<[f32; 6]> {
             }
         }
     }
-    Some([up[0], up[1], up[2], cont.unwrap_or(false) as u8 as f32, rug, mx as f32])
+    // Dump: price <= 0.8 p0 within 30 s. Dev sell: creator sells within 600 s after t.
+    let dump = path[i0..].iter().take_while(|x| x.0 <= t + 30).any(|x| x.1 <= 0.8 * p0) as u8 as f32;
+    let devs = dev_sells.iter().any(|&d| d > t && d <= t + 600) as u8 as f32;
+    Some([
+        up[0], up[1], up[2], cont.unwrap_or(false) as u8 as f32, rug, mx as f32,
+        (peak30 >= 2.0) as u8 as f32, (peak30 >= 5.0) as u8 as f32, (peak30 >= 10.0) as u8 as f32, end30 as f32, dump, devs,
+    ])
 }
 
 /// Training snapshots with labels for one recording.
 pub fn write_snapshots(ev: &Events, rp: RadarParams, out: &std::path::Path) -> anyhow::Result<usize> {
     let mut eng = Engine::new(ev, rp);
     let pth = paths(ev);
+    let mut dev_sells: Vec<Vec<i64>> = vec![Vec::new(); ev.mints.len()];
+    for e in &ev.evs {
+        if !e.buy && e.user == e.creator && e.tokens > 0 {
+            dev_sells[e.coin as usize].push(e.time);
+        }
+    }
     let mut f = std::io::BufWriter::new(std::fs::File::create(out)?);
     write!(f, "coin,order,time")?;
     for n in FEATURES {
         write!(f, ",{n}")?;
     }
-    writeln!(f, ",y_up2,y_up5,y_up10,y_cont,y_rug,y_fwd_max")?;
+    writeln!(f, ",y_up2,y_up5,y_up10,y_cont,y_rug,y_fwd_max,y_peak2,y_peak5,y_peak10,y_end30,y_dump30s,y_devsell10m")?;
     let mut n = 0;
     for e in &ev.evs {
         if let Some(x) = eng.apply(e).snapshot {
-            let Some(y) = labels(&pth[e.coin as usize], e.time) else { continue };
+            let Some(y) = labels(&pth[e.coin as usize], e.time, &dev_sells[e.coin as usize]) else { continue };
             write!(f, "{},{},{}", e.coin, e.order, e.time - ev.window.0)?;
             for v in &x {
                 write!(f, ",{v}")?;
             }
-            writeln!(f, ",{},{},{},{},{},{}", y[0], y[1], y[2], y[3], y[4], y[5])?;
+            writeln!(f, ",{},{},{},{},{},{},{},{},{},{},{},{}", y[0], y[1], y[2], y[3], y[4], y[5], y[6], y[7], y[8], y[9], y[10], y[11])?;
             n += 1;
         }
     }
@@ -461,6 +704,14 @@ pub struct MlStrategy {
     pub inactivity_s: i64,
     pub scout_s: i64,
     pub reentry_cooldown_s: i64,
+    /// Profit protection (not a price stop): once the position reached `giveback_arm` x cost, exit when its
+    /// value falls `giveback` below the post-entry peak value. 0 disables.
+    pub giveback_arm: f64,
+    pub giveback: f64,
+    /// Microstructure exit: P(drop >= 20% within 30 s) at or above this exits (1.0 disables).
+    pub dump_exit: f32,
+    /// Entry veto: P(creator sells within 10 min) at or above this (1.0 disables).
+    pub devsell_veto: f32,
 }
 
 impl Default for MlStrategy {
@@ -472,7 +723,8 @@ impl Default for MlStrategy {
             exit_cont: 0.3,
             exit_k: 3,
             exit_persist_s: 10,
-            hard_stop: 0.6,
+            // No price stop-loss (user decision 2026-10-10); exits are momentum / reversal / DEV / rug.
+            hard_stop: 1.0,
             size_frac: 0.15,
             max_positions: 5,
             max_impact: 0.02,
@@ -480,12 +732,16 @@ impl Default for MlStrategy {
             inactivity_s: 120,
             scout_s: 300,
             reentry_cooldown_s: 300,
+            giveback_arm: 1.5,
+            giveback: 0.35,
+            dump_exit: 1.0,
+            devsell_veto: 1.0,
         }
     }
 }
 
-/// Model scores keyed by snapshot event order: [p_up2, p_up5, p_cont, p_rug].
-pub type Scores = FxHashMap<u64, [f32; 4]>;
+/// Model scores keyed by snapshot event order: [p_up2, p_up5, p_cont, p_rug, p_dump, p_devsell].
+pub type Scores = FxHashMap<u64, [f32; 6]>;
 
 pub fn read_scores(path: &std::path::Path) -> anyhow::Result<Scores> {
     let text = std::fs::read_to_string(path)?;
@@ -495,7 +751,8 @@ pub fn read_scores(path: &std::path::Path) -> anyhow::Result<Scores> {
         if v.len() < 6 {
             continue;
         }
-        m.insert(v[1].parse()?, [v[2].parse()?, v[3].parse()?, v[4].parse()?, v[5].parse()?]);
+        let opt = |i: usize| v.get(i).and_then(|x| x.parse::<f32>().ok()).unwrap_or(0.0);
+        m.insert(v[1].parse()?, [v[2].parse()?, v[3].parse()?, v[4].parse()?, v[5].parse()?, opt(6), opt(7)]);
     }
     Ok(m)
 }
@@ -512,6 +769,16 @@ pub struct MlTrade {
     pub reason: &'static str,
     pub max_mult_held: f64,
     pub p2_at_entry: f32,
+}
+
+/// Per-coin decision trace at snapshots (diagnostics).
+#[derive(Debug, Serialize, Clone, Default)]
+pub struct MlDiag {
+    pub snapshots: u32,
+    pub max_p2: f32,
+    pub snaps_over_entry: u32,
+    pub blocked: std::collections::BTreeMap<&'static str, u32>,
+    pub entered: u32,
 }
 
 #[derive(Debug, Serialize, Clone)]
@@ -534,6 +801,8 @@ pub struct MlReport {
     pub expectancy_usd: f64,
     pub expectancy_excl_top1pct_usd: f64,
     pub trades_list: Vec<MlTrade>,
+    #[serde(skip)]
+    pub diag: Vec<MlDiag>,
 }
 
 struct Pos {
@@ -574,6 +843,7 @@ pub fn simulate(ev: &Events, rp: RadarParams, sc: &Scores, st: &MlStrategy, c: &
     let (mut failed, mut costs) = (0usize, 0.0);
     let (mut peak_eq, mut max_dd) = (start, 0.0f64);
     let mut last_sec = i64::MIN;
+    let mut diag: Vec<MlDiag> = vec![MlDiag::default(); ev.mints.len()];
     let evs = &ev.evs;
     let mut i = 0;
     loop {
@@ -668,8 +938,10 @@ pub fn simulate(ev: &Events, rp: RadarParams, sc: &Scores, st: &MlStrategy, c: &
             p.max_mult = p.max_mult.max(val / p.cost);
             let mut reason = if step.dev_sell {
                 Some("DevSell")
-            } else if val <= (1.0 - st.hard_stop) * p.cost {
+            } else if st.hard_stop < 1.0 && val <= (1.0 - st.hard_stop) * p.cost {
                 Some("HardStop")
+            } else if st.giveback > 0.0 && p.max_mult >= st.giveback_arm && val <= (1.0 - st.giveback) * p.peak {
+                Some("GiveBackFromPeak")
             } else {
                 None
             };
@@ -680,6 +952,8 @@ pub fn simulate(ev: &Events, rp: RadarParams, sc: &Scores, st: &MlStrategy, c: &
                     let strong = x[18] < -0.5 && x[41] > x[9] && x[33] < 0.6;
                     if p_rug >= st.rug_veto {
                         reason = Some("RugModel");
+                    } else if s[4] >= st.dump_exit {
+                        reason = Some("DumpPredicted");
                     } else if strong {
                         reason = Some("StrongReversal");
                     } else if p_cont < st.exit_cont {
@@ -703,23 +977,43 @@ pub fn simulate(ev: &Events, rp: RadarParams, sc: &Scores, st: &MlStrategy, c: &
         }
         // Entry at snapshots.
         let (Some(_x), Some(s)) = (&step.snapshot, sc.get(&e.order)) else { continue };
-        if s[0] < st.entry_p2 || s[1] < st.entry_p5 || s[3] >= st.rug_veto {
+        let dg = &mut diag[e.coin as usize];
+        dg.snapshots += 1;
+        dg.max_p2 = dg.max_p2.max(s[0]);
+        if s[0] < st.entry_p2 || s[1] < st.entry_p5 {
             continue;
         }
-        if pos.len() + busy.iter().filter(|b| !pos.contains_key(b)).count() >= st.max_positions
-            || busy.contains(&e.coin)
-            || blacklist.contains(&e.coin)
-            || last_exit.get(&e.coin).is_some_and(|t| e.time - t < st.reentry_cooldown_s)
-            || eng.dev_sold_within(e.coin, e.time, 300)
-            || !eng.tradable(e.coin, st.min_quote_res_sol)
-        {
+        dg.snaps_over_entry += 1;
+        let blocked: Option<&'static str> = if s[3] >= st.rug_veto {
+            Some("rug_veto")
+        } else if s[5] >= st.devsell_veto {
+            Some("devsell_veto")
+        } else if pos.len() + busy.iter().filter(|b| !pos.contains_key(b)).count() >= st.max_positions {
+            Some("slots_full")
+        } else if busy.contains(&e.coin) {
+            Some("order_pending")
+        } else if blacklist.contains(&e.coin) {
+            Some("blacklisted")
+        } else if last_exit.get(&e.coin).is_some_and(|t| e.time - t < st.reentry_cooldown_s) {
+            Some("reentry_cooldown")
+        } else if eng.dev_sold_within(e.coin, e.time, 300) {
+            Some("dev_sold_recently")
+        } else if !eng.tradable(e.coin, st.min_quote_res_sol) {
+            Some("not_tradable_or_low_liquidity")
+        } else {
+            None
+        };
+        if let Some(b) = blocked {
+            *dg.blocked.entry(b).or_default() += 1;
             continue;
         }
         let eq = cash + pos.iter().map(|(cid, p)| eng.pool_value(*cid, p.tokens, c.default_fee_bps)).sum::<f64>();
         let size = (st.size_frac * eq).min(st.max_impact * eng.quote_res_sol(e.coin) / 2.0);
         if size < 0.005 || cash < size + 3.0 * txc {
+            *dg.blocked.entry(if size < 0.005 { "size_too_small_impact_cap" } else { "no_cash" }).or_default() += 1;
             continue;
         }
+        dg.entered += 1;
         busy.insert(e.coin);
         pending.push((e.slot + c.latency_slots, Order::Buy(e.coin, (size * 1e9) as u64, s[0])));
     }
@@ -755,27 +1049,79 @@ pub fn simulate(ev: &Events, rp: RadarParams, sc: &Scores, st: &MlStrategy, c: &
         expectancy_usd: if n > 0 { pnls.iter().sum::<f64>() / n as f64 } else { 0.0 },
         expectancy_excl_top1pct_usd: if excl.is_empty() { 0.0 } else { excl.iter().sum::<f64>() / excl.len() as f64 },
         trades_list: trades,
+        diag,
     }
 }
 
 /// Grid over decision thresholds on development windows (scores must be out-of-sample for those
 /// windows). Selection: maximize the worst development-window return.
 pub fn tune(dev: &[(&Events, &Scores, f64)], rp: RadarParams, c: &Costs) -> (MlStrategy, Vec<(MlStrategy, Vec<f64>)>) {
-    let mut all = Vec::new();
-    for &entry_p2 in &[0.3f32, 0.4, 0.5, 0.6, 0.7] {
-        for &exit_cont in &[0.15f32, 0.25, 0.35] {
-            for &exit_k in &[2u32, 4] {
-                for &max_positions in &[3usize, 6] {
-                    for &size_frac in &[0.1, 0.2] {
-                        let s = MlStrategy { entry_p2, exit_cont, exit_k, max_positions, size_frac, ..Default::default() };
-                        let rets = dev.iter().map(|(e, sc, usd)| simulate(e, rp, sc, &s, c, *usd).return_pct).collect();
-                        all.push((s, rets));
+    use rayon::prelude::*;
+    let mut grid = Vec::new();
+    for &entry_p2 in &[0.3f32, 0.4, 0.5, 0.6] {
+        for &dump_exit in &[0.3f32, 0.5, 1.0] {
+            for &devsell_veto in &[0.2f32, 0.35, 1.0] {
+                for &exit_cont in &[0.15f32, 0.3] {
+                    for &(max_positions, size_frac) in &[(6usize, 0.15), (10, 0.1)] {
+                        grid.push(MlStrategy { entry_p2, dump_exit, devsell_veto, exit_cont, max_positions, size_frac, ..Default::default() });
                     }
                 }
             }
         }
     }
+    // CPU-parallel over all cores (CatBoost training runs on the GPU separately).
+    let all: Vec<(MlStrategy, Vec<f64>)> = grid
+        .into_par_iter()
+        .map(|s| (s, dev.iter().map(|(e, sc, usd)| simulate(e, rp, sc, &s, c, *usd).return_pct).collect()))
+        .collect();
     let worst = |v: &Vec<f64>| v.iter().cloned().fold(f64::INFINITY, f64::min);
     let best = all.iter().max_by(|a, b| worst(&a.1).total_cmp(&worst(&b.1))).map(|x| x.0).unwrap_or_default();
     (best, all)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::backtest::{Ev, Events};
+
+    fn ev(slot: u64, k: u64, user: u32, buy: bool) -> Ev {
+        Ev {
+            slot, order: (slot << 24) | (k << 8), time: (slot / 4) as i64, coin: 0, amm: true, buy, sol: 50_000_000,
+            tokens: 1_000_000, user, creator: 999, quote_res: 100_000_000_000, token_res: 1_000_000_000_000,
+            real_quote: 0, real_token: 0, fee_bps: 100, complete: false,
+        }
+    }
+
+    /// Hawkes intensity: one event per slot for a long time converges to 1/(1-e^-beta); a gap decays it exactly.
+    #[test]
+    fn hawkes_intensity_steady_state_and_decay() {
+        let events = Events { evs: vec![], mints: vec!["m".into()], window: (0, 0) };
+        let mut eng = Engine::new(&events, RadarParams::default());
+        for s in 1..=2000u64 {
+            eng.apply(&ev(s, 0, s as u32, true));
+        }
+        let c = &eng.coins[0];
+        let steady = 1.0 / (1.0 - (-HK_FAST).exp());
+        assert!((c.hk_fast.0 - steady).abs() / steady < 1e-9, "{} vs {}", c.hk_fast.0, steady);
+        let before = c.hk_slow.0;
+        eng.apply(&ev(2100, 0, 1, true)); // 100-slot gap
+        let after = eng.coins[0].hk_slow.0;
+        assert!((after - (before * (-HK_SLOW * 100.0).exp() + 1.0)).abs() < 1e-9);
+    }
+
+    /// Bundle marker: two distinct buyers in one transaction count as a bundle tx once the tx closes.
+    #[test]
+    fn same_tx_multi_buyer_is_bundle() {
+        let events = Events { evs: vec![], mints: vec!["m".into()], window: (0, 0) };
+        let mut eng = Engine::new(&events, RadarParams::default());
+        let mut a = ev(10, 1, 1, true);
+        let mut b = ev(10, 1, 2, true);
+        b.order = a.order | 1;
+        eng.apply(&a);
+        eng.apply(&b);
+        a = ev(11, 0, 3, true);
+        eng.apply(&a); // next tx closes the previous one
+        assert_eq!(eng.coins[0].tx_marks.iter().filter(|x| x.1 == 1).count(), 1);
+        assert!(eng.coins[0].bundle_buy_sol > 0.09);
+    }
 }

@@ -27,4 +27,5 @@ replay = { path = "../replay" }
 decoder = { path = "../decoder" }
 radar = { path = "../radar" }
 rustc-hash.workspace = true
+rayon.workspace = true
 bincode.workspace = true

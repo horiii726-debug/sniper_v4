@@ -1,9 +1,9 @@
 {
-  "entry_p2": 0.7,
+  "entry_p2": 0.6,
   "entry_p5": 0.0,
   "rug_veto": 0.5,
   "exit_cont": 0.35,
-  "exit_k": 2,
+  "exit_k": 4,
   "exit_persist_s": 10,
   "hard_stop": 0.6,
   "size_frac": 0.2,

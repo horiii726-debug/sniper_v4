@@ -182,6 +182,31 @@ enum Cmd {
         radar_params: PathBuf,
         #[arg(long, default_value = "reports/backtest_ml_exploratory.json")]
         out: PathBuf,
+        /// Score file suffix, e.g. "_lightgbm" -> scores_cross_lightgbm.csv / scores_final_lightgbm.csv.
+        #[arg(long, default_value = "")]
+        scores_suffix: String,
+    },
+    /// Micro audit of the ML system on one recording: per runner, scores, blocks, trades.
+    MlDiagnose {
+        #[arg(long)]
+        rec: PathBuf,
+        #[arg(long)]
+        scores: String,
+        #[arg(long)]
+        params: PathBuf,
+        #[arg(long, default_value = "config/radar_params.json")]
+        radar_params: PathBuf,
+    },
+    /// One ML simulation per recording with fixed params (no tuning): quick per-trade economics.
+    MlSim {
+        #[arg(long, required = true)]
+        rec: Vec<PathBuf>,
+        #[arg(long)]
+        scores: String,
+        #[arg(long)]
+        params: PathBuf,
+        #[arg(long, default_value = "config/radar_params.json")]
+        radar_params: PathBuf,
     },
     /// G0.H1 check on a backfill recording: every slot fetched or confirmed skipped.
     VerifyBackfill {
@@ -304,7 +329,7 @@ fn main() -> Result<()> {
             }
             Ok(())
         }
-        Cmd::BacktestMl { dev, test, radar_params, out } => {
+        Cmd::BacktestMl { dev, test, radar_params, out, scores_suffix } => {
             let rp: radar::Params = serde_json::from_value(serde_json::from_str::<serde_json::Value>(&std::fs::read_to_string(&radar_params)?)?["params"].clone())?;
             let costs = backtest::Costs::default();
             let load = |r: &PathBuf, scores: &str| -> Result<(String, backtest::Events, ml_sim::Scores, f64)> {
@@ -312,8 +337,9 @@ fn main() -> Result<()> {
                 let usd = backtest::sol_usd_at(e.window.0)?;
                 Ok((r.display().to_string(), e, ml_sim::read_scores(&r.join(scores))?, usd))
             };
-            let devs: Vec<_> = dev.iter().map(|r| load(r, "scores_cross.csv")).collect::<Result<_>>()?;
-            let tests: Vec<_> = test.iter().map(|r| load(r, "scores_final.csv")).collect::<Result<_>>()?;
+            let (cross, fin) = (format!("scores_cross{scores_suffix}.csv"), format!("scores_final{scores_suffix}.csv"));
+            let devs: Vec<_> = dev.iter().map(|r| load(r, &cross)).collect::<Result<_>>()?;
+            let tests: Vec<_> = test.iter().map(|r| load(r, &fin)).collect::<Result<_>>()?;
             let refs: Vec<(&backtest::Events, &ml_sim::Scores, f64)> = devs.iter().map(|(_, e, s, u)| (e, s, *u)).collect();
             let (best, grid) = ml_sim::tune(&refs, rp, &costs);
             let mut windows = Vec::new();
@@ -326,8 +352,75 @@ fn main() -> Result<()> {
                 "strategy_frozen_on_dev": best, "costs": costs, "grid_size": grid.len(), "windows": windows,
                 "grid_dev_returns": grid.iter().map(|(s, r)| serde_json::json!({"s": s, "dev_returns": r})).collect::<Vec<_>>() });
             std::fs::write(&out, serde_json::to_string_pretty(&rep)?)?;
-            std::fs::write("config/ml_strategy_params.json", serde_json::to_string_pretty(&best)?)?;
+            std::fs::write(format!("config/ml_strategy_params{scores_suffix}.json"), serde_json::to_string_pretty(&best)?)?;
             println!("written {}", out.display());
+            Ok(())
+        }
+        Cmd::MlDiagnose { rec, scores, params, radar_params } => {
+            let rp: radar::Params = serde_json::from_value(serde_json::from_str::<serde_json::Value>(&std::fs::read_to_string(&radar_params)?)?["params"].clone())?;
+            let st: ml_sim::MlStrategy = serde_json::from_str(&std::fs::read_to_string(&params)?)?;
+            let ev = backtest::load(&rec)?;
+            let usd = backtest::sol_usd_at(ev.window.0)?;
+            let sc = ml_sim::read_scores(&rec.join(&scores))?;
+            let r = ml_sim::simulate(&ev, rp, &sc, &st, &backtest::Costs::default(), usd);
+            // Runners: coins whose snapshots show >= 5x reachable (y_fwd_max) at some point.
+            let snaps = std::fs::read_to_string(rec.join("snapshots.csv"))?;
+            let mut hdr = snaps.lines().next().unwrap_or("").split(',');
+            let iy = hdr.position(|h| h == "y_fwd_max").ok_or_else(|| anyhow!("no y_fwd_max"))?;
+            let mut best: std::collections::BTreeMap<u32, f64> = Default::default();
+            for l in snaps.lines().skip(1) {
+                let v: Vec<&str> = l.split(',').collect();
+                let (c, y): (u32, f64) = (v[0].parse()?, v[iy].parse()?);
+                let e = best.entry(c).or_insert(0.0);
+                *e = e.max(y);
+            }
+            let mut out = Vec::new();
+            for tier in [2.0, 5.0, 10.0] {
+                let coins: Vec<u32> = best.iter().filter(|(_, y)| **y >= tier).map(|(c, _)| *c).collect();
+                let mut agg: std::collections::BTreeMap<&str, u32> = Default::default();
+                let (mut never_over, mut entered) = (0, 0);
+                let mut maxp: Vec<f32> = Vec::new();
+                for c in &coins {
+                    let d = &r.diag[*c as usize];
+                    maxp.push(d.max_p2);
+                    if d.snaps_over_entry == 0 { never_over += 1; }
+                    if d.entered > 0 { entered += 1; }
+                    for (k, v) in &d.blocked { *agg.entry(k).or_default() += v; }
+                }
+                maxp.sort_by(|a, b| a.total_cmp(b));
+                let q = |f: f64| maxp.get(((maxp.len() as f64 - 1.0) * f) as usize).copied();
+                out.push(serde_json::json!({ "tier_reachable": tier, "runner_coins": coins.len(), "score_never_reached_entry_threshold": never_over,
+                    "entered": entered, "max_p2_median": q(0.5), "max_p2_p90": q(0.9), "block_counts_when_over_threshold": agg }));
+            }
+            let all_over: u32 = r.diag.iter().map(|d| d.snaps_over_entry).sum();
+            let all_coins_over = r.diag.iter().filter(|d| d.snaps_over_entry > 0).count();
+            println!("{}", serde_json::to_string_pretty(&serde_json::json!({ "entry_threshold": st.entry_p2, "coins_with_any_score_over_threshold": all_coins_over,
+                "snapshots_over_threshold": all_over, "runners": out,
+                "trades": r.trades_list.iter().map(|t| serde_json::json!({"mint": &t.mint[..8], "entry_t": t.entry_t, "exit_t": t.exit_t, "ret": t.ret, "reason": t.reason, "max_mult_held": t.max_mult_held, "p2": t.p2_at_entry})).collect::<Vec<_>>() }))?);
+            Ok(())
+        }
+        Cmd::MlSim { rec, scores, params, radar_params } => {
+            let rp: radar::Params = serde_json::from_value(serde_json::from_str::<serde_json::Value>(&std::fs::read_to_string(&radar_params)?)?["params"].clone())?;
+            let st: ml_sim::MlStrategy = serde_json::from_str(&std::fs::read_to_string(&params)?)?;
+            for r in &rec {
+                let ev = backtest::load(r)?;
+                let usd = backtest::sol_usd_at(ev.window.0)?;
+                let sc = ml_sim::read_scores(&r.join(&scores))?;
+                let rep = ml_sim::simulate(&ev, rp, &sc, &st, &backtest::Costs::default(), usd);
+                let wins: Vec<&ml_sim::MlTrade> = rep.trades_list.iter().filter(|t| t.pnl_sol > 0.0).collect();
+                let loss: Vec<&ml_sim::MlTrade> = rep.trades_list.iter().filter(|t| t.pnl_sol <= 0.0).collect();
+                let avg = |v: &[&ml_sim::MlTrade]| if v.is_empty() { 0.0 } else { v.iter().map(|t| t.ret).sum::<f64>() / v.len() as f64 * 100.0 };
+                let mut reason_pnl: std::collections::BTreeMap<&str, (u32, f64)> = Default::default();
+                for t in &rep.trades_list {
+                    let e = reason_pnl.entry(t.reason).or_default();
+                    e.0 += 1;
+                    e.1 += t.pnl_sol * usd;
+                }
+                println!("{:6} $100 -> ${:.2} | trades {} win {:.0}% | avg win {:+.1}% avg loss {:+.1}% | held>=2x {} >=5x {} | costs ${:.1} | by exit (n, $): {:?}",
+                    r.file_name().and_then(|x| x.to_str()).unwrap_or(""), rep.final_usd, rep.trades, rep.win_rate * 100.0, avg(&wins), avg(&loss),
+                    rep.trades_list.iter().filter(|t| t.max_mult_held >= 2.0).count(), rep.held_to_5x, rep.costs_usd,
+                    reason_pnl.iter().map(|(k, v)| format!("{k}:{}/{:+.1}", v.0, v.1)).collect::<Vec<_>>());
+            }
             Ok(())
         }
         Cmd::PumpCheck { rec, dump, max_blocks } => pump_check::run(&rec, dump.as_deref(), max_blocks),

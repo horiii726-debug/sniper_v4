@@ -15,7 +15,7 @@ from sklearn.metrics import average_precision_score, roc_auc_score
 DEV = sys.argv[1].split(",")
 TEST = sys.argv[2].split(",")
 TARGETS = {"p_up2": "y_up2", "p_up5": "y_up5", "p_cont": "y_cont", "p_rug": "y_rug"}
-META = {"coin", "order", "time", "y_up2", "y_up5", "y_up10", "y_cont", "y_rug", "y_fwd_max"}
+META = {"coin", "order", "time", "y_up2", "y_up5", "y_up10", "y_cont", "y_rug", "y_fwd_max", "y_peak2", "y_peak5", "y_peak10", "y_end30", "y_dump30s", "y_devsell10m"}
 
 
 def load(d):
