@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/config", "crates/latency", "crates/events", "crates/recorder", "crates/feed", "crates/replay", "crates/decoder", "crates/radar", "crates/app"]
+members = ["crates/config", "crates/latency", "crates/events", "crates/recorder", "crates/feed", "crates/replay", "crates/decoder", "crates/radar", "crates/app", "crates/model"]
 
 [workspace.package]
 version = "0.4.0"

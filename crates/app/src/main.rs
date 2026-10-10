@@ -3,10 +3,13 @@
 mod backtest;
 mod census;
 mod diagnose;
+mod follow;
 mod pump_check;
 mod radar_eval;
 mod logging;
 mod ml_sim;
+mod strategy_v5;
+mod v5_eval;
 
 use anyhow::{anyhow, bail, Context, Result};
 use clap::{Parser, Subcommand};
@@ -165,7 +168,8 @@ enum Cmd {
         #[arg(long, default_value = "config/radar_params.json")]
         radar_params: PathBuf,
     },
-    /// Write causal feature snapshots + forward labels (<rec>/snapshots.csv) for ML training.
+    /// Write causal feature snapshots + V5 labels (<rec>/snapshots_v5.csv.zst, window + follow-up) for ML
+    /// training; windows run in parallel on all cores.
     Snapshots {
         #[arg(long, required = true)]
         rec: Vec<PathBuf>,
@@ -230,6 +234,75 @@ enum Cmd {
         rec: PathBuf,
         #[arg(long)]
         out: PathBuf,
+    },
+    /// V5 tier-2 backfill: follow every coin that became HOT in the window for --hours after its HOT time
+    /// (or until dead), same decoder; writes <rec>/follow.bin.zst, merged by every loader.
+    Follow {
+        #[arg(long)]
+        rec: PathBuf,
+        #[arg(long, default_value_t = 10.0)]
+        hours: f64,
+        #[arg(long, default_value = "config/radar_params.json")]
+        radar_params: PathBuf,
+        /// Global request rate limit (requests per second, all methods).
+        #[arg(long, default_value_t = 9.0)]
+        rps: f64,
+        #[arg(long, default_value_t = 16)]
+        coin_concurrency: usize,
+        /// Transactions fetched concurrently per coin between dead-coin checks.
+        #[arg(long, default_value_t = 16)]
+        tx_batch: usize,
+        /// Signature pages (1000 each) allowed to reach the window from now.
+        #[arg(long, default_value_t = 3000)]
+        max_range_pages: u32,
+        /// Extra signature pages past the window to find the mint's first signature (creation).
+        #[arg(long, default_value_t = 200)]
+        max_history_pages: u32,
+        /// Follow only the first N HOT coins (0 = all); for cost measurement.
+        #[arg(long, default_value_t = 0)]
+        limit: usize,
+    },
+    /// V5 Phases 7-8 (EXPLORATORY): walk-forward backtest on fold scores (<models>/fold_<W>/scores_<W>.csv.zst),
+    /// optional 24-point grid (median dev return), cost sensitivity, acceptance check, Monte Carlo.
+    V5Backtest {
+        #[arg(long, required = true)]
+        rec: Vec<PathBuf>,
+        #[arg(long, default_value = "models/v5")]
+        models: PathBuf,
+        #[arg(long, default_value = "config/radar_params.json")]
+        radar_params: PathBuf,
+        /// Strategy JSON (StratV5); default = V5 plan §7.5 starting values.
+        #[arg(long)]
+        strategy: Option<PathBuf>,
+        #[arg(long, default_value = "reports/V5_RESULTS.json")]
+        out: PathBuf,
+        #[arg(long)]
+        grid: bool,
+        /// Monte Carlo execution reruns (buy-failure seeds); 0 = off.
+        #[arg(long, default_value_t = 0)]
+        mc_runs: usize,
+        #[arg(long, default_value_t = 10_000)]
+        mc_resamples: usize,
+        #[arg(long, default_value_t = 2)]
+        latency_slots: u64,
+        #[arg(long, default_value_t = 0.15)]
+        buy_fail_prob: f64,
+        #[arg(long, default_value_t = 100.0)]
+        start_usd: f64,
+    },
+    /// EXPLORATORY: V4 rule strategy vs V5 corrections without ML on the same windows, plus a per-runner table.
+    V5Compare {
+        #[arg(long, required = true)]
+        rec: Vec<PathBuf>,
+        #[arg(long, default_value = "config/radar_params.json")]
+        radar_params: PathBuf,
+        #[arg(long, default_value = "config/strategy_params.json")]
+        v4_strategy: PathBuf,
+        #[arg(long, default_value = "reports/V5_COMPARE.json")]
+        out: PathBuf,
+        /// V5 strategy JSON (default: plan §7.5 values).
+        #[arg(long)]
+        v5_strategy: Option<PathBuf>,
     },
     /// G0.H1 check on a backfill recording: every slot fetched or confirmed skipped.
     VerifyBackfill {
@@ -306,6 +379,26 @@ fn main() -> Result<()> {
             rt.block_on(backfill(settings, cluster, venues.program_ids(), out, end_slot, slots, concurrency, skipped_spot_checks))
         }
         Cmd::VerifyBackfill { rec } => verify_backfill(&rec),
+        Cmd::V5Compare { rec, radar_params, v4_strategy, out, v5_strategy } => {
+            let st: strategy_v5::StratV5 = match v5_strategy { Some(p) => serde_json::from_str(&std::fs::read_to_string(p)?)?, None => Default::default() };
+            let rp: radar::Params = serde_json::from_value(serde_json::from_str::<serde_json::Value>(&std::fs::read_to_string(&radar_params)?)?["params"].clone())?;
+            let v4: backtest::Strategy = serde_json::from_str(&std::fs::read_to_string(&v4_strategy)?)?;
+            v5_eval::compare(&rec, rp, &v4, &st, &out)
+        }
+        Cmd::V5Backtest { rec, models, radar_params, strategy, out, grid, mc_runs, mc_resamples, latency_slots, buy_fail_prob, start_usd } => {
+            let rp: radar::Params = serde_json::from_value(serde_json::from_str::<serde_json::Value>(&std::fs::read_to_string(&radar_params)?)?["params"].clone())?;
+            let st: strategy_v5::StratV5 = match strategy { Some(p) => serde_json::from_str(&std::fs::read_to_string(p)?)?, None => Default::default() };
+            let costs = strategy_v5::CostsV5 { latency_slots, buy_fail_prob, start_usd, ..Default::default() };
+            let o = v5_eval::EvalOpts { models, out, grid, mc_runs, mc_resamples, costs, strategy: st };
+            v5_eval::run(&rec, rp, &o)
+        }
+        Cmd::Follow { rec, hours, radar_params, rps, coin_concurrency, tx_batch, max_range_pages, max_history_pages, limit } => {
+            let settings = Settings::load(&cli.env, Cluster::Mainnet)?;
+            logging::init(Redactor::new(settings.secrets()), Some(&rec.join("follow.log")))?;
+            let rp: radar::Params = serde_json::from_value(serde_json::from_str::<serde_json::Value>(&std::fs::read_to_string(&radar_params)?)?["params"].clone())?;
+            let o = follow::Opts { hours, rps, coin_concurrency, tx_batch, max_range_pages, max_history_pages, limit };
+            rt.block_on(follow::run(settings.rpc_url.clone(), &rec, rp, o))
+        }
         Cmd::Census { rec, out } => census::run(&rec, &out),
         Cmd::Backtest { dev, test, radar_params, out, latency_slots, tx_cost_lamports, buy_fail_prob } => {
             let v: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(&radar_params)?)?;
@@ -344,12 +437,19 @@ fn main() -> Result<()> {
         }
         Cmd::Diagnose { rec, radar_params } => diagnose::run(&rec, &radar_params),
         Cmd::Snapshots { rec, radar_params } => {
+            use rayon::prelude::*;
             let rp: radar::Params = serde_json::from_value(serde_json::from_str::<serde_json::Value>(&std::fs::read_to_string(&radar_params)?)?["params"].clone())?;
-            for r in &rec {
+            rec.par_iter().map(|r| -> Result<()> {
                 let ev = backtest::load(r)?;
-                let n = ml_sim::write_snapshots(&ev, rp, &r.join("snapshots.csv"))?;
-                println!("{}: {n} snapshots", r.display());
-            }
+                let ctx = ml_sim::load_context(r, &ev)?;
+                let (n_w, n_sol) = (ctx.wallets.iter().filter(|w| w.is_some()).count(), ctx.sol_usd.len());
+                let st = ml_sim::write_snapshots(&ev, rp, ctx, &r.join("snapshots_v5.csv.zst"))?;
+                let v = serde_json::json!({ "stats": st, "wallets_with_scores": n_w, "sol_usd_minutes": n_sol,
+                    "window": ev.window, "data_end": ev.data_end(), "horizon_s": ml_sim::H_S });
+                std::fs::write(r.join("snapshots_v5_stats.json"), serde_json::to_string_pretty(&v)?)?;
+                println!("{}: {}", r.display(), serde_json::to_string(&v)?);
+                Ok(())
+            }).collect::<Result<Vec<()>>>()?;
             Ok(())
         }
         Cmd::BacktestMl { dev, test, radar_params, out, scores_suffix } => {
@@ -386,14 +486,14 @@ fn main() -> Result<()> {
             let usd = backtest::sol_usd_at(ev.window.0)?;
             let sc = ml_sim::read_scores(&rec.join(&scores))?;
             let r = ml_sim::simulate(&ev, rp, &sc, &st, &backtest::Costs::default(), usd);
-            // Runners: coins whose snapshots show >= 5x reachable (y_fwd_max) at some point.
-            let snaps = std::fs::read_to_string(rec.join("snapshots.csv"))?;
+            // Runners: coins whose snapshots show >= 5x reachable (exp(y_logmax), V5 labels) at some point.
+            let snaps = String::from_utf8(zstd::decode_all(std::fs::File::open(rec.join("snapshots_v5.csv.zst"))?)?)?;
             let mut hdr = snaps.lines().next().unwrap_or("").split(',');
-            let iy = hdr.position(|h| h == "y_fwd_max").ok_or_else(|| anyhow!("no y_fwd_max"))?;
+            let iy = hdr.position(|h| h == "y_logmax").ok_or_else(|| anyhow!("no y_logmax"))?;
             let mut best: std::collections::BTreeMap<u32, f64> = Default::default();
             for l in snaps.lines().skip(1) {
                 let v: Vec<&str> = l.split(',').collect();
-                let (c, y): (u32, f64) = (v[0].parse()?, v[iy].parse()?);
+                let (c, y): (u32, f64) = (v[0].parse()?, v[iy].parse::<f64>()?.exp());
                 let e = best.entry(c).or_insert(0.0);
                 *e = e.max(y);
             }

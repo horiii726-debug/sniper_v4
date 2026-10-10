@@ -185,6 +185,54 @@ impl PumpDecoder {
     }
 }
 
+/// Coin creation seen in a transaction: pump.fun `CreateEvent` (curve launch) or PumpSwap `CreatePoolEvent`
+/// (pool launch). `price` = quote/token reserves at creation, the same unit as the marginal pool price.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Creation {
+    pub venue: Venue,
+    pub mint: String,
+    pub time: i64,
+    pub price: f64,
+}
+
+impl PumpDecoder {
+    /// Creation events of one successful transaction (SOL-quoted only).
+    pub fn decode_creations(&mut self, tx: &TxView) -> Vec<Creation> {
+        let mut out = Vec::new();
+        if tx.failed {
+            return out;
+        }
+        for e in &tx.exec {
+            if e.data.len() < 16 || e.data[..8] != EVENT_IX_TAG {
+                continue;
+            }
+            let pid = tx.program_id(e);
+            let (venue, idl) = if pid == PUMP {
+                (Venue::Curve, &self.pump)
+            } else if pid == PUMP_AMM {
+                (Venue::Amm, &self.amm)
+            } else {
+                continue;
+            };
+            let Some((name, v)) = idl.decode_event(&e.data[8..]) else { continue };
+            let (mint, quote, q, t) = match (venue, name.as_str()) {
+                (Venue::Curve, "CreateEvent") => {
+                    (s(&v, "mint"), s(&v, "quote_mint"), u(&v, "virtual_sol_reserves") as f64, u(&v, "virtual_token_reserves") as f64)
+                }
+                (Venue::Amm, "CreatePoolEvent") => {
+                    (s(&v, "base_mint"), s(&v, "quote_mint"), u(&v, "pool_quote_amount") as f64, u(&v, "pool_base_amount") as f64)
+                }
+                _ => continue,
+            };
+            if !(quote.is_empty() || quote == DEFAULT_KEY || quote == WSOL) || t <= 0.0 {
+                continue;
+            }
+            out.push(Creation { venue, mint, time: v["timestamp"].as_i64().unwrap_or(0), price: q / t });
+        }
+        out
+    }
+}
+
 /// Tokens received for spending `paid` lamports in total (fee taken from the input, exact-quote-in),
 /// constant product on (quote_res, token_res). Curve: virtual reserves; PumpSwap: real + virtual quote.
 pub fn buy_tokens_out(quote_res: u128, token_res: u128, paid: u64, fee_bps: u64) -> u128 {

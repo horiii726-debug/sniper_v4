@@ -37,20 +37,75 @@ pub struct Ev {
     pub complete: bool,
 }
 
-#[derive(Serialize, Deserialize)]
 pub struct Events {
     pub evs: Vec<Ev>,
     pub mints: Vec<String>,
+    /// Block-time range of the backfill window (the decision window: signals only come from here).
     pub window: (i64, i64),
     /// Wallet address per user / creator id (cross-window wallet analysis).
     pub users: Vec<String>,
+    /// Per coin: trade data is complete up to this block time (window end unless followed).
+    pub cover_end: Vec<i64>,
+    /// Per coin: real creation time and creation price (quote/token reserves) when known (`follow`).
+    pub created: Vec<Option<(i64, Option<f64>)>>,
+    /// Per coin: time the coin was found dead by `follow` (V5 §3.2), if any.
+    pub dead_at: Vec<Option<i64>>,
+    pub followed: Vec<bool>,
 }
 
-/// Decode a recording into pump/PumpSwap events, cached as `<rec>/pump_events.bin`.
+impl Events {
+    pub fn new(evs: Vec<Ev>, mints: Vec<String>, window: (i64, i64), users: Vec<String>) -> Self {
+        let n = mints.len();
+        Self { evs, mints, window, users, cover_end: vec![window.1; n], created: vec![None; n], dead_at: vec![None; n], followed: vec![false; n] }
+    }
+
+    /// Last block time covered by any coin's data.
+    pub fn data_end(&self) -> i64 {
+        self.cover_end.iter().copied().max().unwrap_or(self.window.1).max(self.window.1)
+    }
+}
+
+/// On-disk window cache (`pump_events_v2.bin`); field order is the format, do not change it.
+#[derive(Serialize, Deserialize)]
+struct WindowCache {
+    evs: Vec<Ev>,
+    mints: Vec<String>,
+    window: (i64, i64),
+    users: Vec<String>,
+}
+
+/// Older V4 cache (`pump_events.bin`): no wallet address table.
+#[derive(Deserialize)]
+struct WindowCacheV1 {
+    evs: Vec<Ev>,
+    mints: Vec<String>,
+    window: (i64, i64),
+}
+
+/// Window events merged with the follow-up events (`<rec>/follow.bin.zst`) when present.
 pub fn load(rec: &Path) -> Result<Events> {
+    let mut ev = load_window(rec)?;
+    let f = rec.join(crate::follow::FOLLOW_FILE);
+    if f.exists() {
+        crate::follow::merge(&mut ev, &crate::follow::read(&f)?)?;
+    }
+    Ok(ev)
+}
+
+/// Decode a recording into pump/PumpSwap events (window only), cached as `<rec>/pump_events_v2.bin`.
+pub fn load_window(rec: &Path) -> Result<Events> {
     let cache = rec.join("pump_events_v2.bin");
     if cache.exists() {
-        return Ok(bincode::deserialize(&std::fs::read(&cache)?)?);
+        let c: WindowCache = bincode::deserialize(&std::fs::read(&cache)?)?;
+        return Ok(Events::new(c.evs, c.mints, c.window, c.users));
+    }
+    let v1 = rec.join("pump_events.bin");
+    if v1.exists() {
+        // V4 caches carry wallet ids only: placeholder names keep ids distinct (no cross-window wallet joins).
+        let c: WindowCacheV1 = bincode::deserialize(&std::fs::read(&v1)?)?;
+        let n = c.evs.iter().map(|e| e.user.max(e.creator)).max().map_or(0, |m| m as usize + 1);
+        let users = (0..n).map(|i| format!("v4id{i}")).collect();
+        return Ok(Events::new(c.evs, c.mints, c.window, users));
     }
     let mut dec = crate::pump_check::load_decoder()?;
     let mut mints: FxHashMap<String, u32> = FxHashMap::default();
@@ -110,9 +165,9 @@ pub fn load(rec: &Path) -> Result<Events> {
     for (u, i) in users {
         unames[i as usize] = u;
     }
-    let out = Events { evs, mints: names, window: (t0, t1), users: unames };
+    let out = WindowCache { evs, mints: names, window: (t0, t1), users: unames };
     std::fs::write(&cache, bincode::serialize(&out)?)?;
-    Ok(out)
+    Ok(Events::new(out.evs, out.mints, out.window, out.users))
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]

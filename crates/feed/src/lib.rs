@@ -2,6 +2,7 @@
 //! Every source pushes `RawMsg` into one bounded channel consumed by the recorder + pipeline thread.
 
 pub mod backfill;
+pub mod follow;
 pub mod grpc;
 pub mod rpc;
 pub mod ws;

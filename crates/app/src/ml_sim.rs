@@ -2,10 +2,11 @@
 //! forward labels, and a simulator that trades on model scores.
 //!
 //! One code path computes features for both the training snapshots and the simulator, on the same
-//! cadence: an event of at least REAL_MIN_SOL on a coin the radar has flagged HOT (sticky for
-//! STICKY_S after its last event), at most once per SNAP_EVERY_S per coin. Snapshot key = event order.
-//! Labels use the marginal pool price path (quote/token reserves) from the first event >= t + 1 s
-//! (latency) forward; they are never used as features.
+//! cadence: an event of at least REAL_MIN_SOL on a coin the radar has flagged HOT, at most once per
+//! `snap_every(age since HOT)` per coin (2 s for the first 10 min, 10 s until 1 h, then 30 s), plus a forced
+//! snapshot on every radar Promote (the decision rows, `is_signal`). Snapshot key = event order.
+//! Labels (V5 §3) use the marginal pool price path (quote/token reserves) from the first event >= t + 1 s
+//! (latency) forward over H = 10 h, on window + follow-up data; they are never used as features.
 
 use crate::backtest::{Costs, Events};
 use decoder::pump::{buy_tokens_out, sell_quote_out};
@@ -16,17 +17,33 @@ use std::collections::VecDeque;
 use std::io::Write;
 
 const REAL_MIN_SOL: f64 = 0.01;
-const SNAP_EVERY_S: i64 = 2;
-const STICKY_S: i64 = 600;
+/// Snapshot spacing by time since the coin first became HOT.
+fn snap_every(since_hot: i64) -> i64 {
+    if since_hot < 600 {
+        2
+    } else if since_hot < 3600 {
+        10
+    } else {
+        30
+    }
+}
+/// V5 §3: label horizon (= max_hold_s) and label latency.
+pub const H_S: i64 = 36_000;
+const LABEL_LAT_S: i64 = 1;
+/// Smart wallet: shrunk mean log return per closed trip above this (non-bot). Sniper: >= this many newborn snipes.
+const SMART_THETA: f32 = 0.1;
+const SNIPER_MIN_COINS: u32 = 3;
 const TAU_FAST: f64 = 10.0;
 const TAU_SLOW: f64 = 120.0;
 /// Hawkes kernel decay per slot: fast ~ 10 slots, slow ~ 100 slots.
 const HK_FAST: f64 = 0.1;
 const HK_SLOW: f64 = 0.01;
+/// pump.fun total token supply (raw, 6 decimals): 1B tokens.
+const TOTAL_SUPPLY_RAW: f64 = 1_000_000_000_000_000.0;
 /// pump.fun initial real token reserves (raw, 6 decimals): 793.1M tokens.
 const CURVE_INITIAL_REAL_TOKEN: f64 = 793_100_000_000_000.0;
 
-pub const FEATURES: [&str; 72] = [
+pub const FEATURES: [&str; 107] = [
     "age_s", "newborn", "on_amm", "quote_res_sol", "curve_progress", "fee_bps",
     "n_trades_15s", "n_trades_60s", "n_trades_300s", "buyers_15s", "buyers_60s", "sellers_60s",
     "buy_sol_15s", "buy_sol_60s", "sell_sol_15s", "sell_sol_60s", "net_flow_15s", "net_flow_60s", "flow_imb_60s",
@@ -53,6 +70,26 @@ pub const FEATURES: [&str; 72] = [
     "dev_hold_share", "dev_net_sol", "dev_ever_sold",
     // Microstructure for exits: sell pressure in the last 5 s
     "sellers_5s", "sell_sol_5s", "buy_sol_5s", "max_sell_15s",
+    // ---- V5 §4 (appended; indices above are unchanged) ----
+    "created_known", "log_quote_res",
+    // smart wallets (offline wallet_scores.csv, built only from trips closed before the window start)
+    "smart_buy_q_60s", "smart_share_60s", "n_smart_buyers_300s", "flipper_share_60s", "sniper_share_held", "cluster_buy_share_60s",
+    // crowd growth
+    "buyer_growth", "holder_vel_60s", "hawkes_branching",
+    // size distribution
+    "hhi_buy_60s", "retail_share_60s", "whale_buys_60s", "median_sell_60s", "p90_buy_60s", "p90_sell_60s", "buy_q_60s", "sell_q_60s",
+    // order flow (SOL amounts as ratios to the quote reserve)
+    "ofi_60s", "cvd_300s", "kyle_lambda_60s", "vol_60s",
+    // overhang
+    "early_retention", "profit_overhang",
+    // curve
+    "curve_speed", "eta_migration_s",
+    // regime (market-wide; -1 after the window, where only followed coins have data)
+    "attention_share_5m", "new_coins_per_min", "market_vol_10m", "sol_ret_1h",
+    // trader speed
+    "fast_wallet_share_60s", "wallet_rate_med_60s", "early20_delay_med_s",
+    // concentration vs TOTAL supply (f2_top10_holder_share is vs observed holdings, ~1 at the first signal)
+    "top10_supply_share",
 ];
 
 #[derive(Default, Clone, Copy)]
@@ -121,6 +158,21 @@ struct Coin {
     hk_buy: (f64, u64),
     hk_sell: (f64, u64),
     creator: Option<u32>,
+    // V5 state
+    holders_hist: VecDeque<(i64, i64)>,
+    /// Slots of the last 100 real buys (Hawkes branching ratio).
+    buy_slots: VecDeque<u64>,
+    /// (time, curve progress) within 60 s.
+    prog_hist: VecDeque<(i64, f64)>,
+    /// (time, d ln P, signed SOL) per price-path event within 60 s.
+    flow: VecDeque<(i64, f64, f64)>,
+    last_price: f64,
+    /// Tokens bought by each of the first 20 buyers (all their buys).
+    early_bought: FxHashMap<u32, i64>,
+    /// First buy time of each of the first 20 buyers.
+    early_first: Vec<i64>,
+    /// Cost basis (lamports) of each wallet's current balance (average-cost method).
+    cost: FxHashMap<u32, f64>,
 }
 
 fn ewma(e: &mut (f64, f64), t: f64, tau: f64) {
@@ -132,6 +184,33 @@ fn ewma_at(e: &(f64, f64), t: f64, tau: f64) -> f64 {
     e.0 * (-(t - e.1) / tau).exp()
 }
 
+/// Offline wallet information for one window (`wallet_scores.csv`).
+#[derive(Debug, Clone, Copy, Default)]
+pub struct WalletInfo {
+    pub score: f32,
+    pub n_closed: u32,
+    pub is_bot: bool,
+    pub is_flipper: bool,
+    pub sniper_coins: u32,
+    pub cluster_size: u32,
+}
+
+/// Optional per-window context: wallet scores (by user id) and the SOL/USD 1-minute closes (close time, price).
+#[derive(Default, Clone)]
+pub struct Context {
+    pub wallets: Vec<Option<WalletInfo>>,
+    pub sol_usd: Vec<(i64, f64)>,
+}
+
+/// Live, causal per-wallet activity across all coins (trader speed).
+#[derive(Default, Clone, Copy)]
+struct WalletLive {
+    first_t: i64,
+    last_t: i64,
+    n: u32,
+    gap_ewma: f64,
+}
+
 /// Shared causal state: pools, per-coin windows, radar, wallet first-seen.
 pub struct Engine {
     pools: Vec<Pool>,
@@ -139,13 +218,26 @@ pub struct Engine {
     radar: Radar,
     first_seen: FxHashMap<u32, i64>,
     window_start: i64,
+    window_end: i64,
     last_sweep: i64,
     sig: Vec<(u32, Signal)>,
+    created: Vec<Option<(i64, Option<f64>)>>,
+    ctx: Context,
+    live: FxHashMap<u32, WalletLive>,
+    /// All-coin (time, SOL) within 300 s / 600 s and running sums.
+    mkt5: VecDeque<(i64, f64)>,
+    mkt5_sum: f64,
+    mkt10: VecDeque<(i64, f64)>,
+    mkt10_sum: f64,
+    /// First-seen times of newborn-proxy coins within 60 s.
+    new_coins: VecDeque<i64>,
 }
 
 /// What the engine tells the caller after applying one event.
 pub struct Step {
     pub snapshot: Option<Vec<f32>>,
+    /// The radar promoted the coin on this event (decision row, V5 §3.3).
+    pub signal: bool,
     pub dev_sell: bool,
     /// Fraction of the creator's token balance sold in this event (0 if not a creator sell).
     pub dev_sell_frac: f64,
@@ -160,9 +252,31 @@ impl Engine {
             radar: Radar::new(rp).with_newborn_after(ev.window.0 + 60),
             first_seen: FxHashMap::default(),
             window_start: ev.window.0,
+            window_end: ev.window.1,
             last_sweep: i64::MIN,
             sig: Vec::new(),
+            created: ev.created.clone(),
+            ctx: Context::default(),
+            live: FxHashMap::default(),
+            mkt5: VecDeque::new(),
+            mkt5_sum: 0.0,
+            mkt10: VecDeque::new(),
+            mkt10_sum: 0.0,
+            new_coins: VecDeque::new(),
         }
+    }
+
+    pub fn with_ctx(mut self, ctx: Context) -> Self {
+        self.ctx = ctx;
+        self
+    }
+
+    fn wallet(&self, u: u32) -> Option<&WalletInfo> {
+        self.ctx.wallets.get(u as usize).and_then(|w| w.as_ref())
+    }
+
+    fn is_smart(&self, u: u32) -> bool {
+        self.wallet(u).is_some_and(|w| !w.is_bot && w.n_closed > 0 && w.score > SMART_THETA)
     }
 
     /// Close the coin's current transaction group (bundle / wash / multi-sell markers).
@@ -213,10 +327,45 @@ impl Engine {
         }
         let pool = *p;
         let solf = e.sol as f64 / 1e9;
+        // Market-wide volume (all coins) and newborn arrivals.
+        self.mkt5.push_back((e.time, solf));
+        self.mkt5_sum += solf;
+        self.mkt10.push_back((e.time, solf));
+        self.mkt10_sum += solf;
+        while let Some(&(t0, v)) = self.mkt5.front() {
+            if t0 > e.time - 300 {
+                break;
+            }
+            self.mkt5_sum -= v;
+            self.mkt5.pop_front();
+        }
+        while let Some(&(t0, v)) = self.mkt10.front() {
+            if t0 > e.time - 600 {
+                break;
+            }
+            self.mkt10_sum -= v;
+            self.mkt10.pop_front();
+        }
+        while self.new_coins.front().is_some_and(|x| *x <= e.time - 60) {
+            self.new_coins.pop_front();
+        }
+        // Trader speed: per-wallet activity across all coins.
+        {
+            let w = self.live.entry(e.user).or_insert(WalletLive { first_t: e.time, last_t: e.time, n: 0, gap_ewma: 0.0 });
+            if w.n > 0 {
+                let gap = (e.time - w.last_t) as f64;
+                w.gap_ewma = if w.n == 1 { gap } else { 0.7 * w.gap_ewma + 0.3 * gap };
+            }
+            w.n += 1;
+            w.last_t = e.time;
+        }
         let c = &mut self.coins[ci];
         if c.first_time == 0 {
             c.first_time = e.time;
             c.first_price = pool.price();
+            if e.time >= self.window_start + 60 && e.time <= self.window_end {
+                self.new_coins.push_back(e.time);
+            }
         }
         c.on_amm |= e.amm;
         c.last_event = e.time;
@@ -274,6 +423,16 @@ impl Engine {
         let delta = if e.buy { e.tokens as i64 } else { -(e.tokens as i64) };
         let b = c.bal.entry(e.user).or_insert(0);
         let before = *b;
+        // Cost basis (average cost): buys add the SOL paid; sells remove the sold share of the basis.
+        {
+            let cb = c.cost.entry(e.user).or_insert(0.0);
+            if e.buy {
+                *cb += e.sol as f64;
+            } else if before > 0 {
+                let after = (before - e.tokens as i64).max(0);
+                *cb *= after as f64 / before as f64;
+            }
+        }
         let dev_sell_frac = if !e.buy && e.user == e.creator && e.tokens > 0 {
             if before > 0 { (e.tokens as f64 / before as f64).min(1.0) } else { 1.0 }
         } else {
@@ -286,8 +445,20 @@ impl Engine {
             c.holders -= 1;
         }
         c.holders_max = c.holders_max.max(c.holders);
+        c.holders_hist.push_back((e.time, c.holders));
+        while c.holders_hist.len() > 1 && c.holders_hist[1].0 <= e.time - 60 {
+            c.holders_hist.pop_front();
+        }
         if e.buy && c.early.len() < 20 && !c.early.contains(&e.user) {
             c.early.push(e.user);
+            c.early_first.push(e.time);
+        }
+        if e.buy {
+            if let Some(x) = c.early_bought.get_mut(&e.user) {
+                *x += e.tokens as i64;
+            } else if c.early.contains(&e.user) {
+                c.early_bought.insert(e.user, e.tokens as i64);
+            }
         }
         self.first_seen.entry(e.user).or_insert(e.time);
         c.tr.push_back((e.time, e.user, e.buy, solf));
@@ -297,13 +468,30 @@ impl Engine {
         if !e.amm && c.on_amm {
             // late curve event after migration: ignore for the price path
         } else {
-            c.px.push_back((e.time, pool.price()));
+            let pr = pool.price();
+            c.px.push_back((e.time, pr));
+            if c.last_price > 0.0 && pr > 0.0 {
+                c.flow.push_back((e.time, (pr / c.last_price).ln(), if e.buy { solf } else { -solf }));
+            }
+            c.last_price = pr;
+            let progress = if pool.amm { 1.0 } else { 1.0 - pool.real_token as f64 / CURVE_INITIAL_REAL_TOKEN };
+            c.prog_hist.push_back((e.time, progress));
         }
         while c.px.front().is_some_and(|x| x.0 <= e.time - 300) {
             c.px.pop_front();
         }
+        while c.flow.front().is_some_and(|x| x.0 <= e.time - 60) {
+            c.flow.pop_front();
+        }
+        while c.prog_hist.len() > 1 && c.prog_hist[1].0 <= e.time - 60 {
+            c.prog_hist.pop_front();
+        }
         let real = solf >= REAL_MIN_SOL;
         if real && e.buy {
+            c.buy_slots.push_back(e.slot);
+            if c.buy_slots.len() > 100 {
+                c.buy_slots.pop_front();
+            }
             ewma(&mut c.fast, e.time as f64, TAU_FAST);
             ewma(&mut c.slow, e.time as f64, TAU_SLOW);
             c.last_real_buy = e.time;
@@ -319,17 +507,18 @@ impl Engine {
         }
         let price = if e.tokens > 0 { solf / e.tokens as f64 } else { 0.0 };
         let tr = Trade { time: e.time, order: e.order, coin: e.coin, trader: e.user, buy: e.buy, sol: solf, price };
-        if self.radar.on_trade(&tr) == Some(Signal::Promote) {
+        let signal = self.radar.on_trade(&tr) == Some(Signal::Promote);
+        if signal {
             c.hot_time.get_or_insert(e.time);
         }
-        let due = real && c.hot_time.is_some() && e.time - c.last_event <= STICKY_S && e.time - c.last_snap >= SNAP_EVERY_S;
+        let due = signal || (real && c.hot_time.is_some_and(|h| e.time - c.last_snap >= snap_every(e.time - h)));
         let snapshot = if due {
             c.last_snap = e.time;
             Some(self.features(ci, e.time))
         } else {
             None
         };
-        Step { snapshot, dev_sell, dev_sell_frac }
+        Step { snapshot, signal, dev_sell, dev_sell_frac }
     }
 
     pub fn pool_value(&self, coin: u32, tokens: u64, default_fee: u64) -> f64 {
@@ -369,6 +558,15 @@ impl Engine {
         } else {
             None
         }
+    }
+
+    /// Marginal price (quote / token reserves) of the coin's current pool.
+    pub fn price(&self, coin: u32) -> f64 {
+        self.pools[coin as usize].price()
+    }
+
+    pub fn is_amm(&self, coin: u32) -> bool {
+        self.pools[coin as usize].amm
     }
 
     pub fn quote_res_sol(&self, coin: u32) -> f64 {
@@ -461,9 +659,17 @@ impl Engine {
         let fast = ewma_at(&c.fast, t as f64, TAU_FAST);
         let slow = ewma_at(&c.slow, t as f64, TAU_SLOW);
         let progress = if p.amm { 1.0 } else { 1.0 - p.real_token as f64 / CURVE_INITIAL_REAL_TOKEN };
-        vec![
-            (t - c.first_time) as f32,
-            (c.first_time > self.window_start + 60) as u8 as f32,
+        // V5 fix: age / newborn / multiple from the real creation (follow-up), else from first observation.
+        let created = self.created.get(ci).copied().flatten();
+        let born = created.map(|x| x.0).unwrap_or(c.first_time);
+        let first_px = created.and_then(|x| x.1).filter(|x| *x > 0.0).unwrap_or(c.first_price);
+        let newborn = match created {
+            Some((ct, _)) => ct >= self.window_start,
+            None => c.first_time > self.window_start + 60,
+        };
+        let mut v = vec![
+            (t - born) as f32,
+            newborn as u8 as f32,
             p.amm as u8 as f32,
             (p.quote_res as f64 / 1e9) as f32,
             progress as f32,
@@ -497,7 +703,7 @@ impl Engine {
             r(300) as f32,
             if hi > 0.0 { (price / hi) as f32 } else { 1.0 },
             if lo.is_finite() && lo > 0.0 { (price / lo) as f32 } else { 1.0 },
-            if c.first_price > 0.0 { (price / c.first_price) as f32 } else { 1.0 },
+            if first_px > 0.0 { (price / first_px) as f32 } else { 1.0 },
             if vw_t > 0.0 { (price / vw_t) as f32 } else { 1.0 },
             c.dev_sell_time.is_some() as u8 as f32,
             c.creator_sell_sol as f32,
@@ -590,12 +796,238 @@ impl Engine {
             win(5).filter(|x| !x.2).map(|x| x.3).sum::<f64>() as f32,
             win(5).filter(|x| x.2).map(|x| x.3).sum::<f64>() as f32,
             win(15).filter(|x| !x.2).map(|x| x.3).fold(0.0, f64::max) as f32,
+        ];
+        v.extend(self.features_v5(ci, t, born));
+        debug_assert_eq!(v.len(), FEATURES.len());
+        v
+    }
+
+    /// V5 §4 features (appended after the V4 block). All causal: state up to and including the current event.
+    fn features_v5(&self, ci: usize, t: i64, born: i64) -> Vec<f32> {
+        let c = &self.coins[ci];
+        let p = &self.pools[ci];
+        let price = p.price();
+        let q = (p.quote_res as f64 / 1e9).max(1e-9);
+        let real = |s: f64| s >= REAL_MIN_SOL;
+        let pct = |v: &mut Vec<f64>, f: f64| -> f64 {
+            if v.is_empty() {
+                return 0.0;
+            }
+            v.sort_by(|a, b| a.total_cmp(b));
+            v[((v.len() - 1) as f64 * f) as usize]
+        };
+        // Windows over the 300 s trade deque.
+        let (mut b60, mut s60, mut smart60, mut flip60, mut clus60, mut fast60, mut retail60) = (0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+        let (mut buys, mut sells) = (Vec::new(), Vec::new());
+        let mut whales = 0u32;
+        let mut buyers_now: FxHashSet<u32> = FxHashSet::default();
+        let mut buyers_prev: FxHashSet<u32> = FxHashSet::default();
+        let mut smart300: FxHashSet<u32> = FxHashSet::default();
+        let mut rates: Vec<f64> = Vec::new();
+        let mut cvd = 0.0;
+        for &(tt, u, b, sz) in &c.tr {
+            cvd += if b { sz } else { -sz };
+            if b && real(sz) && self.is_smart(u) {
+                smart300.insert(u);
+            }
+            if b && real(sz) && tt > t - 120 && tt <= t - 60 {
+                buyers_prev.insert(u);
+            }
+            if tt <= t - 60 {
+                continue;
+            }
+            if b {
+                if !real(sz) {
+                    continue;
+                }
+                b60 += sz;
+                buys.push(sz);
+                if buyers_now.insert(u) {
+                    if let Some(w) = self.live.get(&u) {
+                        rates.push(w.n as f64 / ((t - w.first_t) as f64 / 60.0 + 1.0));
+                    }
+                }
+                if self.is_smart(u) {
+                    smart60 += sz;
+                }
+                if let Some(w) = self.wallet(u) {
+                    if w.is_flipper {
+                        flip60 += sz;
+                    }
+                    if w.cluster_size >= 2 {
+                        clus60 += sz;
+                    }
+                }
+                if self.live.get(&u).is_some_and(|w| w.n >= 3 && w.gap_ewma < 5.0) {
+                    fast60 += sz;
+                }
+                if (0.05..=2.0).contains(&sz) {
+                    retail60 += sz;
+                }
+                if sz > 5.0 {
+                    whales += 1;
+                }
+            } else if real(sz) {
+                s60 += sz;
+                sells.push(sz);
+            }
+        }
+        let share = |x: f64| if b60 > 0.0 { (x / b60) as f32 } else { 0.0 };
+        let hhi = if b60 > 0.0 { buys.iter().map(|x| (x / b60).powi(2)).sum::<f64>() } else { 0.0 };
+        // Holder velocity and curve speed over ~60 s (oldest kept point is the last one at or before t - 60).
+        let holder_vel = c.holders_hist.front().map(|h| (c.holders - h.1) as f64 / 60.0).unwrap_or(0.0);
+        let (curve_speed, eta) = if p.amm {
+            (-1.0, -1.0)
+        } else {
+            let now_prog = c.prog_hist.back().map(|x| x.1).unwrap_or(0.0);
+            match c.prog_hist.front() {
+                Some(&(t0, p0)) if t - t0 >= 1 => {
+                    let sp = (now_prog - p0) / (t - t0) as f64;
+                    (sp, if sp > 0.0 { ((1.0 - now_prog) / sp).min(1e6) } else { -1.0 })
+                }
+                _ => (0.0, -1.0),
+            }
+        };
+        // Hawkes branching ratio, moment estimator: for a stationary Hawkes process the count Fano factor over
+        // long bins is 1 / (1 - n)^2, so n = 1 - 1 / sqrt(Fano). Bins of 10 slots over the last 100 real buys.
+        let branching = if c.buy_slots.len() >= 20 {
+            let first = *c.buy_slots.front().expect("len");
+            let nb = ((c.buy_slots.back().expect("len") - first) / 10 + 1) as usize;
+            if nb < 3 {
+                0.99
+            } else {
+                let mut cnt = vec![0f64; nb];
+                for s in &c.buy_slots {
+                    cnt[((s - first) / 10) as usize] += 1.0;
+                }
+                let m = cnt.iter().sum::<f64>() / nb as f64;
+                let var = cnt.iter().map(|x| (x - m).powi(2)).sum::<f64>() / (nb - 1) as f64;
+                let fano = var / m;
+                if fano <= 1.0 { 0.0 } else { (1.0 - 1.0 / fano.sqrt()).clamp(0.0, 0.99) }
+            }
+        } else {
+            -1.0
+        };
+        // Kyle lambda: OLS slope of d ln P on signed SOL over the last 60 s.
+        let kyle = {
+            let n = c.flow.len() as f64;
+            if n < 5.0 {
+                0.0
+            } else {
+                let mx = c.flow.iter().map(|x| x.2).sum::<f64>() / n;
+                let my = c.flow.iter().map(|x| x.1).sum::<f64>() / n;
+                let sxx: f64 = c.flow.iter().map(|x| (x.2 - mx).powi(2)).sum();
+                let sxy: f64 = c.flow.iter().map(|x| (x.2 - mx) * (x.1 - my)).sum();
+                if sxx > 0.0 { sxy / sxx } else { 0.0 }
+            }
+        };
+        // Volatility: std of 1 s log returns of the last price per second over 60 s.
+        let vol = {
+            let mut last = c.px.iter().filter(|x| x.0 <= t - 60).next_back().or(c.px.front()).map(|x| x.1).unwrap_or(price);
+            let mut it = c.px.iter().filter(|x| x.0 > t - 60).peekable();
+            let mut rets = Vec::with_capacity(60);
+            for sec in (t - 59)..=t {
+                let mut cur = last;
+                while let Some(x) = it.peek() {
+                    if x.0 > sec {
+                        break;
+                    }
+                    cur = x.1;
+                    it.next();
+                }
+                if last > 0.0 && cur > 0.0 {
+                    rets.push((cur / last).ln());
+                }
+                last = cur;
+            }
+            if rets.len() < 2 {
+                0.0
+            } else {
+                let m = rets.iter().sum::<f64>() / rets.len() as f64;
+                (rets.iter().map(|r| (r - m).powi(2)).sum::<f64>() / (rets.len() - 1) as f64).sqrt()
+            }
+        };
+        // Overhang: early buyers' retention; unrealized profit share of holders (average cost).
+        let (mut early_held, mut early_bought) = (0i64, 0i64);
+        for (u, bought) in &c.early_bought {
+            early_bought += bought;
+            early_held += c.bal.get(u).copied().unwrap_or(0).clamp(0, *bought);
+        }
+        let (mut prof, mut mcap, mut held_all, mut held_snipers) = (0.0, 0.0, 0i64, 0i64);
+        let mut top: Vec<i64> = Vec::new();
+        for (u, bal) in &c.bal {
+            if *bal <= 0 {
+                continue;
+            }
+            let bf = *bal as f64;
+            let avg = c.cost.get(u).copied().unwrap_or(0.0) / bf;
+            prof += bf * (price - avg).max(0.0);
+            mcap += bf * price;
+            held_all += bal;
+            top.push(*bal);
+            if self.wallet(*u).is_some_and(|w| w.sniper_coins >= SNIPER_MIN_COINS) {
+                held_snipers += bal;
+            }
+        }
+        // Regime: market-wide, only meaningful inside the backfill window (all coins observed there).
+        let in_win = t <= self.window_end;
+        let coin_vol5: f64 = c.tr.iter().map(|x| x.3).sum();
+        let sol_ret_1h = {
+            let at = |ts: i64| -> Option<f64> {
+                let i = self.ctx.sol_usd.partition_point(|x| x.0 <= ts);
+                (i > 0).then(|| self.ctx.sol_usd[i - 1].1)
+            };
+            match (at(t), at(t - 3600)) {
+                (Some(a), Some(b)) if b > 0.0 => (a / b - 1.0) as f32,
+                _ => f32::NAN,
+            }
+        };
+        let mut early_delay: Vec<f64> = c.early_first.iter().map(|x| (x - born) as f64).collect();
+        vec![
+            self.created.get(ci).copied().flatten().is_some() as u8 as f32,
+            q.ln() as f32,
+            (smart60 / q) as f32,
+            share(smart60),
+            smart300.len() as f32,
+            share(flip60),
+            if held_all > 0 { held_snipers as f32 / held_all as f32 } else { 0.0 },
+            share(clus60),
+            buyers_now.len() as f32 / (buyers_prev.len() as f32 + 1.0),
+            holder_vel as f32,
+            branching as f32,
+            hhi as f32,
+            share(retail60),
+            whales as f32,
+            pct(&mut sells.clone(), 0.5) as f32,
+            pct(&mut buys, 0.9) as f32,
+            pct(&mut sells, 0.9) as f32,
+            (b60 / q) as f32,
+            (s60 / q) as f32,
+            ((b60 - s60) / q) as f32,
+            (cvd / q) as f32,
+            kyle as f32,
+            vol as f32,
+            if early_bought > 0 { early_held as f32 / early_bought as f32 } else { -1.0 },
+            if mcap > 0.0 { (prof / mcap) as f32 } else { 0.0 },
+            curve_speed as f32,
+            eta as f32,
+            if in_win { if self.mkt5_sum > 0.0 { (coin_vol5 / self.mkt5_sum) as f32 } else { 0.0 } } else { -1.0 },
+            if in_win { self.new_coins.len() as f32 } else { -1.0 },
+            if in_win { self.mkt10_sum as f32 } else { -1.0 },
+            sol_ret_1h,
+            share(fast60),
+            pct(&mut rates, 0.5) as f32,
+            pct(&mut early_delay, 0.5) as f32,
+            {
+                top.sort_unstable_by(|a, b| b.cmp(a));
+                (top.iter().take(10).sum::<i64>() as f64 / TOTAL_SUPPLY_RAW) as f32
+            },
         ]
     }
 }
 
 /// Marginal price path per coin: (time, price); curve until the coin first trades on the AMM.
-fn paths(ev: &Events) -> Vec<Vec<(i64, f64)>> {
+pub fn paths(ev: &Events) -> Vec<Vec<(i64, f64)>> {
     let mut out: Vec<Vec<(i64, f64)>> = vec![Vec::new(); ev.mints.len()];
     let mut on_amm = vec![false; ev.mints.len()];
     for e in &ev.evs {
@@ -612,96 +1044,260 @@ fn paths(ev: &Events) -> Vec<Vec<(i64, f64)>> {
     out
 }
 
-/// Labels from time t: p0 = first price at time >= t + 1.
-/// (up2, up5, up10 before -50% within 900 s; cont = +30% before -25% within 300 s; rug = <= 0.2 p0 within 300 s; fwd max mult 900 s)
-fn labels(path: &[(i64, f64)], t: i64, dev_sells: &[i64]) -> Option<[f32; 12]> {
-    let i0 = path.partition_point(|x| x.0 < t + 1);
+/// V5 §3.1 labels from time t (p0 = first path price at time >= t + LABEL_LAT_S), over [t, min(t + H, cover_end)].
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Labels {
+    /// Triple barrier: +100% before -35% within H.
+    pub tp1: u8,
+    /// Peak-multiple class before the -65% barrier: 0 <0.35 | 1 0.35-1 | 2 1-2 | 3 2-5 | 4 5-10 | 5 10-50 | 6 >=50.
+    pub bin: u8,
+    /// Peak multiple before the -65% barrier (the value binned in `bin`).
+    pub peak_barrier: f32,
+    /// +100% before -50% within H (hold model).
+    pub hold: u8,
+    /// The coin dies (V5 §3.2 rule) within the next 10 min.
+    pub dead_10m: u8,
+    /// ln(max price within H / p0), no barrier.
+    pub logmax: f32,
+    /// Last price within H / p0.
+    pub end_h: f32,
+    /// Ends <= 0.2 p0 without ever reaching 2x within H.
+    pub rugdead: u8,
+    /// Seconds from t to the first 2x (-1 if none).
+    pub t_2x: f32,
+}
+
+const BIN_EDGES: [f64; 6] = [0.35, 1.0, 2.0, 5.0, 10.0, 50.0];
+
+pub fn bin_of(m: f64) -> u8 {
+    BIN_EDGES.iter().take_while(|e| m >= **e).count() as u8
+}
+
+pub fn labels(path: &[(i64, f64)], t: i64, deaths: &[i64], cover_end: i64) -> Option<Labels> {
+    let i0 = path.partition_point(|x| x.0 < t + LABEL_LAT_S);
     let p0 = path.get(i0)?.1;
     if p0 <= 0.0 {
         return None;
     }
-    let mut up = [0f32; 3];
-    let mut dead = false;
-    let mut cont: Option<bool> = None;
-    let mut rug = 0f32;
-    let mut mx = 1.0f64;
-    // Peak within 30 min WITHOUT a -50% barrier (no-stop-loss holding), and the multiple at the horizon end.
-    let mut peak30 = 1.0f64;
-    let mut end30 = 1.0f64;
-    for &(tt, p) in &path[i0..] {
-        if tt <= t + 1800 {
-            peak30 = peak30.max(p / p0);
-            end30 = p / p0;
-        }
-    }
-    for &(tt, p) in &path[i0..] {
-        if tt > t + 900 {
+    let end = (t + H_S).min(cover_end);
+    let (mut tp1, mut hold): (Option<u8>, Option<u8>) = (None, None);
+    let (mut barrier, mut peak_b, mut mx, mut last, mut t2) = (false, f64::NAN, 1.0f64, 1.0f64, -1.0f32);
+    for &(tt, p) in &path[i0 + 1..] {
+        if tt > end {
             break;
         }
         let m = p / p0;
-        if !dead {
-            mx = mx.max(m);
-            for (k, x) in [2.0, 5.0, 10.0].iter().enumerate() {
-                if m >= *x {
-                    up[k] = 1.0;
-                }
-            }
-            if m <= 0.5 {
-                dead = true;
+        mx = mx.max(m);
+        last = m;
+        if m >= 2.0 && t2 < 0.0 {
+            t2 = (tt - t) as f32;
+        }
+        if tp1.is_none() {
+            if m >= 2.0 {
+                tp1 = Some(1);
+            } else if m <= 0.65 {
+                tp1 = Some(0);
             }
         }
-        if tt <= t + 300 {
-            if cont.is_none() {
-                if m >= 1.3 {
-                    cont = Some(true);
-                } else if m <= 0.75 {
-                    cont = Some(false);
-                }
+        if hold.is_none() {
+            if m >= 2.0 {
+                hold = Some(1);
+            } else if m <= 0.5 {
+                hold = Some(0);
             }
-            if m <= 0.2 {
-                rug = 1.0;
-            }
+        }
+        if !barrier {
+            peak_b = if peak_b.is_nan() { m } else { peak_b.max(m) };
+            barrier = m <= 0.35;
         }
     }
-    // Dump: price <= 0.8 p0 within 30 s. Dev sell: creator sells within 600 s after t.
-    let dump = path[i0..].iter().take_while(|x| x.0 <= t + 30).any(|x| x.1 <= 0.8 * p0) as u8 as f32;
-    let devs = dev_sells.iter().any(|&d| d > t && d <= t + 600) as u8 as f32;
-    Some([
-        up[0], up[1], up[2], cont.unwrap_or(false) as u8 as f32, rug, mx as f32,
-        (peak30 >= 2.0) as u8 as f32, (peak30 >= 5.0) as u8 as f32, (peak30 >= 10.0) as u8 as f32, end30 as f32, dump, devs,
-    ])
+    // No trade after p0 within the horizon: nothing happened, the multiple stays 1.
+    let peak_b = if peak_b.is_nan() { 1.0 } else { peak_b };
+    Some(Labels {
+        tp1: tp1.unwrap_or(0),
+        bin: bin_of(peak_b),
+        peak_barrier: peak_b as f32,
+        hold: hold.unwrap_or(0),
+        dead_10m: deaths.iter().any(|&d| d > t && d <= t + 600) as u8,
+        logmax: mx.ln() as f32,
+        end_h: last as f32,
+        rugdead: (last <= 0.2 && mx < 2.0) as u8,
+        t_2x: t2,
+    })
 }
 
-/// Training snapshots with labels for one recording.
-pub fn write_snapshots(ev: &Events, rp: RadarParams, out: &std::path::Path) -> anyhow::Result<usize> {
-    let mut eng = Engine::new(ev, rp);
-    let pth = paths(ev);
-    let mut dev_sells: Vec<Vec<i64>> = vec![Vec::new(); ev.mints.len()];
+/// V5 §3.2 censoring: the label window [t, t + H] is covered by data, or the coin died inside the data first.
+pub fn label_covered(t: i64, deaths: &[i64], cover_end: i64) -> bool {
+    cover_end >= t + H_S || deaths.iter().any(|&d| d > t && d <= cover_end)
+}
+
+/// Death times per coin (V5 §3.2): a real-trade gap of >= DEAD_IDLE_S during which, at last_real + DEAD_IDLE_S,
+/// the marginal price is below DEAD_PRICE_FRAC x the running peak. Death time = last_real + DEAD_IDLE_S.
+/// Same rule as the `follow` stop (`follow::Life`).
+pub fn death_times(ev: &Events) -> Vec<Vec<i64>> {
+    use crate::follow::{Life, DEAD_IDLE_S};
+    let n = ev.mints.len();
+    let mut out: Vec<Vec<i64>> = vec![Vec::new(); n];
+    let mut life: Vec<Option<Life>> = vec![None; n];
+    let mut checked = vec![true; n];
     for e in &ev.evs {
-        if !e.buy && e.user == e.creator && e.tokens > 0 {
-            dev_sells[e.coin as usize].push(e.time);
+        let c = e.coin as usize;
+        if let Some(l) = &life[c] {
+            if !checked[c] && e.time - l.last_real >= DEAD_IDLE_S {
+                checked[c] = true;
+                if let Some(d) = l.dead_at(e.time) {
+                    out[c].push(d);
+                }
+            }
+        }
+        let l = life[c].get_or_insert(Life { last_real: e.time, ..Default::default() });
+        let before = l.last_real;
+        l.on_event(e.time, e.amm, e.sol, e.quote_res, e.token_res);
+        if l.last_real != before || e.sol >= (REAL_MIN_SOL * 1e9) as u64 {
+            checked[c] = false;
         }
     }
-    let mut f = std::io::BufWriter::new(std::fs::File::create(out)?);
-    write!(f, "coin,order,time")?;
+    for c in 0..n {
+        if let Some(l) = &life[c] {
+            if !checked[c] && ev.cover_end[c] - l.last_real >= DEAD_IDLE_S {
+                if let Some(d) = l.dead_at(ev.cover_end[c]) {
+                    out[c].push(d);
+                }
+            }
+        }
+    }
+    out
+}
+
+/// Counts reported by `write_snapshots`.
+#[derive(Debug, Default, Serialize)]
+pub struct SnapStats {
+    pub rows: usize,
+    pub signal_rows: usize,
+    pub signal_rows_in_window: usize,
+    pub dropped_censored: usize,
+    pub dropped_censored_signal: usize,
+    pub dropped_no_p0: usize,
+    pub coins: usize,
+    pub coins_followed: usize,
+}
+
+pub const LABEL_COLS: [&str; 9] = ["y_tp1", "y_bin", "y_peak_barrier", "y_hold", "y_dead_10m", "y_logmax", "y_end_h", "y_rugdead", "y_t2x"];
+
+/// Training snapshots with V5 labels for one recording (window + follow-up), zstd-compressed CSV.
+pub fn write_snapshots(ev: &Events, rp: RadarParams, ctx: Context, out: &std::path::Path) -> anyhow::Result<SnapStats> {
+    let mut eng = Engine::new(ev, rp).with_ctx(ctx);
+    let pth = paths(ev);
+    let deaths = death_times(ev);
+    let file = std::fs::File::create(out)?;
+    let mut f = std::io::BufWriter::with_capacity(1 << 22, zstd::stream::write::Encoder::new(file, 3)?.auto_finish());
+    write!(f, "coin,order,time,is_signal,in_window")?;
     for n in FEATURES {
         write!(f, ",{n}")?;
     }
-    writeln!(f, ",y_up2,y_up5,y_up10,y_cont,y_rug,y_fwd_max,y_peak2,y_peak5,y_peak10,y_end30,y_dump30s,y_devsell10m")?;
-    let mut n = 0;
+    for n in LABEL_COLS {
+        write!(f, ",{n}")?;
+    }
+    writeln!(f)?;
+    let mut st = SnapStats { coins_followed: ev.followed.iter().filter(|x| **x).count(), ..Default::default() };
+    let mut seen = vec![false; ev.mints.len()];
     for e in &ev.evs {
-        if let Some(x) = eng.apply(e).snapshot {
-            let Some(y) = labels(&pth[e.coin as usize], e.time, &dev_sells[e.coin as usize]) else { continue };
-            write!(f, "{},{},{}", e.coin, e.order, e.time - ev.window.0)?;
-            for v in &x {
-                write!(f, ",{v}")?;
-            }
-            writeln!(f, ",{},{},{},{},{},{},{},{},{},{},{},{}", y[0], y[1], y[2], y[3], y[4], y[5], y[6], y[7], y[8], y[9], y[10], y[11])?;
-            n += 1;
+        let step = eng.apply(e);
+        let Some(x) = step.snapshot else { continue };
+        let ci = e.coin as usize;
+        if !label_covered(e.time, &deaths[ci], ev.cover_end[ci]) {
+            st.dropped_censored += 1;
+            st.dropped_censored_signal += step.signal as usize;
+            continue;
+        }
+        let Some(y) = labels(&pth[ci], e.time, &deaths[ci], ev.cover_end[ci]) else {
+            st.dropped_no_p0 += 1;
+            continue;
+        };
+        let in_win = e.time <= ev.window.1;
+        write!(f, "{},{},{},{},{}", e.coin, e.order, e.time - ev.window.0, step.signal as u8, in_win as u8)?;
+        for v in &x {
+            write!(f, ",{v}")?;
+        }
+        writeln!(f, ",{},{},{},{},{},{},{},{},{}", y.tp1, y.bin, y.peak_barrier, y.hold, y.dead_10m, y.logmax, y.end_h, y.rugdead, y.t_2x)?;
+        st.rows += 1;
+        st.signal_rows += step.signal as usize;
+        st.signal_rows_in_window += (step.signal && in_win) as usize;
+        if !seen[ci] {
+            seen[ci] = true;
+            st.coins += 1;
         }
     }
     f.flush()?;
-    Ok(n)
+    Ok(st)
+}
+
+/// Per-window context: `wallet_scores.csv` (offline, causal) and the SOL/USD 1-minute closes (cached).
+pub fn load_context(rec: &std::path::Path, ev: &Events) -> anyhow::Result<Context> {
+    let mut ctx = Context { wallets: vec![None; ev.users.len()], sol_usd: Vec::new() };
+    let wp = rec.join("wallet_scores.csv");
+    if wp.exists() {
+        let ids: FxHashMap<&str, u32> = ev.users.iter().enumerate().map(|(i, u)| (u.as_str(), i as u32)).collect();
+        let text = std::fs::read_to_string(&wp)?;
+        let mut lines = text.lines();
+        let hdr: Vec<&str> = lines.next().unwrap_or("").split(',').collect();
+        let col = |n: &str| hdr.iter().position(|h| *h == n).ok_or_else(|| anyhow::anyhow!("wallet_scores.csv: no column {n}"));
+        let (iw, isc, inc, ib, ifl, isn, icl) = (col("wallet")?, col("score")?, col("n_closed")?, col("is_bot")?, col("is_flipper")?, col("sniper_coins")?, col("cluster_size")?);
+        for l in lines {
+            let v: Vec<&str> = l.split(',').collect();
+            let Some(&id) = v.get(iw).and_then(|w| ids.get(w)) else { continue };
+            let num = |i: usize| v.get(i).and_then(|x| x.parse::<f64>().ok()).unwrap_or(0.0);
+            ctx.wallets[id as usize] = Some(WalletInfo {
+                score: num(isc) as f32,
+                n_closed: num(inc) as u32,
+                is_bot: num(ib) != 0.0 || v.get(ib) == Some(&"True"),
+                is_flipper: num(ifl) != 0.0 || v.get(ifl) == Some(&"True"),
+                sniper_coins: num(isn) as u32,
+                cluster_size: num(icl).max(1.0) as u32,
+            });
+        }
+    }
+    ctx.sol_usd = sol_usd_series(rec, ev.window.0 - 3700, ev.data_end())?;
+    Ok(ctx)
+}
+
+/// SOL/USD 1-minute candles (Binance public API, accounting / regime only) as (close time, close), cached in
+/// `<rec>/sol_usd_1m.csv`. Empty on network failure (the feature becomes NaN).
+fn sol_usd_series(rec: &std::path::Path, from: i64, to: i64) -> anyhow::Result<Vec<(i64, f64)>> {
+    let cache = rec.join("sol_usd_1m.csv");
+    let parse = |text: &str| -> Vec<(i64, f64)> {
+        text.lines().filter_map(|l| {
+            let (a, b) = l.split_once(',')?;
+            Some((a.parse().ok()?, b.parse().ok()?))
+        }).collect()
+    };
+    if cache.exists() {
+        let v = parse(&std::fs::read_to_string(&cache)?);
+        if v.first().is_some_and(|x| x.0 <= from + 120) && v.last().is_some_and(|x| x.0 >= to.min(from + 60_000) - 120) {
+            return Ok(v);
+        }
+    }
+    let mut out: Vec<(i64, f64)> = Vec::new();
+    let mut start = from - from.rem_euclid(60);
+    while start <= to {
+        let url = format!("https://api.binance.com/api/v3/klines?symbol=SOLUSDT&interval=1m&startTime={}&limit=1000", start * 1000);
+        let Ok(o) = std::process::Command::new("curl").args(["-s", "-m", "30", &url]).output() else { break };
+        let Ok(v) = serde_json::from_slice::<serde_json::Value>(&o.stdout) else { break };
+        let Some(rows) = v.as_array() else { break };
+        if rows.is_empty() {
+            break;
+        }
+        for r in rows {
+            if let (Some(open_ms), Some(close)) = (r[0].as_i64(), r[4].as_str().and_then(|x| x.parse::<f64>().ok())) {
+                out.push((open_ms / 1000 + 60, close));
+            }
+        }
+        start = out.last().map(|x| x.0).unwrap_or(to + 1);
+    }
+    if !out.is_empty() {
+        std::fs::write(&cache, out.iter().map(|(a, b)| format!("{a},{b}\n")).collect::<String>())?;
+    }
+    Ok(out)
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -1171,7 +1767,7 @@ mod tests {
     /// Hawkes intensity: one event per slot for a long time converges to 1/(1-e^-beta); a gap decays it exactly.
     #[test]
     fn hawkes_intensity_steady_state_and_decay() {
-        let events = Events { evs: vec![], mints: vec!["m".into()], window: (0, 0), users: vec![] };
+        let events = Events::new(vec![], vec!["m".into()], (0, 0), vec![]);
         let mut eng = Engine::new(&events, RadarParams::default());
         for s in 1..=2000u64 {
             eng.apply(&ev(s, 0, s as u32, true));
@@ -1185,10 +1781,116 @@ mod tests {
         assert!((after - (before * (-HK_SLOW * 100.0).exp() + 1.0)).abs() < 1e-9);
     }
 
+    fn path(pts: &[(i64, f64)]) -> Vec<(i64, f64)> {
+        pts.to_vec()
+    }
+
+    #[test]
+    fn bins_edges() {
+        assert_eq!([0.1, 0.35, 0.99, 1.0, 1.99, 2.0, 4.9, 5.0, 10.0, 49.0, 50.0, 1e6].map(bin_of), [0, 1, 1, 2, 2, 3, 3, 4, 5, 5, 6, 6]);
+    }
+
+    /// Triple barrier, -65% barrier peak class, hold barrier, end / rug labels on hand-made paths (p0 at t + 1).
+    #[test]
+    fn v5_labels_on_paths() {
+        let cov = 1_000_000;
+        // up to 2.5x, then crash to 0.3x
+        let y = labels(&path(&[(0, 9.0), (101, 1.0), (200, 1.5), (300, 2.5), (400, 0.3)]), 100, &[], cov).unwrap();
+        assert_eq!((y.tp1, y.bin, y.hold, y.rugdead), (1, 3, 1, 0));
+        assert!((y.logmax - 2.5f32.ln()).abs() < 1e-6 && (y.end_h - 0.3).abs() < 1e-6 && (y.peak_barrier - 2.5).abs() < 1e-6);
+        assert_eq!(y.t_2x, 200.0);
+        // -40% first (stop barrier of tp1 hit, hold barrier not), then 3x
+        let y = labels(&path(&[(101, 1.0), (150, 0.6), (300, 3.0)]), 100, &[], cov).unwrap();
+        assert_eq!((y.tp1, y.hold, y.bin), (0, 1, 3));
+        // -70% first: the -65% barrier freezes the peak class at the crash; later 10x only shows in logmax
+        let y = labels(&path(&[(101, 1.0), (150, 0.3), (300, 10.0)]), 100, &[], cov).unwrap();
+        assert_eq!((y.tp1, y.hold, y.bin), (0, 0, 0));
+        assert!((y.logmax - 10f32.ln()).abs() < 1e-6);
+        // slow bleed to 0.15 without ever 2x: rugdead
+        let y = labels(&path(&[(101, 1.0), (200, 0.8), (300, 0.15)]), 100, &[], cov).unwrap();
+        assert_eq!((y.rugdead, y.bin), (1, 1));
+        // events after the horizon or after cover_end are ignored
+        let y = labels(&path(&[(101, 1.0), (101 + H_S, 5.0)]), 100, &[], cov).unwrap();
+        assert_eq!(y.tp1, 0);
+        let y = labels(&path(&[(101, 1.0), (500, 5.0)]), 100, &[], 400).unwrap();
+        assert_eq!((y.tp1, y.bin), (0, 2));
+        // no price at or after t + 1
+        assert!(labels(&path(&[(50, 1.0)]), 100, &[], cov).is_none());
+        // death within 10 min
+        assert_eq!(labels(&path(&[(101, 1.0)]), 100, &[650], cov).unwrap().dead_10m, 1);
+        assert_eq!(labels(&path(&[(101, 1.0)]), 100, &[701], cov).unwrap().dead_10m, 0);
+    }
+
+    #[test]
+    fn censoring_rule() {
+        assert!(label_covered(0, &[], H_S));
+        assert!(!label_covered(0, &[], H_S - 1));
+        assert!(label_covered(0, &[500], 600), "died inside the data");
+        assert!(!label_covered(0, &[700], 600), "death after the data end does not count");
+        assert!(!label_covered(1000, &[500], 2000), "death before t does not cover t");
+    }
+
+    fn mk(slot: u64, time: i64, coin: u32, user: u32, buy: bool, sol: u64, q: u128, tk: u128) -> Ev {
+        Ev { slot, order: (slot << 24) | ((user as u64 & 0xFFFF) << 8), time, coin, amm: true, buy, sol, tokens: 1_000, user, creator: 999,
+             quote_res: q, token_res: tk, real_quote: 0, real_token: 0, fee_bps: 100, complete: false }
+    }
+
+    /// Death: real trades stop, price collapsed below 10% of the peak, 30 min pass -> one death at last_real + 1800.
+    #[test]
+    fn death_times_rule() {
+        let evs = vec![
+            mk(1, 0, 0, 1, true, 50_000_000, 100, 1),   // peak price 100
+            mk(2, 10, 0, 2, false, 50_000_000, 5, 1),   // collapse to 5, last real trade at t = 10
+            mk(3, 1000, 0, 3, true, 1_000, 5, 1),       // dust only
+            mk(4, 5000, 0, 4, true, 50_000_000, 6, 1),  // revival (real) after the death point
+        ];
+        let mut ev = Events::new(evs, vec!["m".into()], (0, 10), vec![]);
+        ev.cover_end = vec![20_000];
+        assert_eq!(death_times(&ev), vec![vec![10 + crate::follow::DEAD_IDLE_S, 5000 + crate::follow::DEAD_IDLE_S]]);
+    }
+
+    /// Causality: a snapshot taken at event k is identical whether or not the events after k exist.
+    #[test]
+    fn features_do_not_see_the_future() {
+        let mut evs = Vec::new();
+        let mut q: u128 = 30_000_000_000;
+        let mut tk: u128 = 1_000_000_000_000;
+        let mut x: u64 = 7;
+        for i in 0..3000u64 {
+            x = x.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+            let coin = ((x >> 33) % 3) as u32;
+            let buy = (x >> 40) % 3 != 0;
+            let sol = 5_000_000 + (x >> 20) % 900_000_000;
+            if buy { q += sol as u128 / 2; tk -= tk / 400; } else { q -= q / 300; tk += tk / 500; }
+            evs.push(mk(1000 + i, (i / 3) as i64, coin, ((x >> 45) % 40) as u32, buy, sol, q, tk));
+        }
+        let users: Vec<String> = (0..1000).map(|i| format!("w{i}")).collect();
+        let full = Events::new(evs.clone(), vec!["a".into(), "b".into(), "c".into()], (0, 1000), users.clone());
+        let rp = RadarParams { min_buyers: 3, min_buy_sol: 0.5, ..RadarParams::default() };
+        let snaps = |ev: &Events| -> Vec<(u64, Vec<f32>)> {
+            let mut eng = Engine::new(ev, rp).with_ctx(Context { wallets: vec![Some(WalletInfo { score: 0.5, n_closed: 3, ..Default::default() }); 1000], sol_usd: vec![] });
+            ev.evs.iter().filter_map(|e| eng.apply(e).snapshot.map(|s| (e.order, s))).collect()
+        };
+        let all = snaps(&full);
+        assert!(all.len() > 50, "radar must fire in the synthetic stream ({} snapshots)", all.len());
+        let cut = 1700;
+        let part = Events::new(evs[..cut].to_vec(), full.mints.clone(), (0, 1000), users);
+        let pre = snaps(&part);
+        let n = pre.len();
+        assert!(n > 10);
+        for (a, b) in pre.iter().zip(all.iter().take(n)) {
+            assert_eq!(a.0, b.0);
+            for (i, (u, v)) in a.1.iter().zip(&b.1).enumerate() {
+                assert!(u == v || (u.is_nan() && v.is_nan()), "feature {} differs: {u} vs {v}", FEATURES[i]);
+            }
+        }
+        assert_eq!(all[0].1.len(), FEATURES.len());
+    }
+
     /// Bundle marker: two distinct buyers in one transaction count as a bundle tx once the tx closes.
     #[test]
     fn same_tx_multi_buyer_is_bundle() {
-        let events = Events { evs: vec![], mints: vec!["m".into()], window: (0, 0), users: vec![] };
+        let events = Events::new(vec![], vec!["m".into()], (0, 0), vec![]);
         let mut eng = Engine::new(&events, RadarParams::default());
         let mut a = ev(10, 1, 1, true);
         let mut b = ev(10, 1, 2, true);
