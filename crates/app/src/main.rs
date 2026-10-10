@@ -1,5 +1,7 @@
 //! Stage 0 binary: record live feeds, replay recordings, and produce Gate 0 measurements.
 
+mod census;
+mod radar_eval;
 mod logging;
 
 use anyhow::{anyhow, bail, Context, Result};
@@ -101,6 +103,29 @@ enum Cmd {
         #[arg(long, default_value_t = 30)]
         skipped_spot_checks: usize,
     },
+    /// Coin census on a backfill recording: price path per coin, trader activity, buy/sell sizes.
+    Census {
+        #[arg(long)]
+        rec: PathBuf,
+        #[arg(long)]
+        out: PathBuf,
+    },
+    /// Tune radar params on a DEVELOPMENT recording only; writes the frozen params file.
+    RadarTune {
+        #[arg(long)]
+        rec: PathBuf,
+        #[arg(long, default_value = "config/radar_params.json")]
+        params_out: PathBuf,
+    },
+    /// Evaluate frozen radar params on any recording (holdouts).
+    RadarEval {
+        #[arg(long)]
+        rec: PathBuf,
+        #[arg(long, default_value = "config/radar_params.json")]
+        params: PathBuf,
+        #[arg(long)]
+        out: Option<PathBuf>,
+    },
     /// G0.H1 check on a backfill recording: every slot fetched or confirmed skipped.
     VerifyBackfill {
         #[arg(long)]
@@ -176,6 +201,32 @@ fn main() -> Result<()> {
             rt.block_on(backfill(settings, cluster, venues.program_ids(), out, end_slot, slots, concurrency, skipped_spot_checks))
         }
         Cmd::VerifyBackfill { rec } => verify_backfill(&rec),
+        Cmd::Census { rec, out } => census::run(&rec, &out),
+        Cmd::RadarTune { rec, params_out } => {
+            let ds = radar_eval::load(&rec)?;
+            let prep = radar_eval::prepare(&ds);
+            let (best, all) = radar_eval::tune(&ds, &prep);
+            let chosen = radar_eval::evaluate(&ds, &prep, best);
+            std::fs::write(&params_out, serde_json::to_string_pretty(&serde_json::json!({
+                "frozen_from": rec, "params": best, "grid_size": all.len(),
+                "objective": "newborns HOT by rule; awakening rule maximizes mean recall(2x,5x) on pre-existing coins s.t. precision_2x >= naive",
+            }))?)?;
+            println!("{}", serde_json::to_string_pretty(&chosen)?);
+            Ok(())
+        }
+        Cmd::RadarEval { rec, params, out } => {
+            let v: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(&params)?)?;
+            let p: radar::Params = serde_json::from_value(v["params"].clone())?;
+            let ds = radar_eval::load(&rec)?;
+            let prep = radar_eval::prepare(&ds);
+            let r = radar_eval::evaluate(&ds, &prep, p);
+            let text = serde_json::to_string_pretty(&r)?;
+            if let Some(o) = out {
+                std::fs::write(o, &text)?;
+            }
+            println!("{text}");
+            Ok(())
+        }
     }
 }
 

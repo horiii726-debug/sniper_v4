@@ -1,0 +1,20 @@
+{
+  "frozen_from": "data/bf_1h",
+  "grid_size": 324,
+  "objective": "newborns HOT by rule; awakening rule maximizes mean recall(2x,5x) on pre-existing coins s.t. precision_2x >= naive",
+  "params": {
+    "demote_idle_s": 300,
+    "max_buy_sell_ratio": 4.0,
+    "max_median_buy_sol": 1.0,
+    "min_accel": 2.0,
+    "min_buy_sol": 1.0,
+    "min_buyers": 3,
+    "real_min_sol": 0.01,
+    "slow_min_buy_sol": 2.0,
+    "slow_min_buyers": 6,
+    "slow_win_s": 300,
+    "tau_fast_s": 10.0,
+    "tau_slow_s": 120.0,
+    "win_s": 60
+  }
+}

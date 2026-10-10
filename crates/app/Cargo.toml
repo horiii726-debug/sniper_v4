@@ -24,3 +24,6 @@ events = { path = "../events" }
 recorder = { path = "../recorder" }
 feed = { path = "../feed" }
 replay = { path = "../replay" }
+decoder = { path = "../decoder" }
+radar = { path = "../radar" }
+rustc-hash.workspace = true
