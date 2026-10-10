@@ -443,8 +443,8 @@ fn main() -> Result<()> {
                     e.0 += 1;
                     e.1 += t.pnl_sol * usd;
                 }
-                println!("{:6} $100 -> ${:.2} | trades {} win {:.0}% | avg win {:+.1}% avg loss {:+.1}% | held>=2x {} >=5x {} | costs ${:.1} | by exit (n, $): {:?}",
-                    r.file_name().and_then(|x| x.to_str()).unwrap_or(""), rep.final_usd, rep.trades, rep.win_rate * 100.0, avg(&wins), avg(&loss),
+                println!("{:6} $100 -> ${:.2} | PnL {:+.2} USD | profit factor {:.2} | trades {} win {:.0}% | avg win {:+.1}% avg loss {:+.1}% | held>=2x {} >=5x {} | costs ${:.1} | by exit (n, $): {:?}",
+                    r.file_name().and_then(|x| x.to_str()).unwrap_or(""), rep.final_usd, rep.pnl_usd, rep.profit_factor, rep.trades, rep.win_rate * 100.0, avg(&wins), avg(&loss),
                     rep.trades_list.iter().filter(|t| t.max_mult_held >= 2.0).count(), rep.held_to_5x, rep.costs_usd,
                     reason_pnl.iter().map(|(k, v)| format!("{k}:{}/{:+.1}", v.0, v.1)).collect::<Vec<_>>());
             }
