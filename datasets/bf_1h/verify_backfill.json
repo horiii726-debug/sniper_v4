@@ -1,0 +1,18 @@
+{
+  "G0_H1": "PASS",
+  "confirmed_skipped_by_getblocks": 0,
+  "error_examples": [],
+  "fetch_errors": 0,
+  "fetched_blocks": 9000,
+  "listed_blocks": 9000,
+  "missing_blocks": 0,
+  "missing_examples": [],
+  "range": [
+    455069845,
+    455078844
+  ],
+  "slots": 9000,
+  "spot_check_contradictions": 0,
+  "spot_checked_skipped_confirmed": 0,
+  "unaccounted_slots_note": 0
+}

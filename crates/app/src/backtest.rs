@@ -42,11 +42,13 @@ pub struct Events {
     pub evs: Vec<Ev>,
     pub mints: Vec<String>,
     pub window: (i64, i64),
+    /// Wallet address per user / creator id (cross-window wallet analysis).
+    pub users: Vec<String>,
 }
 
 /// Decode a recording into pump/PumpSwap events, cached as `<rec>/pump_events.bin`.
 pub fn load(rec: &Path) -> Result<Events> {
-    let cache = rec.join("pump_events.bin");
+    let cache = rec.join("pump_events_v2.bin");
     if cache.exists() {
         return Ok(bincode::deserialize(&std::fs::read(&cache)?)?);
     }
@@ -104,7 +106,11 @@ pub fn load(rec: &Path) -> Result<Events> {
     for (m, i) in mints {
         names[i as usize] = m;
     }
-    let out = Events { evs, mints: names, window: (t0, t1) };
+    let mut unames = vec![String::new(); users.len()];
+    for (u, i) in users {
+        unames[i as usize] = u;
+    }
+    let out = Events { evs, mints: names, window: (t0, t1), users: unames };
     std::fs::write(&cache, bincode::serialize(&out)?)?;
     Ok(out)
 }

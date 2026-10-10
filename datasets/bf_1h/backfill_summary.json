@@ -1,0 +1,20 @@
+{
+  "bytes_decoded": 31960967999,
+  "calls": {
+    "getBlock": 13294,
+    "getBlock_retries": 4294,
+    "getBlocks": 1,
+    "getSlot": 1
+  },
+  "cluster": "mainnet",
+  "confirmed_blocks": 9000,
+  "disk_bytes": 2286432652,
+  "elapsed_s": 1672.961544874,
+  "end_slot": 455078844,
+  "skipped_per_getblocks": 0,
+  "skipped_spot_checked": 0,
+  "slots_in_range": 9000,
+  "start_slot": 455069845,
+  "txs_kept_venues": 1809897,
+  "txs_total": 9225194
+}

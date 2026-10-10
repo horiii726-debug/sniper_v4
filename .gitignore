@@ -7,3 +7,7 @@ id.json
 target/
 data/
 logs/
+catboost_info/
+# datasets: only compressed files are versioned
+datasets/**/*.csv
+datasets/**/*.bin

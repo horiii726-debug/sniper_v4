@@ -217,6 +217,19 @@ enum Cmd {
         radar_params: PathBuf,
         #[arg(long, default_value = "reports/portfolio_lowo.json")]
         out: PathBuf,
+        /// Evaluate only these test windows (names); all windows are still used for tuning.
+        #[arg(long)]
+        only: Vec<String>,
+        /// Score file tag: scores_outer_<tag>.csv / scores_inner_excl_<W>_<tag>.csv ("" = untagged files).
+        #[arg(long, default_value = "")]
+        tag: String,
+    },
+    /// Export decoded pump.fun / PumpSwap trades of a recording as CSV (one row per trade).
+    ExportEvents {
+        #[arg(long)]
+        rec: PathBuf,
+        #[arg(long)]
+        out: PathBuf,
     },
     /// G0.H1 check on a backfill recording: every slot fetched or confirmed skipped.
     VerifyBackfill {
@@ -437,26 +450,43 @@ fn main() -> Result<()> {
             }
             Ok(())
         }
-        Cmd::BacktestLowo { rec, radar_params, out } => {
+        Cmd::BacktestLowo { rec, radar_params, out, only, tag } => {
+            let sfx = if tag.is_empty() { String::new() } else { format!("_{tag}") };
             let rp: radar::Params = serde_json::from_value(serde_json::from_str::<serde_json::Value>(&std::fs::read_to_string(&radar_params)?)?["params"].clone())?;
             let costs = backtest::Costs::default();
             let name = |r: &PathBuf| r.file_name().and_then(|x| x.to_str()).unwrap_or("").to_string();
             let evs: Vec<(String, backtest::Events, f64)> = rec.iter().map(|r| { let e = backtest::load(r)?; let u = backtest::sol_usd_at(e.window.0)?; Ok((name(r), e, u)) }).collect::<Result<_>>()?;
             let mut results = Vec::new();
             for (wi, (wname, wev, wusd)) in evs.iter().enumerate() {
+                if !only.is_empty() && !only.contains(wname) {
+                    continue;
+                }
                 let inner: Vec<(usize, ml_sim::Scores)> = evs.iter().enumerate().filter(|(i, _)| *i != wi)
-                    .map(|(i, (vname, _, _))| Ok((i, ml_sim::read_scores(&rec[i].join(format!("scores_inner_excl_{wname}.csv")))?)).map(|x: (usize, ml_sim::Scores)| { let _ = vname; x }))
+                    .map(|(i, (vname, _, _))| Ok((i, ml_sim::read_scores(&rec[i].join(format!("scores_inner_excl_{wname}{sfx}.csv")))?)).map(|x: (usize, ml_sim::Scores)| { let _ = vname; x }))
                     .collect::<Result<_>>()?;
                 let refs: Vec<(&backtest::Events, &ml_sim::Scores, f64)> = inner.iter().map(|(i, s)| (&evs[*i].1, s, evs[*i].2)).collect();
                 let (best, _) = ml_sim::tune(&refs, rp, &costs);
-                let outer = ml_sim::read_scores(&rec[wi].join("scores_outer.csv"))?;
+                let outer = ml_sim::read_scores(&rec[wi].join(format!("scores_outer{sfx}.csv")))?;
                 let r = ml_sim::simulate(wev, rp, &outer, &best, &costs, *wusd);
-                println!("{wname}: $100 -> ${:.2} ({:+.1}%) trades {} win {:.0}% maxDD {:.0}% held>=5x {} best {:.0}% exits {:?}",
-                    r.final_usd, r.return_pct, r.trades, r.win_rate * 100.0, r.max_drawdown_pct, r.held_to_5x, r.best_ret * 100.0, r.exits);
+                println!("{wname}: $100 -> ${:.2} (PnL {:+.2} USD, {:+.1}%) trades {} win rate {:.0}% profit factor {:.2} maxDD {:.0}% held>=5x {} best {:.0}% exits {:?}",
+                    r.final_usd, r.pnl_usd, r.return_pct, r.trades, r.win_rate * 100.0, r.profit_factor, r.max_drawdown_pct, r.held_to_5x, r.best_ret * 100.0, r.exits);
                 results.push(serde_json::json!({ "test_window": wname, "strategy_tuned_on_other_windows": best, "report": r }));
             }
             std::fs::write(&out, serde_json::to_string_pretty(&serde_json::json!({
                 "label": "EXPLORATORY nested leave-one-window-out ($100 per window); pump.fun curve + PumpSwap", "results": results }))?)?;
+            Ok(())
+        }
+        Cmd::ExportEvents { rec, out } => {
+            let ev = backtest::load(&rec)?;
+            let mut f = std::io::BufWriter::new(std::fs::File::create(&out)?);
+            writeln!(f, "slot,block_time,order,mint,venue,side,sol_lamports,token_raw,trader,creator,quote_reserve_after,token_reserve_after,real_quote,real_token,fee_bps,curve_complete")?;
+            for e in &ev.evs {
+                writeln!(f, "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}", e.slot, e.time, e.order, ev.mints[e.coin as usize], if e.amm { "pumpswap" } else { "pumpfun_curve" },
+                    if e.buy { "buy" } else { "sell" }, e.sol, e.tokens, ev.users[e.user as usize], ev.users[e.creator as usize], e.quote_res, e.token_res,
+                    e.real_quote, e.real_token, e.fee_bps, e.complete as u8)?;
+            }
+            f.flush()?;
+            println!("{}: {} trades, {} coins, {} wallets", out.display(), ev.evs.len(), ev.mints.len(), ev.users.len());
             Ok(())
         }
         Cmd::PumpCheck { rec, dump, max_blocks } => pump_check::run(&rec, dump.as_deref(), max_blocks),

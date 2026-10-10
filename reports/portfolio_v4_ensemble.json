@@ -1,0 +1,6667 @@
+{
+  "costs": {
+    "buy_fail_prob": 0.15,
+    "default_fee_bps": 125,
+    "latency_slots": 2,
+    "tx_cost_lamports": 500000
+  },
+  "grid_dev_returns": [
+    {
+      "dev_returns": [
+        -64.01712671624993,
+        -20.551477121139616
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.0,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 1.2,
+        "entry_p2": 0.4000000059604645,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.35,
+        "giveback_arm": 1.5,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -57.389618652749874,
+        -20.495464496219608
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.0,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 1.2,
+        "entry_p2": 0.4000000059604645,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.35,
+        "giveback_arm": 1.5,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -60.005256902249805,
+        -8.491949050269621
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.0,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 1.2,
+        "entry_p2": 0.4000000059604645,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.35,
+        "giveback_arm": 1.5,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -58.63333331729979,
+        -8.432026647659608
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.0,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 1.2,
+        "entry_p2": 0.4000000059604645,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.35,
+        "giveback_arm": 1.5,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -96.32144403029983,
+        -94.89874294914996
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.0,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 1.2,
+        "entry_p2": 0.4000000059604645,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.35,
+        "giveback_arm": 1.5,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -95.85975283679981,
+        -94.63205826521997
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.0,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 1.2,
+        "entry_p2": 0.4000000059604645,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.35,
+        "giveback_arm": 1.5,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -95.71256788739974,
+        -94.84619776085997
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.0,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 1.2,
+        "entry_p2": 0.4000000059604645,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.35,
+        "giveback_arm": 1.5,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -95.56239431759977,
+        -94.58597808715994
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.0,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 1.2,
+        "entry_p2": 0.4000000059604645,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.35,
+        "giveback_arm": 1.5,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -64.01712671624993,
+        -24.375507295089673
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.3,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 1.2,
+        "entry_p2": 0.4000000059604645,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.35,
+        "giveback_arm": 1.5,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -57.389618652749874,
+        -24.319492017449672
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.3,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 1.2,
+        "entry_p2": 0.4000000059604645,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.35,
+        "giveback_arm": 1.5,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -60.005256902249805,
+        -9.581279012689626
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.3,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 1.2,
+        "entry_p2": 0.4000000059604645,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.35,
+        "giveback_arm": 1.5,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -58.63333331729979,
+        -9.521355283719634
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.3,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 1.2,
+        "entry_p2": 0.4000000059604645,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.35,
+        "giveback_arm": 1.5,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -96.32144403029983,
+        -94.97116452627996
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.3,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 1.2,
+        "entry_p2": 0.4000000059604645,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.35,
+        "giveback_arm": 1.5,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -95.85975283679981,
+        -95.07632486834996
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.3,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 1.2,
+        "entry_p2": 0.4000000059604645,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.35,
+        "giveback_arm": 1.5,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -95.71256788739974,
+        -94.97055915346996
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.3,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 1.2,
+        "entry_p2": 0.4000000059604645,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.35,
+        "giveback_arm": 1.5,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -95.56239431759977,
+        -94.73801829183995
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.3,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 1.2,
+        "entry_p2": 0.4000000059604645,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.35,
+        "giveback_arm": 1.5,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -64.01712671624993,
+        -24.375507295089673
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.6,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 1.2,
+        "entry_p2": 0.4000000059604645,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.35,
+        "giveback_arm": 1.5,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -57.389618652749874,
+        -24.319492017449672
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.6,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 1.2,
+        "entry_p2": 0.4000000059604645,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.35,
+        "giveback_arm": 1.5,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -60.005256902249805,
+        -9.581279012689626
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.6,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 1.2,
+        "entry_p2": 0.4000000059604645,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.35,
+        "giveback_arm": 1.5,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -58.63333331729979,
+        -9.521355283719634
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.6,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 1.2,
+        "entry_p2": 0.4000000059604645,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.35,
+        "giveback_arm": 1.5,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -95.87400251219982,
+        -95.16216522959995
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.6,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 1.2,
+        "entry_p2": 0.4000000059604645,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.35,
+        "giveback_arm": 1.5,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -95.33387571314982,
+        -95.82747315315999
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.6,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 1.2,
+        "entry_p2": 0.4000000059604645,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.35,
+        "giveback_arm": 1.5,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -95.82253543379974,
+        -94.86259344946995
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.6,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 1.2,
+        "entry_p2": 0.4000000059604645,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.35,
+        "giveback_arm": 1.5,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -95.16744269309976,
+        -95.45624554773997
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.6,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 1.2,
+        "entry_p2": 0.4000000059604645,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.35,
+        "giveback_arm": 1.5,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -69.85797234614992,
+        -23.23701966781969
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.0,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 2.0,
+        "entry_p2": 0.4000000059604645,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 2.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -59.46853122689993,
+        -23.183651473149713
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.0,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 2.0,
+        "entry_p2": 0.4000000059604645,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 2.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -62.970887754299845,
+        -6.542681871599598
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.0,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 2.0,
+        "entry_p2": 0.4000000059604645,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 2.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -57.42203108309983,
+        -6.484602888329594
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.0,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 2.0,
+        "entry_p2": 0.4000000059604645,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 2.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -95.6937796888499,
+        -95.20068117657996
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.0,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 2.0,
+        "entry_p2": 0.4000000059604645,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 2.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -95.1207245561999,
+        -95.20068117657996
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.0,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 2.0,
+        "entry_p2": 0.4000000059604645,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 2.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -96.5329342090498,
+        -94.55513126422997
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.0,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 2.0,
+        "entry_p2": 0.4000000059604645,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 2.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -95.3756269243498,
+        -94.55513126422997
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.0,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 2.0,
+        "entry_p2": 0.4000000059604645,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 2.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -69.85797234614992,
+        -26.799303417179708
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.3,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 2.0,
+        "entry_p2": 0.4000000059604645,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 2.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -59.46853122689993,
+        -26.74593323296971
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.3,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 2.0,
+        "entry_p2": 0.4000000059604645,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 2.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -62.970887754299845,
+        -7.544267040869624
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.3,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 2.0,
+        "entry_p2": 0.4000000059604645,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 2.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -57.42203108309983,
+        -7.486186952299622
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.3,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 2.0,
+        "entry_p2": 0.4000000059604645,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 2.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -95.6937796888499,
+        -94.97428268810995
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.3,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 2.0,
+        "entry_p2": 0.4000000059604645,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 2.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -95.1207245561999,
+        -94.97428268810995
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.3,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 2.0,
+        "entry_p2": 0.4000000059604645,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 2.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -96.5329342090498,
+        -94.67306522680997
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.3,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 2.0,
+        "entry_p2": 0.4000000059604645,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 2.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -95.3756269243498,
+        -94.67306522680997
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.3,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 2.0,
+        "entry_p2": 0.4000000059604645,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 2.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -69.85797234614992,
+        -26.799303417179708
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.6,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 2.0,
+        "entry_p2": 0.4000000059604645,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 2.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -59.46853122689993,
+        -26.74593323296971
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.6,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 2.0,
+        "entry_p2": 0.4000000059604645,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 2.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -62.970887754299845,
+        -7.544267040869624
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.6,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 2.0,
+        "entry_p2": 0.4000000059604645,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 2.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -57.42203108309983,
+        -7.486186952299622
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.6,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 2.0,
+        "entry_p2": 0.4000000059604645,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 2.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -95.2482407078999,
+        -96.35405111569996
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.6,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 2.0,
+        "entry_p2": 0.4000000059604645,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 2.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -95.0391308113499,
+        -96.35405111569996
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.6,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 2.0,
+        "entry_p2": 0.4000000059604645,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 2.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -95.38329200759979,
+        -96.18992014484998
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.6,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 2.0,
+        "entry_p2": 0.4000000059604645,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 2.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -95.6696416667998,
+        -96.18992014484998
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.6,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 2.0,
+        "entry_p2": 0.4000000059604645,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 2.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -83.55452325539994,
+        -29.553728149329707
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.0,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 3.0,
+        "entry_p2": 0.4000000059604645,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 3.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -79.30790024759993,
+        -29.553728149329707
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.0,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 3.0,
+        "entry_p2": 0.4000000059604645,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 3.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -66.17682984899984,
+        -13.759296654249598
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.0,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 3.0,
+        "entry_p2": 0.4000000059604645,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 3.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -64.99171466639986,
+        -13.759296654249598
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.0,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 3.0,
+        "entry_p2": 0.4000000059604645,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 3.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -99.23236205429995,
+        -95.74976050492995
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.0,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 3.0,
+        "entry_p2": 0.4000000059604645,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 3.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -99.17447957369994,
+        -95.74976050492995
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.0,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 3.0,
+        "entry_p2": 0.4000000059604645,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 3.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -99.18371594144983,
+        -94.92307634970997
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.0,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 3.0,
+        "entry_p2": 0.4000000059604645,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 3.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -100.20257705279982,
+        -94.92307634970997
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.0,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 3.0,
+        "entry_p2": 0.4000000059604645,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 3.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -83.55452325539994,
+        -32.82647325824971
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.3,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 3.0,
+        "entry_p2": 0.4000000059604645,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 3.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -79.30790024759993,
+        -32.82647325824971
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.3,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 3.0,
+        "entry_p2": 0.4000000059604645,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 3.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -66.17682984899984,
+        -14.761011364679621
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.3,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 3.0,
+        "entry_p2": 0.4000000059604645,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 3.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -64.99171466639986,
+        -14.761011364679621
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.3,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 3.0,
+        "entry_p2": 0.4000000059604645,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 3.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -99.23236205429995,
+        -96.03728849413994
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.3,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 3.0,
+        "entry_p2": 0.4000000059604645,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 3.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -99.17447957369994,
+        -96.03728849413994
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.3,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 3.0,
+        "entry_p2": 0.4000000059604645,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 3.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -99.18371594144983,
+        -94.89394097329998
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.3,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 3.0,
+        "entry_p2": 0.4000000059604645,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 3.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -100.20257705279982,
+        -94.89394097329998
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.3,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 3.0,
+        "entry_p2": 0.4000000059604645,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 3.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -83.55452325539994,
+        -32.82647325824971
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.6,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 3.0,
+        "entry_p2": 0.4000000059604645,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 3.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -79.30790024759993,
+        -32.82647325824971
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.6,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 3.0,
+        "entry_p2": 0.4000000059604645,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 3.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -66.17682984899984,
+        -14.761011364679621
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.6,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 3.0,
+        "entry_p2": 0.4000000059604645,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 3.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -64.99171466639986,
+        -14.761011364679621
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.6,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 3.0,
+        "entry_p2": 0.4000000059604645,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 3.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -99.22957157144995,
+        -96.04810562311995
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.6,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 3.0,
+        "entry_p2": 0.4000000059604645,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 3.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -99.28323482969995,
+        -96.04810562311995
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.6,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 3.0,
+        "entry_p2": 0.4000000059604645,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 3.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -99.25177547714983,
+        -96.27131101041996
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.6,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 3.0,
+        "entry_p2": 0.4000000059604645,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 3.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -99.39312638864983,
+        -96.27131101041996
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.6,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 3.0,
+        "entry_p2": 0.4000000059604645,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 3.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -45.295010164199844,
+        -16.2265733993299
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.0,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 1.2,
+        "entry_p2": 0.5,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.35,
+        "giveback_arm": 1.5,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -39.70398955919984,
+        -16.2265733993299
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.0,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 1.2,
+        "entry_p2": 0.5,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.35,
+        "giveback_arm": 1.5,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -43.772477041049804,
+        -16.2265733993299
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.0,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 1.2,
+        "entry_p2": 0.5,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.35,
+        "giveback_arm": 1.5,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -42.91572797219983,
+        -16.2265733993299
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.0,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 1.2,
+        "entry_p2": 0.5,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.35,
+        "giveback_arm": 1.5,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -53.28374720954957,
+        -73.8660747993698
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.0,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 1.2,
+        "entry_p2": 0.5,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.35,
+        "giveback_arm": 1.5,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -41.88555196769952,
+        -73.99202594496977
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.0,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 1.2,
+        "entry_p2": 0.5,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.35,
+        "giveback_arm": 1.5,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -52.560088898399535,
+        -73.8660747993698
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.0,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 1.2,
+        "entry_p2": 0.5,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.35,
+        "giveback_arm": 1.5,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -45.509492472149546,
+        -73.99202594496977
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.0,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 1.2,
+        "entry_p2": 0.5,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.35,
+        "giveback_arm": 1.5,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -45.295010164199844,
+        -19.9689320720399
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.3,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 1.2,
+        "entry_p2": 0.5,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.35,
+        "giveback_arm": 1.5,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -39.70398955919984,
+        -19.9689320720399
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.3,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 1.2,
+        "entry_p2": 0.5,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.35,
+        "giveback_arm": 1.5,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -43.772477041049804,
+        -17.3214576047799
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.3,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 1.2,
+        "entry_p2": 0.5,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.35,
+        "giveback_arm": 1.5,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -42.91572797219983,
+        -17.3214576047799
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.3,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 1.2,
+        "entry_p2": 0.5,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.35,
+        "giveback_arm": 1.5,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -55.45907776994957,
+        -75.1119327055298
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.3,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 1.2,
+        "entry_p2": 0.5,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.35,
+        "giveback_arm": 1.5,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -44.20047443429952,
+        -75.22667014050981
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.3,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 1.2,
+        "entry_p2": 0.5,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.35,
+        "giveback_arm": 1.5,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -54.81786682889954,
+        -74.18533561998979
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.3,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 1.2,
+        "entry_p2": 0.5,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.35,
+        "giveback_arm": 1.5,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -47.73734022899957,
+        -74.30842050162978
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.3,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 1.2,
+        "entry_p2": 0.5,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.35,
+        "giveback_arm": 1.5,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -45.295010164199844,
+        -19.9689320720399
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.6,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 1.2,
+        "entry_p2": 0.5,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.35,
+        "giveback_arm": 1.5,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -39.70398955919984,
+        -19.9689320720399
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.6,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 1.2,
+        "entry_p2": 0.5,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.35,
+        "giveback_arm": 1.5,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -43.772477041049804,
+        -17.3214576047799
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.6,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 1.2,
+        "entry_p2": 0.5,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.35,
+        "giveback_arm": 1.5,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -42.91572797219983,
+        -17.3214576047799
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.6,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 1.2,
+        "entry_p2": 0.5,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.35,
+        "giveback_arm": 1.5,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -58.0734371714996,
+        -74.93169784526982
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.6,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 1.2,
+        "entry_p2": 0.5,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.35,
+        "giveback_arm": 1.5,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -44.18856929519952,
+        -75.04806360820983
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.6,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 1.2,
+        "entry_p2": 0.5,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.35,
+        "giveback_arm": 1.5,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -57.35582638679963,
+        -73.99851770345978
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.6,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 1.2,
+        "entry_p2": 0.5,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.35,
+        "giveback_arm": 1.5,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -47.72763061184955,
+        -74.12328043049978
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.6,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 1.2,
+        "entry_p2": 0.5,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.35,
+        "giveback_arm": 1.5,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -41.976421883249884,
+        -16.2265733993299
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.0,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 2.0,
+        "entry_p2": 0.5,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 2.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -34.667269770149886,
+        -16.2265733993299
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.0,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 2.0,
+        "entry_p2": 0.5,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 2.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -40.352171827949846,
+        -16.2265733993299
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.0,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 2.0,
+        "entry_p2": 0.5,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 2.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -38.14437039374984,
+        -16.2265733993299
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.0,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 2.0,
+        "entry_p2": 0.5,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 2.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -90.37035892199987,
+        -86.2346391132098
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.0,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 2.0,
+        "entry_p2": 0.5,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 2.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -88.64252229239989,
+        -86.66711393381979
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.0,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 2.0,
+        "entry_p2": 0.5,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 2.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -91.43193539699988,
+        -86.2744806464798
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.0,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 2.0,
+        "entry_p2": 0.5,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 2.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -90.55809145454988,
+        -86.2789798806598
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.0,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 2.0,
+        "entry_p2": 0.5,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 2.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -41.976421883249884,
+        -19.9689320720399
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.3,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 2.0,
+        "entry_p2": 0.5,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 2.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -34.667269770149886,
+        -19.9689320720399
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.3,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 2.0,
+        "entry_p2": 0.5,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 2.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -40.352171827949846,
+        -17.3214576047799
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.3,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 2.0,
+        "entry_p2": 0.5,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 2.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -38.14437039374984,
+        -17.3214576047799
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.3,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 2.0,
+        "entry_p2": 0.5,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 2.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -90.82023313499987,
+        -86.9942593014598
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.3,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 2.0,
+        "entry_p2": 0.5,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 2.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -89.12795040824987,
+        -87.4033970389298
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.3,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 2.0,
+        "entry_p2": 0.5,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 2.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -91.84292815859988,
+        -86.4592990753098
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.3,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 2.0,
+        "entry_p2": 0.5,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 2.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -90.98267237309989,
+        -86.46225829499978
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.3,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 2.0,
+        "entry_p2": 0.5,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 2.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -41.976421883249884,
+        -19.9689320720399
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.6,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 2.0,
+        "entry_p2": 0.5,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 2.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -34.667269770149886,
+        -19.9689320720399
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.6,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 2.0,
+        "entry_p2": 0.5,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 2.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -40.352171827949846,
+        -17.3214576047799
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.6,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 2.0,
+        "entry_p2": 0.5,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 2.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -38.14437039374984,
+        -17.3214576047799
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.6,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 2.0,
+        "entry_p2": 0.5,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 2.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -90.03169634429989,
+        -86.8940940311498
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.6,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 2.0,
+        "entry_p2": 0.5,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 2.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -88.24390254644989,
+        -87.30631102388979
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.6,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 2.0,
+        "entry_p2": 0.5,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 2.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -91.10667742214986,
+        -86.35457068447978
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.6,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 2.0,
+        "entry_p2": 0.5,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 2.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -90.22181782139987,
+        -86.35840264904978
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.6,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 2.0,
+        "entry_p2": 0.5,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 2.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -50.173846343699935,
+        -16.2265733993299
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.0,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 3.0,
+        "entry_p2": 0.5,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 3.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -44.47765768244992,
+        -16.2265733993299
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.0,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 3.0,
+        "entry_p2": 0.5,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 3.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -49.03348217699992,
+        -16.2265733993299
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.0,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 3.0,
+        "entry_p2": 0.5,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 3.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -47.54834211614993,
+        -16.2265733993299
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.0,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 3.0,
+        "entry_p2": 0.5,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 3.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -90.81803114369988,
+        -89.00871552670984
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.0,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 3.0,
+        "entry_p2": 0.5,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 3.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -90.00204654569988,
+        -89.00871552670984
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.0,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 3.0,
+        "entry_p2": 0.5,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 3.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -91.03450019999988,
+        -89.05387521092983
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.0,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 3.0,
+        "entry_p2": 0.5,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 3.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -91.05601978004987,
+        -88.69974206477983
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.0,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 3.0,
+        "entry_p2": 0.5,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 3.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -50.173846343699935,
+        -19.9689320720399
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.3,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 3.0,
+        "entry_p2": 0.5,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 3.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -44.47765768244992,
+        -19.9689320720399
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.3,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 3.0,
+        "entry_p2": 0.5,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 3.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -49.03348217699992,
+        -17.3214576047799
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.3,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 3.0,
+        "entry_p2": 0.5,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 3.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -47.54834211614993,
+        -17.3214576047799
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.3,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 3.0,
+        "entry_p2": 0.5,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 3.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -90.81803114369988,
+        -89.62856135596982
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.3,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 3.0,
+        "entry_p2": 0.5,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 3.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -89.21797163279989,
+        -89.62856135596982
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.3,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 3.0,
+        "entry_p2": 0.5,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 3.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -91.03450019999988,
+        -89.20456772331983
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.3,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 3.0,
+        "entry_p2": 0.5,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 3.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -90.40269251399987,
+        -88.85369565428984
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.3,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 3.0,
+        "entry_p2": 0.5,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 3.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -50.173846343699935,
+        -19.9689320720399
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.6,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 3.0,
+        "entry_p2": 0.5,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 3.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -44.47765768244992,
+        -19.9689320720399
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.6,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 3.0,
+        "entry_p2": 0.5,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 3.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -49.03348217699992,
+        -17.3214576047799
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.6,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 3.0,
+        "entry_p2": 0.5,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 3.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -47.54834211614993,
+        -17.3214576047799
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.6,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 3.0,
+        "entry_p2": 0.5,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 3.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -90.08637704489989,
+        -89.16849846841983
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.6,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 3.0,
+        "entry_p2": 0.5,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 3.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -88.37515447364989,
+        -89.16849846841983
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.6,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 3.0,
+        "entry_p2": 0.5,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 3.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -90.38515575089986,
+        -88.72455041274984
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.6,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 3.0,
+        "entry_p2": 0.5,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 3.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -90.75334137179986,
+        -88.35302106042984
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.6,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 3.0,
+        "entry_p2": 0.5,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 3.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -37.3072752101998,
+        -2.8450814381499656
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.0,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 1.2,
+        "entry_p2": 0.6000000238418579,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.35,
+        "giveback_arm": 1.5,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -29.461090292099847,
+        -2.8450814381499656
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.0,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 1.2,
+        "entry_p2": 0.6000000238418579,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.35,
+        "giveback_arm": 1.5,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -37.32711911894978,
+        -2.8450814381499656
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.0,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 1.2,
+        "entry_p2": 0.6000000238418579,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.35,
+        "giveback_arm": 1.5,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -27.338259384149854,
+        -2.8450814381499656
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.0,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 1.2,
+        "entry_p2": 0.6000000238418579,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.35,
+        "giveback_arm": 1.5,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -55.735468906499875,
+        7.980512039780141
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.0,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 1.2,
+        "entry_p2": 0.6000000238418579,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.35,
+        "giveback_arm": 1.5,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -49.588162162649866,
+        -9.034780117719876
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.0,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 1.2,
+        "entry_p2": 0.6000000238418579,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.35,
+        "giveback_arm": 1.5,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -55.34060883974988,
+        7.980512039780141
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.0,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 1.2,
+        "entry_p2": 0.6000000238418579,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.35,
+        "giveback_arm": 1.5,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -47.96235211679989,
+        -9.034780117719876
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.0,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 1.2,
+        "entry_p2": 0.6000000238418579,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.35,
+        "giveback_arm": 1.5,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -37.3072752101998,
+        -1.2119550392599598
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.3,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 1.2,
+        "entry_p2": 0.6000000238418579,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.35,
+        "giveback_arm": 1.5,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -29.461090292099847,
+        -1.2119550392599598
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.3,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 1.2,
+        "entry_p2": 0.6000000238418579,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.35,
+        "giveback_arm": 1.5,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -37.32711911894978,
+        -2.3663854031999665
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.3,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 1.2,
+        "entry_p2": 0.6000000238418579,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.35,
+        "giveback_arm": 1.5,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -27.338259384149854,
+        -2.3663854031999665
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.3,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 1.2,
+        "entry_p2": 0.6000000238418579,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.35,
+        "giveback_arm": 1.5,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -55.735468906499875,
+        9.79079183306013
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.3,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 1.2,
+        "entry_p2": 0.6000000238418579,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.35,
+        "giveback_arm": 1.5,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -49.588162162649866,
+        -7.498524642489879
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.3,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 1.2,
+        "entry_p2": 0.6000000238418579,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.35,
+        "giveback_arm": 1.5,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -55.34060883974988,
+        8.51118812313012
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.3,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 1.2,
+        "entry_p2": 0.6000000238418579,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.35,
+        "giveback_arm": 1.5,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -47.96235211679989,
+        -8.58447172372989
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.3,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 1.2,
+        "entry_p2": 0.6000000238418579,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.35,
+        "giveback_arm": 1.5,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -37.3072752101998,
+        -1.2119550392599598
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.6,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 1.2,
+        "entry_p2": 0.6000000238418579,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.35,
+        "giveback_arm": 1.5,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -29.461090292099847,
+        -1.2119550392599598
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.6,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 1.2,
+        "entry_p2": 0.6000000238418579,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.35,
+        "giveback_arm": 1.5,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -37.32711911894978,
+        -2.3663854031999665
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.6,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 1.2,
+        "entry_p2": 0.6000000238418579,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.35,
+        "giveback_arm": 1.5,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -27.338259384149854,
+        -2.3663854031999665
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.6,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 1.2,
+        "entry_p2": 0.6000000238418579,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.35,
+        "giveback_arm": 1.5,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -55.735468906499875,
+        9.79079183306013
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.6,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 1.2,
+        "entry_p2": 0.6000000238418579,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.35,
+        "giveback_arm": 1.5,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -49.588162162649866,
+        -7.498524642489879
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.6,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 1.2,
+        "entry_p2": 0.6000000238418579,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.35,
+        "giveback_arm": 1.5,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -55.34060883974988,
+        8.51118812313012
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.6,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 1.2,
+        "entry_p2": 0.6000000238418579,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.35,
+        "giveback_arm": 1.5,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -47.96235211679989,
+        -8.58447172372989
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.6,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 1.2,
+        "entry_p2": 0.6000000238418579,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.35,
+        "giveback_arm": 1.5,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -36.88107794099986,
+        -2.8450814381499656
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.0,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 2.0,
+        "entry_p2": 0.6000000238418579,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 2.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -29.08376512439984,
+        -2.8450814381499656
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.0,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 2.0,
+        "entry_p2": 0.6000000238418579,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 2.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -38.762392552799774,
+        -2.8450814381499656
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.0,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 2.0,
+        "entry_p2": 0.6000000238418579,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 2.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -28.98254479709984,
+        -2.8450814381499656
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.0,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 2.0,
+        "entry_p2": 0.6000000238418579,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 2.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -57.519103789499894,
+        -0.03720152421988754
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.0,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 2.0,
+        "entry_p2": 0.6000000238418579,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 2.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -51.66466934474989,
+        -15.816927555449901
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.0,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 2.0,
+        "entry_p2": 0.6000000238418579,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 2.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -58.427445705299874,
+        -0.03720152421988754
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.0,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 2.0,
+        "entry_p2": 0.6000000238418579,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 2.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -51.49901407214988,
+        -15.816927555449901
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.0,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 2.0,
+        "entry_p2": 0.6000000238418579,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 2.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -36.88107794099986,
+        -1.2119550392599598
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.3,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 2.0,
+        "entry_p2": 0.6000000238418579,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 2.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -29.08376512439984,
+        -1.2119550392599598
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.3,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 2.0,
+        "entry_p2": 0.6000000238418579,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 2.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -38.762392552799774,
+        -2.3663854031999665
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.3,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 2.0,
+        "entry_p2": 0.6000000238418579,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 2.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -28.98254479709984,
+        -2.3663854031999665
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.3,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 2.0,
+        "entry_p2": 0.6000000238418579,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 2.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -57.519103789499894,
+        1.642442309410086
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.3,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 2.0,
+        "entry_p2": 0.6000000238418579,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 2.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -51.66466934474989,
+        -14.392463006459922
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.3,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 2.0,
+        "entry_p2": 0.6000000238418579,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 2.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -58.427445705299874,
+        0.45517005604012173
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.3,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 2.0,
+        "entry_p2": 0.6000000238418579,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 2.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -51.49901407214988,
+        -15.399393738119915
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.3,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 2.0,
+        "entry_p2": 0.6000000238418579,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 2.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -36.88107794099986,
+        -1.2119550392599598
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.6,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 2.0,
+        "entry_p2": 0.6000000238418579,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 2.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -29.08376512439984,
+        -1.2119550392599598
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.6,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 2.0,
+        "entry_p2": 0.6000000238418579,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 2.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -38.762392552799774,
+        -2.3663854031999665
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.6,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 2.0,
+        "entry_p2": 0.6000000238418579,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 2.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -28.98254479709984,
+        -2.3663854031999665
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.6,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 2.0,
+        "entry_p2": 0.6000000238418579,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 2.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -57.404875353749894,
+        1.642442309410086
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.6,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 2.0,
+        "entry_p2": 0.6000000238418579,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 2.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -51.536422814399884,
+        -14.392463006459922
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.6,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 2.0,
+        "entry_p2": 0.6000000238418579,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 2.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -58.31519020199989,
+        0.45517005604012173
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.6,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 2.0,
+        "entry_p2": 0.6000000238418579,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 2.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -51.370402955549885,
+        -15.399393738119915
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.6,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 2.0,
+        "entry_p2": 0.6000000238418579,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 2.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -45.567792390299914,
+        -2.8450814381499656
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.0,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 3.0,
+        "entry_p2": 0.6000000238418579,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 3.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -38.7590991053999,
+        -2.8450814381499656
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.0,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 3.0,
+        "entry_p2": 0.6000000238418579,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 3.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -47.21117483549986,
+        -2.8450814381499656
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.0,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 3.0,
+        "entry_p2": 0.6000000238418579,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 3.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -38.661099856499845,
+        -2.8450814381499656
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.0,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 3.0,
+        "entry_p2": 0.6000000238418579,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 3.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -63.105097270949905,
+        -15.437518077309898
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.0,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 3.0,
+        "entry_p2": 0.6000000238418579,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 3.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -57.936094954349905,
+        -15.437518077309898
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.0,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 3.0,
+        "entry_p2": 0.6000000238418579,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 3.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -63.91228059239991,
+        -15.437518077309898
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.0,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 3.0,
+        "entry_p2": 0.6000000238418579,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 3.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -57.782780679599924,
+        -15.437518077309898
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.0,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 3.0,
+        "entry_p2": 0.6000000238418579,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 3.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -45.567792390299914,
+        -1.2119550392599598
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.3,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 3.0,
+        "entry_p2": 0.6000000238418579,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 3.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -38.7590991053999,
+        -1.2119550392599598
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.3,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 3.0,
+        "entry_p2": 0.6000000238418579,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 3.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -47.21117483549986,
+        -2.3663854031999665
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.3,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 3.0,
+        "entry_p2": 0.6000000238418579,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 3.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -38.661099856499845,
+        -2.3663854031999665
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.3,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 3.0,
+        "entry_p2": 0.6000000238418579,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 3.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -63.105097270949905,
+        -14.006681805409904
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.3,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 3.0,
+        "entry_p2": 0.6000000238418579,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 3.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -57.936094954349905,
+        -14.006681805409904
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.3,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 3.0,
+        "entry_p2": 0.6000000238418579,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 3.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -63.91228059239991,
+        -15.01811663456991
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.3,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 3.0,
+        "entry_p2": 0.6000000238418579,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 3.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -57.782780679599924,
+        -15.01811663456991
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.3,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 3.0,
+        "entry_p2": 0.6000000238418579,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 3.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -45.567792390299914,
+        -1.2119550392599598
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.6,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 3.0,
+        "entry_p2": 0.6000000238418579,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 3.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -38.7590991053999,
+        -1.2119550392599598
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.6,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 3.0,
+        "entry_p2": 0.6000000238418579,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 3.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -47.21117483549986,
+        -2.3663854031999665
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.6,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 3.0,
+        "entry_p2": 0.6000000238418579,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 3.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -38.661099856499845,
+        -2.3663854031999665
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.6,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 0.20000000298023224,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 3.0,
+        "entry_p2": 0.6000000238418579,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 3.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -55.61135256269991,
+        -14.006681805409904
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.6,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 3.0,
+        "entry_p2": 0.6000000238418579,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 3.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -49.5227835694499,
+        -14.006681805409904
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.6,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 3.0,
+        "entry_p2": 0.6000000238418579,
+        "entry_p5": 0.0,
+        "exit_cont": 0.15000000596046448,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 3.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -56.5478994190499,
+        -15.01811663456991
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.6,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 3.0,
+        "entry_p2": 0.6000000238418579,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 3.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 60,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    },
+    {
+      "dev_returns": [
+        -49.345589388749914,
+        -15.01811663456991
+      ],
+      "s": {
+        "dev_kill_min_frac": 0.6,
+        "dev_sold_block_s": 0,
+        "devsell_veto": 1.0,
+        "dump_exit": 0.5,
+        "dump_exit_min_mult": 3.0,
+        "entry_p2": 0.6000000238418579,
+        "entry_p5": 0.0,
+        "exit_cont": 0.30000001192092896,
+        "exit_k": 3,
+        "exit_persist_s": 10,
+        "giveback": 0.5,
+        "giveback_arm": 3.0,
+        "hard_stop": 1.0,
+        "inactivity_s": 120,
+        "max_impact": 0.02,
+        "max_positions": 10,
+        "min_quote_res_sol": 5.0,
+        "reentry_cooldown_s": 300,
+        "rug_veto": 0.5,
+        "scout_s": 300,
+        "size_frac": 0.1
+      }
+    }
+  ],
+  "grid_size": 216,
+  "label": "EXPLORATORY ML BACKTEST (pre-gate, user-requested); pump.fun curve + PumpSwap SOL pools",
+  "strategy_frozen_on_dev": {
+    "dev_kill_min_frac": 0.6,
+    "dev_sold_block_s": 0,
+    "devsell_veto": 0.20000000298023224,
+    "dump_exit": 0.5,
+    "dump_exit_min_mult": 1.2,
+    "entry_p2": 0.6000000238418579,
+    "entry_p5": 0.0,
+    "exit_cont": 0.30000001192092896,
+    "exit_k": 3,
+    "exit_persist_s": 10,
+    "giveback": 0.35,
+    "giveback_arm": 1.5,
+    "hard_stop": 1.0,
+    "inactivity_s": 120,
+    "max_impact": 0.02,
+    "max_positions": 10,
+    "min_quote_res_sol": 5.0,
+    "reentry_cooldown_s": 300,
+    "rug_veto": 0.5,
+    "scout_s": 300,
+    "size_frac": 0.1
+  },
+  "windows": [
+    {
+      "recording": "data/bf_1h",
+      "report": {
+        "best_ret": 0.3689124498328066,
+        "coins_traded": 10,
+        "costs_usd": 1.2609750000000008,
+        "exits": {
+          "EndOfWindow": 1,
+          "GiveBackFromPeak": 1,
+          "MomentumExhausted": 6,
+          "RugModel": 1,
+          "Scout": 2
+        },
+        "expectancy_excl_top1pct_usd": -3.0794532428850006,
+        "expectancy_usd": -2.4803122167409097,
+        "failed_buys": 1,
+        "final_usd": 72.66174061585015,
+        "held_to_10x": 0,
+        "held_to_5x": 0,
+        "max_drawdown_pct": 27.453029490899862,
+        "profitable_coins": 3,
+        "return_pct": -27.338259384149854,
+        "sol_usd": 109.65,
+        "trades": 11,
+        "trades_list": [
+          {
+            "cost_sol": 0.088494921,
+            "entry_t": 300,
+            "exit_t": 313,
+            "max_mult_held": 1.0,
+            "mint": "DmBSq4t78VP55FLGNM5s23idoMLGJaW98ZzrXe9Xpump",
+            "p2_at_entry": 0.6803107857704163,
+            "pnl_sol": -0.083436437,
+            "proceeds_sol": 0.006058484,
+            "reason": "MomentumExhausted",
+            "ret": -0.9323035996646111
+          },
+          {
+            "cost_sol": 0.077873535,
+            "entry_t": 483,
+            "exit_t": 514,
+            "max_mult_held": 1.0942300615992329,
+            "mint": "4SFfRxaLhfABsuz1wHRxJCHjjntm8swcfc7uXBuKpump",
+            "p2_at_entry": 0.6607352495193481,
+            "pnl_sol": -0.063888159,
+            "proceeds_sol": 0.014985376,
+            "reason": "MomentumExhausted",
+            "ret": -0.8100075519627719
+          },
+          {
+            "cost_sol": 0.09119927,
+            "entry_t": 240,
+            "exit_t": 541,
+            "max_mult_held": 1.003940667507536,
+            "mint": "HYzvN8481SMrzNX6FoxCaJd91QXyoc3KLtAHeMFRqPad",
+            "p2_at_entry": 0.6275423765182495,
+            "pnl_sol": -0.057520241,
+            "proceeds_sol": 0.034679029,
+            "reason": "Scout",
+            "ret": -0.6238687247740682
+          },
+          {
+            "cost_sol": 0.085798258,
+            "entry_t": 307,
+            "exit_t": 890,
+            "max_mult_held": 2.134908146969604,
+            "mint": "7yQvmkX6FTGmrkQhZ55vmRFfyk825SrabsBxwr8Kpump",
+            "p2_at_entry": 0.6295194029808044,
+            "pnl_sol": 0.032020958,
+            "proceeds_sol": 0.118819216,
+            "reason": "GiveBackFromPeak",
+            "ret": 0.3689124498328066
+          },
+          {
+            "cost_sol": 0.073866882,
+            "entry_t": 1032,
+            "exit_t": 1108,
+            "max_mult_held": 1.0110097648361551,
+            "mint": "G5H8SqE4HuiVMjkP8kvZP7gPzr8wcv8zivrsoxB7pump",
+            "p2_at_entry": 0.8289349675178528,
+            "pnl_sol": -0.00018674299999998836,
+            "proceeds_sol": 0.074680139,
+            "reason": "RugModel",
+            "ret": -0.002494333876492791
+          },
+          {
+            "cost_sol": 0.073714599,
+            "entry_t": 1423,
+            "exit_t": 1446,
+            "max_mult_held": 1.0450199559520088,
+            "mint": "9ZsCeHMg3LMoHjohQgfSJkpFGxFeeBB6tQrT4Gxgpump",
+            "p2_at_entry": 0.891915500164032,
+            "pnl_sol": 0.0027463559999999923,
+            "proceeds_sol": 0.077460955,
+            "reason": "MomentumExhausted",
+            "ret": 0.03675795676826148
+          },
+          {
+            "cost_sol": 0.073848208,
+            "entry_t": 1388,
+            "exit_t": 1565,
+            "max_mult_held": 1.11699331959416,
+            "mint": "AH5Nt1Q3grJbEveQCSxkYAQCsv4VYJBSuTipMiCpump",
+            "p2_at_entry": 0.828601598739624,
+            "pnl_sol": 0.007908347999999996,
+            "proceeds_sol": 0.082756556,
+            "reason": "MomentumExhausted",
+            "ret": 0.10565848149631045
+          },
+          {
+            "cost_sol": 0.073818773,
+            "entry_t": 1767,
+            "exit_t": 1856,
+            "max_mult_held": 1.2542818071495172,
+            "mint": "3KRhDvrEa1FAcxWS1RCgJG9fYb1XyFgmdhm9RVNqpump",
+            "p2_at_entry": 0.629345178604126,
+            "pnl_sol": -0.009187319999999999,
+            "proceeds_sol": 0.065631453,
+            "reason": "MomentumExhausted",
+            "ret": -0.12279431527164977
+          },
+          {
+            "cost_sol": 0.074913678,
+            "entry_t": 1569,
+            "exit_t": 1870,
+            "max_mult_held": 1.0,
+            "mint": "8E7EyQh8TbguZAHiznKPUQC9P5Qb4nVbfzNpJ3sNpump",
+            "p2_at_entry": 0.6150795221328735,
+            "pnl_sol": -0.026163302,
+            "proceeds_sol": 0.049750376,
+            "reason": "Scout",
+            "ret": -0.3446454274024241
+          },
+          {
+            "cost_sol": 0.071359747,
+            "entry_t": 1866,
+            "exit_t": 1880,
+            "max_mult_held": 1.0,
+            "mint": "AH5Nt1Q3grJbEveQCSxkYAQCsv4VYJBSuTipMiCpump",
+            "p2_at_entry": 0.9327295422554016,
+            "pnl_sol": -0.0019309720000000022,
+            "proceeds_sol": 0.070428775,
+            "reason": "MomentumExhausted",
+            "ret": -0.02668572072260012
+          },
+          {
+            "cost_sol": 0.071185519,
+            "entry_t": 1918,
+            "exit_t": 1964,
+            "max_mult_held": 1.0,
+            "mint": "EAYgjuU5DWDKPzisSj82GWgnpAwZcW84xqi8sNDppump",
+            "p2_at_entry": 0.7180609703063965,
+            "pnl_sol": -0.04918541900000001,
+            "proceeds_sol": 0.0230001,
+            "reason": "EndOfWindow",
+            "ret": -0.6813751522656505
+          }
+        ],
+        "win_rate": 0.2727272727272727,
+        "window_s": 1963
+      },
+      "role": "dev (cross-model OOS scores)"
+    },
+    {
+      "recording": "data/h1d",
+      "report": {
+        "best_ret": 0.08788664244267652,
+        "coins_traded": 3,
+        "costs_usd": 0.33159,
+        "exits": {
+          "MomentumExhausted": 1,
+          "RugModel": 2
+        },
+        "expectancy_excl_top1pct_usd": -1.62083446812,
+        "expectancy_usd": -0.7887951344,
+        "failed_buys": 0,
+        "final_usd": 97.63361459680004,
+        "held_to_10x": 0,
+        "held_to_5x": 0,
+        "max_drawdown_pct": 5.4763222537799745,
+        "profitable_coins": 1,
+        "return_pct": -2.3663854031999665,
+        "sol_usd": 110.53,
+        "trades": 3,
+        "trades_list": [
+          {
+            "cost_sol": 0.090473174,
+            "entry_t": 693,
+            "exit_t": 728,
+            "max_mult_held": 1.0429080226587386,
+            "mint": "J7bhFegCHZAeRzdYDwmbSp1CJ1bDJkutSg26B4SXpump",
+            "p2_at_entry": 0.6194247007369995,
+            "pnl_sol": -0.013688329999999999,
+            "proceeds_sol": 0.077784844,
+            "reason": "MomentumExhausted",
+            "ret": -0.14964310738796488
+          },
+          {
+            "cost_sol": 0.089104341,
+            "entry_t": 1097,
+            "exit_t": 1098,
+            "max_mult_held": 1.016477513704972,
+            "mint": "3CvupPknMrTs5SWTC5vboX9p7ikYsMxd7K9MDedbpump",
+            "p2_at_entry": 0.6305630803108215,
+            "pnl_sol": 0.007918967999999998,
+            "proceeds_sol": 0.098023309,
+            "reason": "RugModel",
+            "ret": 0.08788664244267652
+          },
+          {
+            "cost_sol": 0.089896238,
+            "entry_t": 1530,
+            "exit_t": 1590,
+            "max_mult_held": 1.0204803231031758,
+            "mint": "6KtvjzZf5TinW3NzRHnnFgEZJYaiKasvRswDoSsVpump",
+            "p2_at_entry": 0.7745280265808105,
+            "pnl_sol": -0.015640078,
+            "proceeds_sol": 0.07525616,
+            "reason": "RugModel",
+            "ret": -0.17206518491997436
+          }
+        ],
+        "win_rate": 0.3333333333333333,
+        "window_s": 2229
+      },
+      "role": "dev (cross-model OOS scores)"
+    },
+    {
+      "recording": "data/h7d",
+      "report": {
+        "best_ret": 0.4008456953208605,
+        "coins_traded": 3,
+        "costs_usd": 0.5263650000000001,
+        "exits": {
+          "MomentumExhausted": 4
+        },
+        "expectancy_excl_top1pct_usd": -0.2314425735300003,
+        "expectancy_usd": 0.8396679460574995,
+        "failed_buys": 1,
+        "final_usd": 103.30018678423006,
+        "held_to_10x": 0,
+        "held_to_5x": 0,
+        "max_drawdown_pct": 0.8460406917325525,
+        "profitable_coins": 1,
+        "return_pct": 3.3001867842300747,
+        "sol_usd": 116.97,
+        "trades": 4,
+        "trades_list": [
+          {
+            "cost_sol": 0.085442006,
+            "entry_t": 609,
+            "exit_t": 905,
+            "max_mult_held": 1.4278279702374965,
+            "mint": "9wc2gqjJXp3wEi2gQQu22i5BYy3fetgvaLCEN2CJWB3h",
+            "p2_at_entry": 0.615208089351654,
+            "pnl_sol": 0.034649905999999994,
+            "proceeds_sol": 0.121091912,
+            "reason": "MomentumExhausted",
+            "ret": 0.4008456953208605
+          },
+          {
+            "cost_sol": 0.088906997,
+            "entry_t": 1391,
+            "exit_t": 1405,
+            "max_mult_held": 1.0,
+            "mint": "83mzp339Rts1DQDuZQjBS5H9W8YVPa8Ub7mbpXr1pump",
+            "p2_at_entry": 0.6286574602127075,
+            "pnl_sol": -0.001935398000000004,
+            "proceeds_sol": 0.087971599,
+            "reason": "MomentumExhausted",
+            "ret": -0.021526667162512433
+          },
+          {
+            "cost_sol": 0.088713457,
+            "entry_t": 1567,
+            "exit_t": 1580,
+            "max_mult_held": 1.0,
+            "mint": "F1VtkdWYW4tzgSicYmNM1EeKsDpw1zEQ1VfiN6TKpump",
+            "p2_at_entry": 0.6160947680473328,
+            "pnl_sol": -0.001889319999999999,
+            "proceeds_sol": 0.087824137,
+            "reason": "MomentumExhausted",
+            "ret": -0.021059493895102036
+          },
+          {
+            "cost_sol": 0.088524525,
+            "entry_t": 1881,
+            "exit_t": 1894,
+            "max_mult_held": 1.0,
+            "mint": "F1VtkdWYW4tzgSicYmNM1EeKsDpw1zEQ1VfiN6TKpump",
+            "p2_at_entry": 0.6730946898460388,
+            "pnl_sol": -0.0021112290000000053,
+            "proceeds_sol": 0.087413296,
+            "reason": "MomentumExhausted",
+            "ret": -0.023582688654310145
+          }
+        ],
+        "win_rate": 0.25,
+        "window_s": 2205
+      },
+      "role": "test (final model, never seen)"
+    },
+    {
+      "recording": "data/h30d",
+      "report": {
+        "best_ret": 0.28199254975117843,
+        "coins_traded": 3,
+        "costs_usd": 0.36053500000000005,
+        "exits": {
+          "GiveBackFromPeak": 1,
+          "MomentumExhausted": 2
+        },
+        "expectancy_excl_top1pct_usd": -2.80417314039,
+        "expectancy_usd": -0.9729921144166672,
+        "failed_buys": 1,
+        "final_usd": 97.02951865675004,
+        "held_to_10x": 0,
+        "held_to_5x": 0,
+        "max_drawdown_pct": 10.724530004020394,
+        "profitable_coins": 1,
+        "return_pct": -2.9704813432499644,
+        "sol_usd": 103.01,
+        "trades": 3,
+        "trades_list": [
+          {
+            "cost_sol": 0.097077953,
+            "entry_t": 11,
+            "exit_t": 79,
+            "max_mult_held": 1.2187051574933807,
+            "mint": "HtAECvkCMCHUwZMfLtHy1spvjr38NHqhm8zMxA8Upump",
+            "p2_at_entry": 0.6245866417884827,
+            "pnl_sol": -0.053762929999999994,
+            "proceeds_sol": 0.044315023,
+            "reason": "MomentumExhausted",
+            "ret": -0.5481652945998985
+          },
+          {
+            "cost_sol": 0.09170166,
+            "entry_t": 88,
+            "exit_t": 105,
+            "max_mult_held": 1.0,
+            "mint": "BTKYQ17VuuJyNuru1CyyJJnumrJXErcE1HagkfHS6FLe",
+            "p2_at_entry": 0.6362696886062622,
+            "pnl_sol": -0.0006817480000000089,
+            "proceeds_sol": 0.092019912,
+            "reason": "MomentumExhausted",
+            "ret": -0.007354215663452077
+          },
+          {
+            "cost_sol": 0.091583485,
+            "entry_t": 432,
+            "exit_t": 538,
+            "max_mult_held": 2.216836703691719,
+            "mint": "BPMgEry5uJY8EEFeWsrBBSRDCUNj5S1sZsmkYyNopump",
+            "p2_at_entry": 0.6573452353477478,
+            "pnl_sol": 0.026107852999999986,
+            "proceeds_sol": 0.118691338,
+            "reason": "GiveBackFromPeak",
+            "ret": 0.28199254975117843
+          }
+        ],
+        "win_rate": 0.3333333333333333,
+        "window_s": 2614
+      },
+      "role": "test (final model, never seen)"
+    }
+  ]
+}

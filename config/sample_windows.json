@@ -1,0 +1,202 @@
+{
+ "now_slot": 455180451,
+ "slots_per_window": 8250,
+ "windows": [
+  {
+   "name": "s02d_14h",
+   "days_ago": 2,
+   "hour_offset": 14,
+   "end_slot": 454153327,
+   "role": "train"
+  },
+  {
+   "name": "s03d_21h",
+   "days_ago": 3,
+   "hour_offset": 21,
+   "end_slot": 453639765,
+   "role": "final_holdout"
+  },
+  {
+   "name": "s04d_04h",
+   "days_ago": 4,
+   "hour_offset": 4,
+   "end_slot": 453523787,
+   "role": "train"
+  },
+  {
+   "name": "s05d_11h",
+   "days_ago": 5,
+   "hour_offset": 11,
+   "end_slot": 453010225,
+   "role": "train"
+  },
+  {
+   "name": "s06d_18h",
+   "days_ago": 6,
+   "hour_offset": 18,
+   "end_slot": 452496663,
+   "role": "train"
+  },
+  {
+   "name": "s08d_08h",
+   "days_ago": 8,
+   "hour_offset": 8,
+   "end_slot": 451867123,
+   "role": "train"
+  },
+  {
+   "name": "s09d_15h",
+   "days_ago": 9,
+   "hour_offset": 15,
+   "end_slot": 451353561,
+   "role": "train"
+  },
+  {
+   "name": "s10d_22h",
+   "days_ago": 10,
+   "hour_offset": 22,
+   "end_slot": 450839999,
+   "role": "train"
+  },
+  {
+   "name": "s11d_05h",
+   "days_ago": 11,
+   "hour_offset": 5,
+   "end_slot": 450724021,
+   "role": "train"
+  },
+  {
+   "name": "s12d_12h",
+   "days_ago": 12,
+   "hour_offset": 12,
+   "end_slot": 450210459,
+   "role": "train"
+  },
+  {
+   "name": "s13d_19h",
+   "days_ago": 13,
+   "hour_offset": 19,
+   "end_slot": 449696897,
+   "role": "final_holdout"
+  },
+  {
+   "name": "s14d_02h",
+   "days_ago": 14,
+   "hour_offset": 2,
+   "end_slot": 449580919,
+   "role": "train"
+  },
+  {
+   "name": "s15d_09h",
+   "days_ago": 15,
+   "hour_offset": 9,
+   "end_slot": 449067357,
+   "role": "train"
+  },
+  {
+   "name": "s16d_16h",
+   "days_ago": 16,
+   "hour_offset": 16,
+   "end_slot": 448553795,
+   "role": "train"
+  },
+  {
+   "name": "s17d_23h",
+   "days_ago": 17,
+   "hour_offset": 23,
+   "end_slot": 448040233,
+   "role": "train"
+  },
+  {
+   "name": "s18d_06h",
+   "days_ago": 18,
+   "hour_offset": 6,
+   "end_slot": 447924255,
+   "role": "train"
+  },
+  {
+   "name": "s19d_13h",
+   "days_ago": 19,
+   "hour_offset": 13,
+   "end_slot": 447410693,
+   "role": "train"
+  },
+  {
+   "name": "s20d_20h",
+   "days_ago": 20,
+   "hour_offset": 20,
+   "end_slot": 446897131,
+   "role": "train"
+  },
+  {
+   "name": "s21d_03h",
+   "days_ago": 21,
+   "hour_offset": 3,
+   "end_slot": 446781153,
+   "role": "train"
+  },
+  {
+   "name": "s22d_10h",
+   "days_ago": 22,
+   "hour_offset": 10,
+   "end_slot": 446267591,
+   "role": "train"
+  },
+  {
+   "name": "s23d_17h",
+   "days_ago": 23,
+   "hour_offset": 17,
+   "end_slot": 445754029,
+   "role": "final_holdout"
+  },
+  {
+   "name": "s24d_00h",
+   "days_ago": 24,
+   "hour_offset": 0,
+   "end_slot": 445638051,
+   "role": "train"
+  },
+  {
+   "name": "s25d_07h",
+   "days_ago": 25,
+   "hour_offset": 7,
+   "end_slot": 445124489,
+   "role": "train"
+  },
+  {
+   "name": "s26d_14h",
+   "days_ago": 26,
+   "hour_offset": 14,
+   "end_slot": 444610927,
+   "role": "train"
+  },
+  {
+   "name": "s27d_21h",
+   "days_ago": 27,
+   "hour_offset": 21,
+   "end_slot": 444097365,
+   "role": "train"
+  },
+  {
+   "name": "s28d_04h",
+   "days_ago": 28,
+   "hour_offset": 4,
+   "end_slot": 443981387,
+   "role": "train"
+  },
+  {
+   "name": "s29d_11h",
+   "days_ago": 29,
+   "hour_offset": 11,
+   "end_slot": 443467825,
+   "role": "train"
+  },
+  {
+   "name": "s31d_01h",
+   "days_ago": 31,
+   "hour_offset": 1,
+   "end_slot": 442838285,
+   "role": "train"
+  }
+ ]
+}

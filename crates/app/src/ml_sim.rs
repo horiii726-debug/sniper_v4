@@ -738,6 +738,12 @@ pub struct MlStrategy {
     /// Hold through momentum / dump / give-back exits while the model still sees P(>= 2x from now) at or
     /// above this (1.0 disables). Rug and DEV kill-switch exits are never suppressed.
     pub hold_if_p2_above: f32,
+    /// Fractional Kelly sizing on the current equity (compounding). 0 = fixed `size_frac`.
+    /// f = kelly_fraction * (p / kelly_loss - (1 - p) / kelly_win), p = P(peak >= 2x); f <= 0 -> no trade.
+    pub kelly_fraction: f64,
+    pub kelly_win: f64,
+    pub kelly_loss: f64,
+    pub max_bet_frac: f64,
 }
 
 impl Default for MlStrategy {
@@ -766,6 +772,10 @@ impl Default for MlStrategy {
             dump_exit_min_mult: 1.2,
             dev_kill_min_frac: 0.0,
             hold_if_p2_above: 1.0,
+            kelly_fraction: 0.0,
+            kelly_win: 1.0,
+            kelly_loss: 0.5,
+            max_bet_frac: 0.10,
         }
     }
 }
@@ -828,6 +838,9 @@ pub struct MlReport {
     pub held_to_5x: usize,
     pub held_to_10x: usize,
     pub best_ret: f64,
+    /// Gross profit / gross loss over closed trades.
+    pub profit_factor: f64,
+    pub pnl_usd: f64,
     pub expectancy_usd: f64,
     pub expectancy_excl_top1pct_usd: f64,
     pub trades_list: Vec<MlTrade>,
@@ -1045,7 +1058,18 @@ pub fn simulate(ev: &Events, rp: RadarParams, sc: &Scores, st: &MlStrategy, c: &
             continue;
         }
         let eq = cash + pos.iter().map(|(cid, p)| eng.pool_value(*cid, p.tokens, c.default_fee_bps)).sum::<f64>();
-        let size = (st.size_frac * eq).min(st.max_impact * eng.quote_res_sol(e.coin) / 2.0);
+        let frac = if st.kelly_fraction > 0.0 {
+            let p = s[0] as f64;
+            let f = st.kelly_fraction * (p / st.kelly_loss - (1.0 - p) / st.kelly_win);
+            if f <= 0.0 {
+                *dg.blocked.entry("kelly_negative_edge").or_default() += 1;
+                continue;
+            }
+            f.min(st.max_bet_frac)
+        } else {
+            st.size_frac
+        };
+        let size = (frac * eq).min(st.max_impact * eng.quote_res_sol(e.coin) / 2.0);
         if size < 0.005 || cash < size + 3.0 * txc {
             *dg.blocked.entry(if size < 0.005 { "size_too_small_impact_cap" } else { "no_cash" }).or_default() += 1;
             continue;
@@ -1083,6 +1107,12 @@ pub fn simulate(ev: &Events, rp: RadarParams, sc: &Scores, st: &MlStrategy, c: &
         held_to_5x: trades.iter().filter(|t| t.max_mult_held >= 5.0).count(),
         held_to_10x: trades.iter().filter(|t| t.max_mult_held >= 10.0).count(),
         best_ret: trades.iter().map(|t| t.ret).fold(f64::NEG_INFINITY, f64::max),
+        profit_factor: {
+            let gp: f64 = trades.iter().filter(|t| t.pnl_sol > 0.0).map(|t| t.pnl_sol).sum();
+            let gl: f64 = -trades.iter().filter(|t| t.pnl_sol < 0.0).map(|t| t.pnl_sol).sum::<f64>();
+            if gl > 0.0 { gp / gl } else if gp > 0.0 { f64::INFINITY } else { 0.0 }
+        },
+        pnl_usd: (cash - start) * sol_usd,
         expectancy_usd: if n > 0 { pnls.iter().sum::<f64>() / n as f64 } else { 0.0 },
         expectancy_excl_top1pct_usd: if excl.is_empty() { 0.0 } else { excl.iter().sum::<f64>() / excl.len() as f64 },
         trades_list: trades,
@@ -1095,20 +1125,19 @@ pub fn simulate(ev: &Events, rp: RadarParams, sc: &Scores, st: &MlStrategy, c: &
 pub fn tune(dev: &[(&Events, &Scores, f64)], rp: RadarParams, c: &Costs) -> (MlStrategy, Vec<(MlStrategy, Vec<f64>)>) {
     use rayon::prelude::*;
     let mut grid = Vec::new();
-    for &entry_p2 in &[0.4f32, 0.5, 0.6] {
+    // Quarter-Kelly sizing with compounding (user decision); the grid tunes entry / exit / veto settings.
+    for &entry_p2 in &[0.3f32, 0.4, 0.5] {
         for &(dump_exit_min_mult, giveback_arm, giveback) in &[(1.2, 1.5, 0.35), (2.0, 2.0, 0.5)] {
             for &dev_kill_min_frac in &[0.0, 0.5] {
                 for &devsell_veto in &[0.2f32, 1.0] {
                     for &exit_cont in &[0.15f32, 0.3] {
-                        for &reentry_cooldown_s in &[60i64, 300] {
-                            for &hold_if_p2_above in &[1.0f32, 0.5, 0.6] {
-                                for &min_quote_res_sol in &[1.0, 5.0] {
-                                    grid.push(MlStrategy {
-                                        entry_p2, dump_exit: 0.5, dump_exit_min_mult, giveback_arm, giveback, dev_kill_min_frac, devsell_veto,
-                                        exit_cont, reentry_cooldown_s, hold_if_p2_above, min_quote_res_sol, max_positions: 10, size_frac: 0.1,
-                                        ..Default::default()
-                                    });
-                                }
+                        for &hold_if_p2_above in &[1.0f32, 0.5] {
+                            for &kelly_loss in &[0.4, 0.6] {
+                                grid.push(MlStrategy {
+                                    entry_p2, dump_exit: 0.5, dump_exit_min_mult, giveback_arm, giveback, dev_kill_min_frac, devsell_veto,
+                                    exit_cont, reentry_cooldown_s: 60, hold_if_p2_above, min_quote_res_sol: 1.0, max_positions: 15,
+                                    kelly_fraction: 0.25, kelly_win: 1.0, kelly_loss, max_bet_frac: 0.10, ..Default::default()
+                                });
                             }
                         }
                     }
@@ -1142,7 +1171,7 @@ mod tests {
     /// Hawkes intensity: one event per slot for a long time converges to 1/(1-e^-beta); a gap decays it exactly.
     #[test]
     fn hawkes_intensity_steady_state_and_decay() {
-        let events = Events { evs: vec![], mints: vec!["m".into()], window: (0, 0) };
+        let events = Events { evs: vec![], mints: vec!["m".into()], window: (0, 0), users: vec![] };
         let mut eng = Engine::new(&events, RadarParams::default());
         for s in 1..=2000u64 {
             eng.apply(&ev(s, 0, s as u32, true));
@@ -1159,7 +1188,7 @@ mod tests {
     /// Bundle marker: two distinct buyers in one transaction count as a bundle tx once the tx closes.
     #[test]
     fn same_tx_multi_buyer_is_bundle() {
-        let events = Events { evs: vec![], mints: vec!["m".into()], window: (0, 0) };
+        let events = Events { evs: vec![], mints: vec!["m".into()], window: (0, 0), users: vec![] };
         let mut eng = Engine::new(&events, RadarParams::default());
         let mut a = ev(10, 1, 1, true);
         let mut b = ev(10, 1, 2, true);
