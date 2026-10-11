@@ -296,6 +296,8 @@ struct Pos {
     last_buyers60: f64,
     entry_ev: f64,
     entry_label: Option<Labels>,
+    /// Venue of the pool the position was bought on.
+    venue: u8,
     /// (time, quote reserve) within 60 s, AMM pools only.
     q_hist: VecDeque<(i64, f64)>,
     /// V5-7: latest P(hold) prediction while held (None until the model scored a held snapshot).
@@ -364,6 +366,8 @@ pub struct Leg {
 #[derive(Debug, Clone, Serialize)]
 pub struct TradeV5 {
     pub mint: String,
+    /// Venue of the entry pool.
+    pub venue: &'static str,
     pub entry_t: i64,
     pub exit_t: i64,
     pub cost_sol: f64,
@@ -432,8 +436,13 @@ pub struct Funnel {
     /// coins with at least one decision row labelled >= 2x / >= 10x
     pub coins_2x_by_last_barrier: std::collections::BTreeMap<&'static str, usize>,
     pub coins_10x_by_last_barrier: std::collections::BTreeMap<&'static str, usize>,
-    /// (mint, last barrier) of every >= 10x coin
-    pub coins_10x: Vec<(String, &'static str)>,
+    /// venue (of the coin's first decision row) -> last barrier -> coins, for >= 2x and >= 10x coins
+    pub coins_2x_by_venue: std::collections::BTreeMap<&'static str, std::collections::BTreeMap<&'static str, usize>>,
+    pub coins_10x_by_venue: std::collections::BTreeMap<&'static str, std::collections::BTreeMap<&'static str, usize>>,
+    /// all coins with decision rows per venue
+    pub coins_by_venue: std::collections::BTreeMap<&'static str, usize>,
+    /// (mint, venue, last barrier) of every >= 10x coin
+    pub coins_10x: Vec<(String, &'static str, &'static str)>,
 }
 
 /// Pipeline stage of an outcome (higher = further), for `Funnel`.
@@ -450,7 +459,7 @@ fn stage(r: &str) -> u8 {
     }
 }
 
-pub fn funnel(outcomes: &[(u32, &'static str, u8)], mints: &[String]) -> Funnel {
+pub fn funnel(outcomes: &[(u32, &'static str, u8)], mints: &[String], venue: &FxHashMap<u32, u8>) -> Funnel {
     let mut f = Funnel::default();
     let mut coin: FxHashMap<u32, (&'static str, u8)> = FxHashMap::default();
     for &(c, r, cls) in outcomes {
@@ -464,15 +473,19 @@ pub fn funnel(outcomes: &[(u32, &'static str, u8)], mints: &[String]) -> Funnel 
         }
         x.1 = x.1.max(cls);
     }
-    let mut c10: Vec<(String, &'static str)> = Vec::new();
+    let mut c10: Vec<(String, &'static str, &'static str)> = Vec::new();
     for (c, (r, cls)) in coin {
+        let v = venue.get(&c).map_or("unknown", |v| decoder::venue_pool::code::name(*v));
         *f.coins_by_last_barrier.entry(r).or_default() += 1;
+        *f.coins_by_venue.entry(v).or_default() += 1;
         if cls >= 1 {
             *f.coins_2x_by_last_barrier.entry(r).or_default() += 1;
+            *f.coins_2x_by_venue.entry(v).or_default().entry(r).or_default() += 1;
         }
         if cls >= 2 {
             *f.coins_10x_by_last_barrier.entry(r).or_default() += 1;
-            c10.push((mints.get(c as usize).cloned().unwrap_or_default(), r));
+            *f.coins_10x_by_venue.entry(v).or_default().entry(r).or_default() += 1;
+            c10.push((mints.get(c as usize).cloned().unwrap_or_default(), v, r));
         }
     }
     c10.sort();
@@ -781,6 +794,8 @@ pub fn simulate_k(w: &WindowData, rp: RadarParams, scorer: &mut dyn Scorer, st: 
     let mut blocked: std::collections::BTreeMap<&'static str, usize> = Default::default();
     let mut signals = 0usize;
     let mut outcomes: Vec<(u32, &'static str, u8)> = Vec::new();
+    // venue of each coin's first decision row (funnel per venue)
+    let mut coin_venue: FxHashMap<u32, u8> = FxHashMap::default();
     // Runners for moonshot capture: coins with an in-window signal whose label says >= 10x within H.
     let mut runner: FxHashSet<u32> = FxHashSet::default();
     let mut captured: FxHashSet<u32> = FxHashSet::default();
@@ -921,7 +936,7 @@ pub fn simulate_k(w: &WindowData, rp: RadarParams, scorer: &mut dyn Scorer, st: 
                         }
                         let hold_obs = forward_returns(&p.marks, &p.legs, txc);
                         trades.push(TradeV5 {
-                            mint: ev.mints[coin as usize].clone(), entry_t: p.entry_t - ev.window.0, exit_t: cur_t - ev.window.0, cost_sol: p.cost,
+                            mint: ev.mints[coin as usize].clone(), venue: decoder::venue_pool::code::name(p.venue), entry_t: p.entry_t - ev.window.0, exit_t: cur_t - ev.window.0, cost_sol: p.cost,
                             proceeds_sol: p.proceeds, tx_sol: p.tx_paid, pnl_sol: pnl, ret: pnl / p.cost, max_mult: p.max_mult, final_reason: reason,
                             entry_ev: p.entry_ev, true_bin: p.entry_label.map(|l| l.bin), true_logmax: p.entry_label.map(|l| l.logmax), legs: p.legs, hold_obs,
                         });
@@ -951,7 +966,7 @@ pub fn simulate_k(w: &WindowData, rp: RadarParams, scorer: &mut dyn Scorer, st: 
                     pos.insert(coin, Pos {
                         tokens0: toks as u64, tokens: toks as u64, cost: size, entry_t: cur_t, entry_px: lamports as f64 / toks as f64, peak_px: px, max_mult: 1.0,
                         stage: Stage::PreTp, proceeds: 0.0, tx_paid: txc, legs: Vec::new(), last: Pred::default(), last_vol: 0.0, last_buyers60: 0.0, entry_ev: e_ev,
-                        entry_label: label, q_hist: VecDeque::new(), last_hold: None, marks: Vec::new(),
+                        entry_label: label, venue: eng.venue(coin), q_hist: VecDeque::new(), last_hold: None, marks: Vec::new(),
                         fade: Fade { rate_t: cur_t, ..Default::default() },
                     });
                 }
@@ -1131,6 +1146,7 @@ pub fn simulate_k(w: &WindowData, rp: RadarParams, scorer: &mut dyn Scorer, st: 
         }
         let coin_id = e.coin;
         let row_cls = cls_of(&label);
+        coin_venue.entry(e.coin).or_insert_with(|| eng.venue(e.coin));
         let mut block = |r: &'static str| {
             *blocked.entry(r).or_default() += 1;
             outcomes.push((coin_id, r, row_cls));
@@ -1234,7 +1250,7 @@ pub fn simulate_k(w: &WindowData, rp: RadarParams, scorer: &mut dyn Scorer, st: 
         replacements,
         merged_in_tick,
         trades_list: trades,
-        funnel: funnel(&outcomes, &ev.mints),
+        funnel: funnel(&outcomes, &ev.mints, &coin_venue),
         signal_outcomes: outcomes,
     }
 }

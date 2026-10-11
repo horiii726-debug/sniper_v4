@@ -686,6 +686,11 @@ impl Engine {
         self.pools[coin as usize].price()
     }
 
+    /// Venue code of the coin's current price pool (`decoder::venue_pool::code`).
+    pub fn venue(&self, coin: u32) -> u8 {
+        self.pools[coin as usize].venue
+    }
+
     pub fn is_amm(&self, coin: u32) -> bool {
         self.pools[coin as usize].amm
     }
