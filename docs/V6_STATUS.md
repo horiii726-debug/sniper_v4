@@ -2,6 +2,28 @@
 
 Status per 2026-10-11 (branch `v6-impl`). Semua hasil di sini dari **paper / backtest data histori**. Live trading tetap mati.
 
+## Ringkasan
+
+**Yang berhasil**
+- Decoder semua venue (pump.fun, PumpSwap, Raydium, Meteora, Orca, program tak dikenal), dengan audit trade vs transfer
+  bersih (0 transfer salah baca).
+- Radar menangkap 97% koin yang naik >100% sebelum naik 10%, di 15.544 koin window 1.
+- ML terhadap base rate:
+  - ≥2x: AUC 0,81; top 1% 48% vs 12%;
+  - rug: AUC 0,89; top 1% 60% vs 10,5%.
+- 6 bug data ditemukan dan diperbaiki, termasuk label 10x/50x palsu dari swap debu.
+- Gate C18 (akurasi fill) lolos untuk 8 venue, termasuk Meteora DAMM v2/DBC, tempat sebagian besar peluang ML berada.
+- Simulasi eksekusi wallet realistis (latency, fee, tip, slippage, gagal beli/jual, rent) dan Kelly ¼ berbunga.
+
+**Yang masih kurang**
+- Trade out-of-sample masih sangat sedikit (2–4 di 1 window). Target ≥ 300 trade belum tercapai.
+- Prediksi ≥10x lemah (presisi 13–16%).
+- Kalibrasi probabilitas belum lolos.
+- Online learning per 10 koin belum terbukti lebih baik.
+- Tuning baru di 1–2 window.
+- Holdout akhir belum diuji.
+- Download data lambat karena rate limit Helius Free.
+
 ## 1. Sistem saat ini (alur)
 
 1. **Data**: blok Solana histori dari Helius RPC (`getBlock`, paket Free, ~2–6 slot/detik karena rate limit). Tidak ada
@@ -165,6 +187,12 @@ scripts/v6_redecode.sh s02d_14h            # decode ulang dari raw (data/rawkeep
 MIN_TRAIN=2 scripts/v6_ml_run.sh run4w data/v5_s02d_14h data/v5_s04d_04h data/v5_s05d_11h data/v5_s06d_18h
 python3 python/ml/coin_level_eval.py models/v6_run4w data/v5_s02d_14h ...
 ```
+
+Isi GitHub Release `data-v6-2026-10-11`:
+- `v5_<window>.processed.tar.zst`: data olahan per window.
+- `models_v6_run2w.tar.zst`: model ML terlatih run2w.
+- `v5_<window>__raw-*.zst[.partNN]`: raw blok. File di atas 1,9 GB dipecah; gabungkan dengan
+  `cat <nama>.part* > <nama>` lalu taruh di `data/v5_<window>/`.
 
 Data: unduh bundel `v5_<window>.processed.tar.zst` dari GitHub Release `data-v6-2026-10-11`, cek dengan `SHA256SUMS`, lalu
 ekstrak: `mkdir -p data/v5_<window> && zstd -dc v5_<window>.processed.tar.zst | tar -x -C data/v5_<window>`.

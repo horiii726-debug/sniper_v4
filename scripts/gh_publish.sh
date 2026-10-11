@@ -21,6 +21,7 @@ fi
 id=$(printf '%s' "$rel" | python3 -c "import json,sys; print(json.load(sys.stdin)['id'])")
 have=$(curl -sf "${AUTH[@]}" "$API/releases/$id/assets?per_page=100" | python3 -c "import json,sys; print(' '.join(a['name'] for a in json.load(sys.stdin)))")
 for f in data/export/*; do
+  [ -f "$f" ] || continue
   n=$(basename "$f")
   case " $have " in *" $n "*) echo "skip $n (already uploaded)"; continue ;; esac
   echo "upload $n ($(du -h "$f" | cut -f1))"

@@ -14,6 +14,7 @@ id=$(curl -sf "${AUTH[@]}" "$API/releases/tags/$TAG" | python3 -c "import json,s
 have() { curl -sf "${AUTH[@]}" "$API/releases/$id/assets?per_page=100&page=$1" | python3 -c "import json,sys; print(' '.join(a['name'] for a in json.load(sys.stdin)))"; }
 HAVE=" $(have 1) $(have 2) $(have 3) "
 PART=1900000000
+TMP=${TMPDIR:-/tmp}/gh_raw_parts; mkdir -p "$TMP"
 declare -A seen
 for w in "$@"; do
   for f in data/rawkeep/v5_$w/raw-*.zst data/rawkeep/v5_${w}_ext/raw-*.zst; do
@@ -28,9 +29,14 @@ for w in "$@"; do
       name=$base; [ "$n" -gt 1 ] && name=$(printf '%s.part%02d' "$base" "$k")
       case "$HAVE" in *" $name "*) echo "skip $name (uploaded)"; continue ;; esac
       echo "$(date -u +%T) upload $name"
-      dd if="$f" bs=64M iflag=skip_bytes,count_bytes skip=$((k * PART)) count=$PART status=none \
-        | curl -sf "${AUTH[@]}" -H "Content-Type: application/octet-stream" --data-binary @- \
-          "https://uploads.github.com/repos/$REPO/releases/$id/assets?name=$name" > /dev/null
+      src=$f
+      if [ "$n" -gt 1 ]; then   # part written to disk first: curl streams files (-T) but buffers stdin in memory
+        src=$TMP/$name
+        dd if="$f" of="$src" bs=64M iflag=skip_bytes,count_bytes skip=$((k * PART)) count=$PART status=none
+      fi
+      curl -sf "${AUTH[@]}" -H "Content-Type: application/octet-stream" -X POST -T "$src" \
+        "https://uploads.github.com/repos/$REPO/releases/$id/assets?name=$name" > /dev/null
+      [ "$src" = "$f" ] || rm -f "$src"
     done
   done
 done
