@@ -75,7 +75,7 @@ pub async fn run(rpc_url: String, programs: Vec<String>, slots: u64, out: &std::
             let old = feed::backfill::tx_touches(t, &pset);
             let (legs, skips) = pool_legs::legs(t);
             for s in &skips {
-                *c.entry(match s { pool_legs::LegSkip::Failed => "skip_failed", pool_legs::LegSkip::Ambiguous => "skip_ambiguous", pool_legs::LegSkip::NativeMismatch => "skip_native_mismatch" }).or_default() += 1;
+                *c.entry(match s { pool_legs::LegSkip::Failed => "skip_failed", pool_legs::LegSkip::Ambiguous => "skip_ambiguous", pool_legs::LegSkip::NativeMismatch => "skip_native_mismatch", pool_legs::LegSkip::NotPool => "skip_not_pool" }).or_default() += 1;
             }
             let token_legs: Vec<_> = legs.iter().filter(|l| l.kind != LegKind::Price).collect();
             let new = old || !token_legs.is_empty();

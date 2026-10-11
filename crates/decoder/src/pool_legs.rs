@@ -78,6 +78,8 @@ pub enum LegSkip {
     /// An owner with more than one candidate account in one direction.
     Ambiguous,
     NativeMismatch,
+    /// Paired accounts that are not a pool (a vault empty before or after the trade).
+    NotPool,
 }
 
 struct Acc<'a> {
@@ -161,6 +163,12 @@ pub fn legs(t: &Value) -> (Vec<Leg>, Vec<LegSkip>) {
                     ([qa], [ta]) => {
                         let (ti, ta) = (ta.0, ta.1);
                         let qa = qa.1;
+                        // a pool holds both balances before and after the trade; a wallet filled by a limit order /
+                        // DCA keeper (non-signer owner, fresh WSOL account) does not
+                        if qa.pre <= 0 || qa.post <= 0 || ta.pre <= 0 || ta.post <= 0 {
+                            skips.push(LegSkip::NotPool);
+                            continue;
+                        }
                         let kind = if Quote::of(ta.mint).is_some() { LegKind::Price } else { LegKind::Vault };
                         out.push(Leg {
                             kind,
@@ -330,6 +338,20 @@ mod tests {
         let (l, s) = legs(&mk(10_000));
         assert!(l.is_empty());
         assert_eq!(s, vec![LegSkip::NativeMismatch]);
+    }
+
+    #[test]
+    fn limit_order_fill_to_a_wallet_is_not_a_pool() {
+        // keeper K signs; user U (non-signer) sells TOK via a limit order: U's TOK account goes down, U's fresh WSOL
+        // account goes from 0 up; the real pool AUTH is the only leg
+        let t = tx(&["K", "UT", "UW", "TV", "SV"],
+            vec![tb(1, "U", TOK, 100), tb(3, "AUTH", TOK, 5000), tb(4, "AUTH", WSOL, 9000)],
+            vec![tb(1, "U", TOK, 0), tb(2, "U", WSOL, 40), tb(3, "AUTH", TOK, 5100), tb(4, "AUTH", WSOL, 8960)],
+            vec![10; 5], vec![10; 5]);
+        let (l, s) = legs(&t);
+        assert_eq!(l.len(), 1);
+        assert_eq!((l[0].owner.as_str(), l[0].side, l[0].quote_amt), ("AUTH", Side::Sell, 40));
+        assert_eq!(s, vec![LegSkip::NotPool]);
     }
 
     #[test]
