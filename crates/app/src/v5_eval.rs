@@ -175,6 +175,15 @@ pub fn grid(base: &StratV5) -> Vec<StratV5> {
                     }
                 }
             }
+            ExitMode::AdaptiveTrail => {
+                for &trail_k in &[2.0, 4.0] {
+                    for &d_max in &[0.45, 0.60] {
+                        for &max_entry_ret in &[Some(0.10), None] {
+                            g.push(StratV5 { trail_k, d_max, max_entry_ret, ..b });
+                        }
+                    }
+                }
+            }
             ExitMode::Ladder => {
                 for &bag_trail in &[0.40, 0.55] {
                     for &tp1_mult in &[2.0, 3.0] {
@@ -423,7 +432,7 @@ pub fn compare(recs: &[PathBuf], rp: RadarParams, v4: &crate::backtest::Strategy
         let c5 = CostsV5 { latency_slots: c4.latency_slots, buy_fail_prob: c4.buy_fail_prob, default_fee_bps: c4.default_fee_bps, ..Default::default() };
         let r5 = s5::simulate(&d, rp, &mut s5::NoScores, st, &c5, &[1.0; 7], None, false);
         // Exit variants A-D (prediction spec Bagian 16) on the same window, same entries, no model.
-        let variants: Vec<serde_json::Value> = [s5::ExitMode::MomentumFade, s5::ExitMode::FadeAndDrawdown, s5::ExitMode::Trail, s5::ExitMode::Ladder]
+        let variants: Vec<serde_json::Value> = [s5::ExitMode::MomentumFade, s5::ExitMode::FadeAndDrawdown, s5::ExitMode::Trail, s5::ExitMode::AdaptiveTrail, s5::ExitMode::Ladder]
             .iter()
             .map(|m| {
                 let r = s5::simulate(&d, rp, &mut s5::NoScores, &StratV5 { exit_mode: *m, ..*st }, &c5, &[1.0; 7], None, false);
@@ -542,11 +551,15 @@ pub fn ablate(recs: &[PathBuf], rp: RadarParams, st: &StratV5, out: &Path) -> Re
         ("base".into(), rp, *st),
         ("exit_fade_and_drawdown".into(), rp, StratV5 { exit_mode: ExitMode::FadeAndDrawdown, ..*st }),
         ("exit_trail".into(), rp, StratV5 { exit_mode: ExitMode::Trail, ..*st }),
+        ("exit_adaptive_trail".into(), rp, StratV5 { exit_mode: ExitMode::AdaptiveTrail, ..*st }),
         ("exit_ladder".into(), rp, StratV5 { exit_mode: ExitMode::Ladder, ..*st }),
         ("no_price_guard".into(), rp, StratV5 { max_entry_ret: None, ..*st }),
         ("promote_rows_only".into(), rp, StratV5 { decision_rows: false, ..*st }),
         ("tick_per_slot".into(), rp, StratV5 { decision_tick_s: 0, ..*st }),
         ("no_time_stop".into(), rp, StratV5 { time_stop_s: 0, ..*st }),
+        ("time_stop_classic".into(), rp, StratV5 { time_stop_s: 300, time_stop_max_buyers60: f64::INFINITY, ..*st }),
+        ("time_stop_flow_le1".into(), rp, StratV5 { time_stop_s: 300, time_stop_max_buyers60: 1.0, ..*st }),
+        ("time_stop_flow_le3".into(), rp, StratV5 { time_stop_s: 300, time_stop_max_buyers60: 3.0, ..*st }),
         ("no_entries_per_min_cap".into(), rp, StratV5 { max_entries_per_min: 1_000_000, ..*st }),
         ("no_reentry_cooldown".into(), rp, StratV5 { reentry_cooldown_s: 0, ..*st }),
         ("no_mint_gate".into(), rp, StratV5 { mint_gate: false, ..*st }),

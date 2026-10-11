@@ -622,6 +622,48 @@
     },
     {
       "summary": {
+        "costs_sol": 0.023500000000000014,
+        "expectancy_excl_top1pct_sol": -0.009075036952380957,
+        "expectancy_sol": -0.004208495500000001,
+        "max_drawdown_pct_worst": 21.360094125120654,
+        "mean_return_pct": -9.308690100000033,
+        "median_return_pct": -9.308690100000033,
+        "moonshot_capture": 0.0,
+        "positive_windows": 1,
+        "profit_factor": 0.5153949607784429,
+        "runners_10x": 41,
+        "runners_captured_5x": 0,
+        "total_pnl_sol": -0.09258690100000003,
+        "trades": 22,
+        "win_rate": 0.09090909090909091,
+        "windows": 2
+      },
+      "variant": "exit_adaptive_trail",
+      "windows": [
+        {
+          "final_exits": {
+            "AdaptiveTrail": 5,
+            "DataEnd": 4
+          },
+          "held_to_5x": 0,
+          "pnl_sol": -0.09850202600000019,
+          "trades": 9,
+          "window": "bf_1h"
+        },
+        {
+          "final_exits": {
+            "AdaptiveTrail": 8,
+            "DataEnd": 5
+          },
+          "held_to_5x": 0,
+          "pnl_sol": 0.005415124999999854,
+          "trades": 13,
+          "window": "h1d"
+        }
+      ]
+    },
+    {
+      "summary": {
         "costs_sol": 0.01800000000000001,
         "expectancy_excl_top1pct_sol": -0.005115397800000003,
         "expectancy_sol": -0.00026250887500000046,
@@ -831,6 +873,139 @@
           "held_to_5x": 0,
           "pnl_sol": 0.09113412999999981,
           "trades": 10,
+          "window": "h1d"
+        }
+      ]
+    },
+    {
+      "summary": {
+        "costs_sol": 0.07100000000000005,
+        "expectancy_excl_top1pct_sol": -0.0022057623333333358,
+        "expectancy_sol": -0.0006402211250000012,
+        "max_drawdown_pct_worst": 20.240983800000002,
+        "mean_return_pct": -4.597415200000032,
+        "median_return_pct": -4.597415200000032,
+        "moonshot_capture": 0.0,
+        "positive_windows": 1,
+        "profit_factor": 0.806988984257695,
+        "runners_10x": 41,
+        "runners_captured_5x": 0,
+        "total_pnl_sol": -0.040974152000000076,
+        "trades": 64,
+        "win_rate": 0.125,
+        "windows": 2
+      },
+      "variant": "time_stop_classic",
+      "windows": [
+        {
+          "final_exits": {
+            "DataEnd": 4,
+            "DevSell": 1,
+            "TimeStop": 23,
+            "Trail": 2
+          },
+          "held_to_5x": 0,
+          "pnl_sol": -0.09468567700000008,
+          "trades": 30,
+          "window": "bf_1h"
+        },
+        {
+          "final_exits": {
+            "DataEnd": 6,
+            "TimeStop": 23,
+            "Trail": 5
+          },
+          "held_to_5x": 0,
+          "pnl_sol": 0.048711524999999756,
+          "trades": 34,
+          "window": "h1d"
+        }
+      ]
+    },
+    {
+      "summary": {
+        "costs_sol": 0.028000000000000018,
+        "expectancy_excl_top1pct_sol": -0.0035305728000000025,
+        "expectancy_sol": 0.0003740213461538456,
+        "max_drawdown_pct_worst": 15.692145600000018,
+        "mean_return_pct": 0.9224554999999572,
+        "median_return_pct": 0.9224554999999572,
+        "moonshot_capture": 0.0,
+        "positive_windows": 1,
+        "profit_factor": 1.0632784191423077,
+        "runners_10x": 41,
+        "runners_captured_5x": 0,
+        "total_pnl_sol": 0.009724554999999985,
+        "trades": 26,
+        "win_rate": 0.15384615384615385,
+        "windows": 2
+      },
+      "variant": "time_stop_flow_le1",
+      "windows": [
+        {
+          "final_exits": {
+            "DataEnd": 5,
+            "TimeStop": 5,
+            "Trail": 2
+          },
+          "held_to_5x": 0,
+          "pnl_sol": -0.0694168950000002,
+          "trades": 12,
+          "window": "bf_1h"
+        },
+        {
+          "final_exits": {
+            "DataEnd": 6,
+            "TimeStop": 2,
+            "Trail": 6
+          },
+          "held_to_5x": 0,
+          "pnl_sol": 0.07864144999999978,
+          "trades": 14,
+          "window": "h1d"
+        }
+      ]
+    },
+    {
+      "summary": {
+        "costs_sol": 0.035500000000000025,
+        "expectancy_excl_top1pct_sol": -0.003151434125000001,
+        "expectancy_sol": -0.00008657627272727409,
+        "max_drawdown_pct_worst": 13.744918367774572,
+        "mean_return_pct": -0.3357017000000244,
+        "median_return_pct": -0.3357017000000244,
+        "moonshot_capture": 0.0,
+        "positive_windows": 1,
+        "profit_factor": 0.9865348183912224,
+        "runners_10x": 41,
+        "runners_captured_5x": 0,
+        "total_pnl_sol": -0.002857017000000045,
+        "trades": 33,
+        "win_rate": 0.12121212121212122,
+        "windows": 2
+      },
+      "variant": "time_stop_flow_le3",
+      "windows": [
+        {
+          "final_exits": {
+            "DataEnd": 5,
+            "TimeStop": 6,
+            "Trail": 2
+          },
+          "held_to_5x": 0,
+          "pnl_sol": -0.05441525500000022,
+          "trades": 13,
+          "window": "bf_1h"
+        },
+        {
+          "final_exits": {
+            "DataEnd": 6,
+            "TimeStop": 7,
+            "Trail": 7
+          },
+          "held_to_5x": 0,
+          "pnl_sol": 0.05105823799999998,
+          "trades": 20,
           "window": "h1d"
         }
       ]

@@ -35,8 +35,11 @@ pub enum ExitMode {
     MomentumFade,
     /// B: Momentum Fade AND drawdown from the post-entry peak >= adaptive d_t = clamp(1 - exp(-trail_k sigma_60), d_min, d_max).
     FadeAndDrawdown,
-    /// C: fixed trailing stop from the post-entry peak (trail_fixed), sells 100%.
+    /// C: fixed trailing stop from the post-entry peak (trail_fixed), sells 100% (U11 ATH / Peak Trailing Stop).
     Trail,
+    /// C2: U12 adaptive volatility trailing from the post-entry peak, d_t = clamp(1 - exp(-trail_k sigma_60), d_min,
+    /// d_max) with sigma_60 = vol_60s x sqrt(60) (1-s log-return std scaled to 60 s), sells 100%.
+    AdaptiveTrail,
     /// D: V5 TP1 / TP2 partial ladder + bag trail (comparison baseline only).
     Ladder,
 }
@@ -93,6 +96,9 @@ pub struct StratV5 {
     /// Time stop: no gain of time_stop_gain within time_stop_s after entry (0 = off).
     pub time_stop_s: i64,
     pub time_stop_gain: f64,
+    /// Flow-confirmed time stop: the stalled position is sold only while the coin has at most this many distinct
+    /// buyers in the last 60 s (stalled coins with active buyers reach 2x 3-4x more often; INFINITY = classic stop).
+    pub time_stop_max_buyers60: f64,
     /// B: adaptive drawdown bounds.
     pub d_min: f64,
     pub d_max: f64,
@@ -125,6 +131,7 @@ impl Default for StratV5 {
             idle_s: 120,
             time_stop_s: 300,
             time_stop_gain: 0.10,
+            time_stop_max_buyers60: 1.0,
             mint_gate: true,
             d_min: 0.15,
             d_max: 0.60,
@@ -260,6 +267,8 @@ struct Pos {
     legs: Vec<Leg>,
     last: Pred,
     last_vol: f64,
+    /// Distinct buyers in the last 60 s at the coin's latest snapshot since entry (0 before the first one).
+    last_buyers60: f64,
     entry_ev: f64,
     entry_label: Option<Labels>,
     /// (time, quote reserve) within 60 s, AMM pools only.
@@ -585,11 +594,12 @@ struct Idx {
     bundle: usize,
     vol: usize,
     low300: usize,
+    buyers60: usize,
 }
 
 fn idx() -> Idx {
     let f = |n: &str| FEATURES.iter().position(|x| *x == n).unwrap_or_else(|| panic!("feature {n}"));
-    Idx { ret_60s: f("ret_60s"), top10: f("top10_supply_share"), bundle: f("f2_bundle_buy_share"), vol: f("vol_60s"), low300: f("price_vs_low300") }
+    Idx { ret_60s: f("ret_60s"), top10: f("top10_supply_share"), bundle: f("f2_bundle_buy_share"), vol: f("vol_60s"), low300: f("price_vs_low300"), buyers60: f("buyers_60s") }
 }
 
 /// Simulate one window. `rk` = net return per entry bin (from `estimate_rk`). `oracle` = enter every
@@ -778,7 +788,7 @@ pub fn simulate(w: &WindowData, rp: RadarParams, scorer: &mut dyn Scorer, st: &S
                     let px = eng.price(coin);
                     pos.insert(coin, Pos {
                         tokens0: toks as u64, tokens: toks as u64, cost: size, entry_t: cur_t, entry_px: lamports as f64 / toks as f64, peak_px: px, max_mult: 1.0,
-                        stage: Stage::PreTp, proceeds: 0.0, tx_paid: txc, legs: Vec::new(), last: Pred::default(), last_vol: 0.0, entry_ev: e_ev,
+                        stage: Stage::PreTp, proceeds: 0.0, tx_paid: txc, legs: Vec::new(), last: Pred::default(), last_vol: 0.0, last_buyers60: 0.0, entry_ev: e_ev,
                         entry_label: label, q_hist: VecDeque::new(), last_hold: None, marks: Vec::new(),
                         fade: Fade { rate_t: cur_t, ..Default::default() },
                     });
@@ -814,7 +824,8 @@ pub fn simulate(w: &WindowData, rp: RadarParams, scorer: &mut dyn Scorer, st: &S
                     Some("DataEnd")
                 } else if normal && matches!(st.exit_mode, ExitMode::MomentumFade | ExitMode::FadeAndDrawdown) && eng.secs_since_real_buy(coin, e.time) > st.idle_s {
                     Some("Dead")
-                } else if normal && st.time_stop_s > 0 && e.time - p.entry_t >= st.time_stop_s && p.max_mult < 1.0 + st.time_stop_gain {
+                } else if normal && st.time_stop_s > 0 && e.time - p.entry_t >= st.time_stop_s && p.max_mult < 1.0 + st.time_stop_gain
+                    && p.last_buyers60 <= st.time_stop_max_buyers60 {
                     Some("TimeStop")
                 } else {
                     None
@@ -851,6 +862,7 @@ pub fn simulate(w: &WindowData, rp: RadarParams, scorer: &mut dyn Scorer, st: &S
             if let (Some(pr), Some(x)) = (pred, step.snapshot.as_ref()) {
                 p.last = pr;
                 p.last_vol = x[ix.vol] as f64;
+                p.last_buyers60 = x[ix.buyers60] as f64;
                 p.last_hold = Some(pr.hold);
             }
             if oracle && step.snapshot.is_some() {
@@ -880,6 +892,11 @@ pub fn simulate(w: &WindowData, rp: RadarParams, scorer: &mut dyn Scorer, st: &S
                 } else if st.exit_mode == ExitMode::Trail {
                     if price <= p.peak_px * (1.0 - st.trail_fixed.min(0.99)) {
                         sell = Some((p.tokens, "Trail", true));
+                    }
+                } else if st.exit_mode == ExitMode::AdaptiveTrail {
+                    let d = (1.0 - (-st.trail_k * p.last_vol * 60f64.sqrt()).exp()).clamp(st.d_min, st.d_max);
+                    if price <= p.peak_px * (1.0 - d) {
+                        sell = Some((p.tokens, "AdaptiveTrail", true));
                     }
                 } else if let Some(f) = fnow {
                     let crowd_down = f.sellers && !(f.quiet || f.smaller) && eng.radar().view(e.coin, e.time).is_some_and(|v| v.metrics.growth < 1.0);
@@ -1429,7 +1446,7 @@ mod tests {
         let pr = Pred { bin: [0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0], ..Default::default() };
         let c = CostsV5 { buy_fail_prob: 0.0, ..Default::default() };
         let rk = [0.0, 0.0, 0.0, 0.0, 0.0, 3.0, 0.0];
-        for mode in [ExitMode::MomentumFade, ExitMode::FadeAndDrawdown, ExitMode::Trail] {
+        for mode in [ExitMode::MomentumFade, ExitMode::FadeAndDrawdown, ExitMode::Trail, ExitMode::AdaptiveTrail] {
             let st = StratV5 { max_ret_60s_entry: 10.0, max_top10_share: 1.0, max_bundle_share: 1.0, exit_mode: mode, ..Default::default() };
             let r = simulate(&w, rp, &mut Fixed(pr), &st, &c, &rk, None, false);
             assert_eq!(r.trades, 1, "{mode:?} {:?}", r.blocked);
@@ -1438,7 +1455,7 @@ mod tests {
             assert!((t.legs[0].tokens_frac - 1.0).abs() < 1e-12);
             assert!(t.max_mult > 20.0 && t.pnl_sol > 0.0, "{mode:?}: held through the pump: {t:?}");
             assert!(t.exit_t >= 400, "{mode:?}: not sold during the pump: {t:?}");
-            let want = if mode == ExitMode::Trail { "Trail" } else { "MomentumFade" };
+            let want = match mode { ExitMode::Trail => "Trail", ExitMode::AdaptiveTrail => "AdaptiveTrail", _ => "MomentumFade" };
             assert_eq!(t.final_reason, want, "{t:?}");
         }
     }
