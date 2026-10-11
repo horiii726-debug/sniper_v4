@@ -537,7 +537,7 @@ fn main() -> Result<()> {
                 "decision_end": ev.window.1, "decision_start": ev.window.0, "window_end_slot": r_end,
                 "extension_slots": es["slots_in_range"], "extension_end_slot": es["end_slot"] }))?)?;
             std::fs::copy(ext.join("summary.json"), rec.join("extension_summary.json"))?;
-            for f in [backtest::CACHE_V3, backtest::CREATIONS_FILE, "pump_events_v2.bin", "venue_decode_stats.json"] {
+            for f in [backtest::CACHE_V4, backtest::CACHE_V3, backtest::CREATIONS_FILE, "pump_events_v2.bin", "venue_decode_stats.json"] {
                 let _ = std::fs::remove_file(rec.join(f));
             }
             println!("{}: decision window {:?}, {} extension segments moved; decode with export-events", rec.display(), ev.window, segs.len());

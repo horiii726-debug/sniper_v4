@@ -2091,7 +2091,7 @@ mod tests {
         Ev {
             slot, order: (slot << 24) | (k << 8), time: (slot / 4) as i64, coin: 0, amm: true, buy, sol: 50_000_000,
             tokens: 1_000_000, user, creator: 999, quote_res: 100_000_000_000, token_res: 1_000_000_000_000,
-            real_quote: 0, real_token: 0, fee_bps: 100, complete: false, venue: 1,
+            real_quote: 0, real_token: 0, fee_bps: 100, complete: false, venue: 1, pool: 0,
         }
     }
 
@@ -2198,7 +2198,7 @@ mod tests {
 
     fn mk(slot: u64, time: i64, coin: u32, user: u32, buy: bool, sol: u64, q: u128, tk: u128) -> Ev {
         Ev { slot, order: (slot << 24) | ((user as u64 & 0xFFFF) << 8), time, coin, amm: true, buy, sol, tokens: 1_000, user, creator: 999,
-             quote_res: q, token_res: tk, real_quote: 0, real_token: 0, fee_bps: 100, complete: false, venue: 1 }
+             quote_res: q, token_res: tk, real_quote: 0, real_token: 0, fee_bps: 100, complete: false, venue: 1, pool: 0}
     }
 
     /// Death: real trades stop, price collapsed below 10% of the peak, 30 min pass -> one death at last_real + 1800.

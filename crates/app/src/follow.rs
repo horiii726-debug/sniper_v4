@@ -160,6 +160,7 @@ pub fn merge(ev: &mut Events, f: &FollowFile) -> Result<()> {
             fee_bps: e.fee_bps,
             complete: e.complete,
             venue: e.amm as u8,
+            pool: crate::backtest::NO_POOL,
         });
     }
     ev.evs.sort_by_key(|e| e.order);
@@ -423,7 +424,7 @@ mod tests {
     fn wev(slot: u64, k: u64, coin: u32, time: i64) -> Ev {
         Ev {
             slot, order: (slot << 24) | (k << 8), time, coin, amm: false, buy: true, sol: 20_000_000, tokens: 1_000,
-            user: 0, creator: 1, quote_res: 30_000_000_000, token_res: 1_000_000_000, real_quote: 0, real_token: 1, fee_bps: 100, complete: false, venue: 0,
+            user: 0, creator: 1, quote_res: 30_000_000_000, token_res: 1_000_000_000, real_quote: 0, real_token: 1, fee_bps: 100, complete: false, venue: 0, pool: 0,
         }
     }
 

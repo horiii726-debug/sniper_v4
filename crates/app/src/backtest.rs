@@ -38,6 +38,43 @@ pub struct Ev {
     pub complete: bool,
     /// Venue code (`decoder::venue_pool::code`): 0 pump.fun curve, 1 PumpSwap, 2.. other venues.
     pub venue: u8,
+    /// Pool id within the window (interned pump pool / curve account, or token vault of other venues); `NO_POOL` in
+    /// caches decoded before pool ids existed.
+    pub pool: u32,
+}
+
+pub const NO_POOL: u32 = u32::MAX;
+
+/// Event layout of the V6 v3 caches (`pump_events_v3.bin`): venue, no pool id.
+#[derive(Deserialize)]
+struct EvV3 {
+    slot: u64,
+    order: u64,
+    time: i64,
+    coin: u32,
+    amm: bool,
+    buy: bool,
+    sol: u64,
+    tokens: u64,
+    user: u32,
+    creator: u32,
+    quote_res: u128,
+    token_res: u128,
+    real_quote: u64,
+    real_token: u64,
+    fee_bps: u64,
+    complete: bool,
+    venue: u8,
+}
+
+impl From<EvV3> for Ev {
+    fn from(e: EvV3) -> Ev {
+        Ev {
+            slot: e.slot, order: e.order, time: e.time, coin: e.coin, amm: e.amm, buy: e.buy, sol: e.sol, tokens: e.tokens, user: e.user,
+            creator: e.creator, quote_res: e.quote_res, token_res: e.token_res, real_quote: e.real_quote, real_token: e.real_token,
+            fee_bps: e.fee_bps, complete: e.complete, venue: e.venue, pool: NO_POOL,
+        }
+    }
 }
 
 /// Event layout of the V4 / V5 caches (`pump_events.bin`, `pump_events_v2.bin`): no venue (pump only).
@@ -66,7 +103,7 @@ impl From<EvV2> for Ev {
         Ev {
             slot: e.slot, order: e.order, time: e.time, coin: e.coin, amm: e.amm, buy: e.buy, sol: e.sol, tokens: e.tokens, user: e.user,
             creator: e.creator, quote_res: e.quote_res, token_res: e.token_res, real_quote: e.real_quote, real_token: e.real_token,
-            fee_bps: e.fee_bps, complete: e.complete, venue: e.amm as u8,
+            fee_bps: e.fee_bps, complete: e.complete, venue: e.amm as u8, pool: NO_POOL,
         }
     }
 }
@@ -78,14 +115,19 @@ pub struct ActivePool {
     pub known: bool,
     pub venue: u8,
     pub quote: u128,
+    pub pool: u32,
 }
 
 impl ActivePool {
-    /// True if this event comes from (or becomes) the coin's active pool; updates the state.
+    /// True if this event comes from (or becomes) the coin's active pool; updates the state. The same POOL always
+    /// updates (pool ids; the same venue for events without pool ids); another pool takes over only from the curve
+    /// to an AMM, or when it is at least as deep (quote reserve). A thin second pool of the same venue with a stale or
+    /// absurd price never sets the price.
     pub fn accept(&mut self, e: &Ev) -> bool {
-        let take = !self.known || e.venue == self.venue || (!self.amm() && e.amm) || (e.amm && self.amm() && e.quote_res >= self.quote);
+        let same = if e.pool != NO_POOL && self.pool != NO_POOL { e.pool == self.pool } else { e.venue == self.venue };
+        let take = !self.known || same || (!self.amm() && e.amm) || (e.amm && self.amm() && e.quote_res >= self.quote);
         if take {
-            *self = ActivePool { known: true, venue: e.venue, quote: e.quote_res };
+            *self = ActivePool { known: true, venue: e.venue, quote: e.quote_res, pool: e.pool };
         }
         take
     }
@@ -135,6 +177,15 @@ struct WindowCache {
     users: Vec<String>,
 }
 
+#[derive(Deserialize)]
+struct WindowCacheV3 {
+    evs: Vec<EvV3>,
+    mints: Vec<String>,
+    window: (i64, i64),
+    users: Vec<String>,
+}
+
+pub const CACHE_V4: &str = "pump_events_v4.bin";
 pub const CACHE_V3: &str = "pump_events_v3.bin";
 /// Shared wallet of same-tx buy+sell legs of one mint (arbitrage / round trips).
 pub const ARB_USER: &str = "arb_roundtrip";
@@ -263,17 +314,23 @@ fn apply_decision_window(ev: &mut Events, rec: &Path) -> Result<()> {
 
 /// Decoded-event cache present (any version)?
 pub fn has_event_cache(rec: &Path) -> bool {
-    [CACHE_V3, "pump_events_v2.bin", "pump_events.bin"].iter().any(|f| rec.join(f).exists())
+    [CACHE_V4, CACHE_V3, "pump_events_v2.bin", "pump_events.bin"].iter().any(|f| rec.join(f).exists())
 }
 
 fn load_window_events(rec: &Path) -> Result<Events> {
-    let cache = rec.join(CACHE_V3);
+    let cache = rec.join(CACHE_V4);
     if cache.exists() {
         let c: WindowCache = bincode::deserialize(&std::fs::read(&cache)?)?;
         return Ok(Events::new(c.evs, c.mints, c.window, c.users));
     }
-    // A raw recording with an old pump-only cache is decoded again (all venues); without raw the old cache is used.
+    // A raw recording with an older cache is decoded again (pool ids, all venues); without raw the old cache is used.
     let has_raw = std::fs::read_dir(rec).map(|d| d.flatten().any(|f| f.file_name().to_string_lossy().starts_with("raw-"))).unwrap_or(false);
+    let v3 = rec.join(CACHE_V3);
+    if v3.exists() && !has_raw {
+        tracing::warn!("{}: v3 cache without pool ids (active pool by venue); re-decode from raw for pool ids", rec.display());
+        let c: WindowCacheV3 = bincode::deserialize(&std::fs::read(&v3)?)?;
+        return Ok(Events::new(c.evs.into_iter().map(Ev::from).collect(), c.mints, c.window, c.users));
+    }
     let v2 = rec.join("pump_events_v2.bin");
     if v2.exists() && !has_raw {
         let c: WindowCacheV2 = bincode::deserialize(&std::fs::read(&v2)?)?;
@@ -292,6 +349,11 @@ fn load_window_events(rec: &Path) -> Result<Events> {
     let mut vdec = decoder::venue_pool::VenueDecoder::new(reg.venue.iter().map(|v| (v.name.as_str(), v.program_id.as_str())));
     let mut creations: Vec<CreationRec> = Vec::new();
     let mut vault_venue: FxHashMap<String, u8> = FxHashMap::default();
+    let mut pools: FxHashMap<String, u32> = FxHashMap::default();
+    let mut pool_id = |k: &str| -> u32 {
+        let n = pools.len() as u32;
+        *pools.entry(k.to_string()).or_insert(n)
+    };
     let mut leg_stats: std::collections::BTreeMap<String, u64> = Default::default();
     // on-chain SOL/USD from SOL-stable price legs: last price (stable-quote conversion), per-minute medians (file)
     let mut sol_usd_last = 0.0f64;
@@ -354,6 +416,7 @@ fn load_window_events(rec: &Path) -> Result<Events> {
                     fee_bps: e.fee_bps,
                     complete: e.complete,
                     venue: if e.venue == Venue::Amm { decoder::venue_pool::code::PUMPSWAP } else { decoder::venue_pool::code::PUMP_CURVE },
+                    pool: if e.pool.is_empty() { NO_POOL } else { pool_id(&e.pool) },
                 });
             }
             // Other venues (Raydium, Meteora, Orca, ...): generic SOL-quoted trades; the creator is unknown there.
@@ -440,6 +503,7 @@ fn load_window_events(rec: &Path) -> Result<Events> {
                         fee_bps: 0,
                         complete: false,
                         venue,
+                        pool: pool_id(&l.token_vault),
                     });
                 }
             }
@@ -483,6 +547,7 @@ fn load_window_events(rec: &Path) -> Result<Events> {
                     fee_bps: 0,
                     complete: false,
                     venue: p.venue,
+                    pool: pool_id(&p.pool),
                 });
             }
         }
@@ -1151,9 +1216,9 @@ mod tests {
         let d = std::env::temp_dir().join(format!("creations_test_{}", std::process::id()));
         std::fs::create_dir_all(&d).unwrap();
         let ev0 = |coin: u32, time: i64| Ev { slot: 1, order: 1 << 24, time, coin, amm: false, buy: true, sol: 1, tokens: 1, user: 0, creator: 0,
-            quote_res: 1, token_res: 1, real_quote: 0, real_token: 0, fee_bps: 0, complete: false, venue: 0 };
+            quote_res: 1, token_res: 1, real_quote: 0, real_token: 0, fee_bps: 0, complete: false, venue: 0, pool: 0};
         let cache = WindowCache { evs: vec![ev0(0, 100), ev0(1, 150)], mints: vec!["A".into(), "B".into()], window: (100, 200), users: vec!["u".into()] };
-        std::fs::write(d.join(CACHE_V3), bincode::serialize(&cache).unwrap()).unwrap();
+        std::fs::write(d.join(CACHE_V4), bincode::serialize(&cache).unwrap()).unwrap();
         let rec = |mint: &str, time: i64, migration: bool| CreationRec { mint: mint.into(), slot: 1, order: 1, time, amm: migration, migration, price: 2.0 };
         let f = CreationsFile { version: CREATIONS_VERSION, window: (100, 200), first_slot: 1, last_slot: 9, complete: true,
             items: vec![rec("A", 120, false), rec("B", 130, true), rec("Z", 140, false)] };
@@ -1173,7 +1238,7 @@ mod tests {
     #[test]
     fn active_pool_rule() {
         let e = |venue: u8, q: u128| Ev { slot: 1, order: 1, time: 1, coin: 0, amm: venue != 0, buy: true, sol: 1, tokens: 1, user: 0, creator: 0,
-            quote_res: q, token_res: 1, real_quote: 0, real_token: 0, fee_bps: 0, complete: false, venue };
+            quote_res: q, token_res: 1, real_quote: 0, real_token: 0, fee_bps: 0, complete: false, venue, pool: venue as u32 };
         let mut a = ActivePool::default();
         assert!(a.accept(&e(0, 30)));
         assert!(a.accept(&e(1, 80)), "migration to PumpSwap");
@@ -1182,6 +1247,17 @@ mod tests {
         assert!(a.accept(&e(1, 40)), "same venue always updates");
         assert!(a.accept(&e(3, 50)), "now deeper");
         assert_eq!(a.venue, 3);
+        // two pools of one venue: a thin second pool (other pool id) never sets the price; the same pool always does
+        let p = |pool: u32, q: u128| Ev { pool, ..e(7, q) };
+        let mut a = ActivePool::default();
+        assert!(a.accept(&p(10, 500)));
+        assert!(!a.accept(&p(11, 3)), "thin pool of the same venue");
+        assert!(a.accept(&p(10, 100)), "the active pool drained: still the price source");
+        assert!(a.accept(&p(11, 120)), "the other pool is now deeper");
+        // events without pool ids fall back to the venue rule
+        let mut a = ActivePool::default();
+        assert!(a.accept(&p(NO_POOL, 500)));
+        assert!(a.accept(&p(NO_POOL, 3)));
     }
 
     /// V4-4: exit liquidity is the real quote reserve on the curve, the pool quote reserve on the AMM.

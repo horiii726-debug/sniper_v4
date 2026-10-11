@@ -181,7 +181,7 @@ mod tests {
 
     fn ev(time: i64, coin: u32, amm: bool, real_token: u64) -> Ev {
         Ev { slot: 1, order: 1, time, coin, amm, buy: true, sol: 100_000_000, tokens: 1000, user: 1, creator: 9, quote_res: 40_000_000_000,
-             token_res: 1_000_000_000_000_000, real_quote: 2_000_000_000, real_token, fee_bps: 100, complete: false, venue: amm as u8 }
+             token_res: 1_000_000_000_000_000, real_quote: 2_000_000_000, real_token, fee_bps: 100, complete: false, venue: amm as u8, pool: amm as u32 }
     }
 
     fn events(scanned: bool, created: Vec<Option<(i64, Option<f64>)>>) -> Events {

@@ -580,7 +580,8 @@ pub fn ablate(recs: &[PathBuf], rp: RadarParams, st: &StratV5, out: &Path) -> Re
             serde_json::json!({ "variant": n, "summary": sum,
                 "windows": reps.iter().map(|r| serde_json::json!({ "window": r.window, "pnl_sol": r.report.final_sol - r.report.start_sol,
                     "trades": r.report.trades, "held_to_5x": r.report.trades_list.iter().filter(|t| t.max_mult >= 5.0).count(),
-                    "final_exits": r.report.final_reasons })).collect::<Vec<_>>() })
+                    "final_exits": r.report.final_reasons, "signals_in_window": r.report.signals_in_window, "blocked": r.report.blocked,
+                    "failed_buys": r.report.failed_buys })).collect::<Vec<_>>() })
         })
         .collect();
     let rep = serde_json::json!({
