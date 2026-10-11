@@ -5,7 +5,8 @@
 # Resumable: finished steps are skipped. Historical data only (no live recording).
 # Usage: scripts/v5_fetch.sh [ROLE] [MAX_WINDOWS] [WINDOW_NAMES...]
 #   ROLE = train (default) | final_holdout | all. With names given, they run in the given order.
-# Env: SLOTS (default 16500 ~ 1 h at 0.218 s/slot), HOURS (10), RPS (12), CONC (10 getBlock in flight).
+# Env: SLOTS (default 16500 ~ 1 h at 0.218 s/slot), HOURS (10), RPS (12), CONC (10 getBlock in flight),
+#      KEEP_RAW (1 = keep raw JSON segments for later multi-venue decoding; 0 = delete after decode).
 set -u
 cd "$(dirname "$0")/.."
 ROLE=${1:-train}
@@ -15,6 +16,7 @@ SLOTS=${SLOTS:-16500}
 HOURS=${HOURS:-10}
 RPS=${RPS:-12}
 CONC=${CONC:-10}
+KEEP_RAW=${KEEP_RAW:-1}
 BIN=./target/release/sniper
 mkdir -p logs data
 if [ $# -gt 0 ]; then
@@ -41,8 +43,10 @@ while read -r name end role; do
     $BIN verify-backfill --rec $d > $d/verify_backfill.json 2>/dev/null
     h1=$(python3 -c "import json;print(json.load(open('$d/verify_backfill.json'))['G0_H1'])" 2>/dev/null || echo ERR)
     if [ "$h1" != PASS ]; then echo "$name G0.H1 $h1 -> not decoding"; continue; fi
+    # the raw decode also writes creations.bin.zst (authoritative newborns); re-scan if a cache existed without it
     $BIN export-events --rec $d --out $d/trades.csv > /dev/null 2>&1 || { echo "$name decode FAILED"; continue; }
-    rm -f $d/raw-*.zst
+    [ -f $d/creations.bin.zst ] || $BIN scan-creations --rec $d > /dev/null 2>&1 || { echo "$name creation scan FAILED (raw kept)"; continue; }
+    [ "$KEEP_RAW" = 0 ] && rm -f $d/raw-*.zst
   fi
   if [ ! -f $d/follow_summary.json ]; then
     $BIN follow --rec $d --hours "$HOURS" --rps "$RPS" > logs/v5_$name.follow.out 2>&1 || { echo "$name follow FAILED"; continue; }

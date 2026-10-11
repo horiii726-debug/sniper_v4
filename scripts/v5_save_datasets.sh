@@ -34,6 +34,7 @@ for d in data/v5_*/; do
   zstd -q -19 -T0 -f "$d/pump_events_v2.bin" -o "$tmp/pump_events_v2.bin.zst"
   put "$tmp/pump_events_v2.bin.zst" "$out/pump_events_v2.bin.zst"
   [ -f "$d/follow.bin.zst" ] && put "$d/follow.bin.zst" "$out/follow.bin.zst"
+  [ -f "$d/creations.bin.zst" ] && put "$d/creations.bin.zst" "$out/creations.bin.zst"
   if [ -f "$d/trades.csv" ]; then
     zstd -q -19 -T0 -f "$d/trades.csv" -o "$tmp/trades.csv.zst"
     put "$tmp/trades.csv.zst" "$out/trades.csv.zst"
