@@ -115,6 +115,10 @@ pub struct StratV5 {
     pub loss_streak_pause_s: i64,
     /// M1 meta-labeling: also evaluate entries at WATCH decision rows (radar = high recall, the model takes / skips).
     pub entry_on_watch: bool,
+    /// Trade the venues that passed gate C18 (fill accuracy) instead of pump.fun / PumpSwap only.
+    pub c18_venues: bool,
+    /// Compounding: each new position = this fraction of the current equity (None = fixed bet_sol).
+    pub bet_equity_frac: Option<f64>,
 }
 
 impl Default for StratV5 {
@@ -144,6 +148,8 @@ impl Default for StratV5 {
             loss_streak: 0,
             loss_streak_pause_s: 900,
             entry_on_watch: false,
+            c18_venues: false,
+            bet_equity_frac: None,
             d_min: 0.15,
             d_max: 0.60,
             trail_fixed: 0.30,
@@ -619,7 +625,7 @@ fn idx() -> Idx {
 pub fn simulate(w: &WindowData, rp: RadarParams, scorer: &mut dyn Scorer, st: &StratV5, c: &CostsV5, rk: &[f64; 7], hold: Option<&HoldTable>, oracle: bool) -> ReportV5 {
     let ev = w.ev;
     let ix = idx();
-    let mut eng = Engine::new(ev, rp).with_ctx(w.ctx.clone());
+    let mut eng = Engine::new(ev, rp).with_ctx(w.ctx.clone()).with_c18_venues(st.c18_venues);
     let start = c.start_sol;
     let mut cash = start;
     let txc = c.tx_sol();
@@ -689,6 +695,9 @@ pub fn simulate(w: &WindowData, rp: RadarParams, scorer: &mut dyn Scorer, st: &S
                     }).collect(),
                     None => Vec::new(),
                 };
+                // compounding: the bet of this tick is a fraction of the current equity (else the fixed bet_sol)
+                let st_tick = StratV5 { bet_sol: st.bet_equity_frac.map_or(st.bet_sol, |f| (f * equity).max(0.0)), ..*st };
+                let st = &st_tick;
                 for d in allocate(&live, &held, cap, st, txc, hold.is_some(), oracle) {
                     let (ci, victim) = match d {
                         Decision::Merged(k) => {

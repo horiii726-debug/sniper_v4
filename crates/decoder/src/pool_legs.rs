@@ -148,6 +148,15 @@ pub fn legs(t: &Value) -> (Vec<Leg>, Vec<LegSkip>) {
         let quotes: Vec<&(u64, &Acc)> = v.iter().filter(|(_, a)| Quote::of(a.mint).is_some()).collect();
         let toks: Vec<&(u64, &Acc)> = v.iter().filter(|(_, a)| Quote::of(a.mint).is_none()).collect();
         if !quotes.is_empty() {
+            // an owner moving two quote mints AND another token is an inventory / multi-asset route (prop AMM):
+            // ambiguous, skipped (a WSOL + stablecoin pair alone is a price leg)
+            let mut qmints: Vec<&str> = quotes.iter().map(|(_, a)| a.mint).collect();
+            qmints.sort_unstable();
+            qmints.dedup();
+            if qmints.len() > 1 && !toks.is_empty() {
+                skips.push(LegSkip::Ambiguous);
+                continue;
+            }
             // the pool's quote is the best-ranked quote mint it moved; a stablecoin moved with WSOL is a price leg
             let q = quotes.iter().map(|(_, a)| Quote::of(a.mint).expect("quote")).min_by_key(|q| q.rank()).expect("non-empty");
             let qacc: Vec<&(u64, &Acc)> = quotes.iter().copied().filter(|(_, a)| Quote::of(a.mint) == Some(q)).collect();
@@ -352,6 +361,18 @@ mod tests {
         assert_eq!(l.len(), 1);
         assert_eq!((l[0].owner.as_str(), l[0].side, l[0].quote_amt), ("AUTH", Side::Sell, 40));
         assert_eq!(s, vec![LegSkip::NotPool]);
+    }
+
+    #[test]
+    fn multi_quote_inventory_owner_is_ambiguous() {
+        // owner X moves WSOL, USDC and TOK in one tx (inventory route): no leg is guessed
+        let t = tx(&["P", "A", "B", "C", "X"],
+            vec![tb(1, "X", TOK, 1000), tb(2, "X", USDC, 5000), tb(3, "X", WSOL, 9000)],
+            vec![tb(1, "X", TOK, 1100), tb(2, "X", USDC, 4000), tb(3, "X", WSOL, 9500)],
+            vec![10; 5], vec![10; 5]);
+        let (l, s) = legs(&t);
+        assert!(l.is_empty(), "{l:?}");
+        assert_eq!(s, vec![LegSkip::Ambiguous]);
     }
 
     #[test]

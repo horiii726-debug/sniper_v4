@@ -5,6 +5,7 @@
 //! program invoked by the transaction (top-level or inner); transactions that also invoke pump.fun / PumpSwap are
 //! left to the pump decoder (no double counting) and multi-venue routes are skipped (classified, not guessed).
 //! Pool = the token vault: the non-trader token account of the traded mint whose change offsets the trader's.
+//! Trade sizes = the vault deltas (pool side), not the trader's balances.
 //! Liquidity = the SOL (WSOL) vault of the same owner after the trade (withdrawable quote; for concentrated
 //! liquidity it is the whole pool's SOL, not only the active range).
 //! Reserves for the CPMM venues (Raydium AMM v4, CPMM) are the vault balances after the trade (their ratio is the
@@ -74,6 +75,13 @@ pub mod code {
     /// Pool math validated against on-chain data (`pump-check`): fills and exits are simulated only here.
     pub fn validated(c: u8) -> bool {
         c == PUMP_CURVE || c == PUMPSWAP
+    }
+
+    /// Gate C18 (reports/v6/FILL_CHECK_w1.json): the simulator's fill math predicts real trades <= 0.2 SOL on these
+    /// venues (median pred/actual 0.985-1.000, >= 95 % within +-10 %). Raydium CPMM / LaunchLab failed (vault balances
+    /// include unclaimed protocol fees / curve state) and stable-quoted pools need a USDC route: not included.
+    pub fn fill_validated(c: u8) -> bool {
+        matches!(c, PUMP_CURVE | PUMPSWAP | RAYDIUM_AMM_V4 | RAYDIUM_CLMM | METEORA_DLMM | METEORA_DAMM_V2 | METEORA_DBC | ORCA_WHIRLPOOL | OTHER_VENUE)
     }
 
     /// Constant-product pools whose vault balances are the reserves.
@@ -208,6 +216,14 @@ impl VenueDecoder {
             .filter(|(i, a)| **i != tv_idx && a.1 == WSOL && a.0 == owner && (a.3 - a.2).signum() == sol_dir)
             .max_by_key(|(i, a)| ((a.3 - a.2).unsigned_abs(), u64::MAX - **i));
         let Some((_, sv_acc)) = sv else { return self.skip(Skip::NoSolVault) };
+        // Swap amounts from the POOL side (vault deltas): the trader's balances can also include tokens forwarded to
+        // another wallet or SOL moved for other reasons in the same transaction (seen: 17.9 SOL "for" 0.33 tokens).
+        let mut tr = tr;
+        tr.token_raw = (tv_acc.3 - tv_acc.2).unsigned_abs();
+        tr.sol_lamports = (sv_acc.3 - sv_acc.2).unsigned_abs().min(u64::MAX as u128) as u64;
+        if tr.token_raw == 0 || tr.sol_lamports == 0 {
+            return self.skip(Skip::NoSolVault);
+        }
         let quote_res = sv_acc.3.max(0) as u128;
         let token_res = if code::cpmm_vaults(venue) {
             tv_acc.3.max(0) as u128
@@ -260,6 +276,21 @@ mod tests {
         assert_eq!((p.venue, p.pool.as_str()), (code::RAYDIUM_CPMM, "TVAULT"));
         assert_eq!(p.trade.side, Side::Buy);
         assert_eq!((p.quote_res, p.token_res), (51_000_000_000, 99_000_000));
+    }
+
+    /// The trader forwards most bought tokens to another wallet in the same tx: the trade size is the vault delta.
+    #[test]
+    fn trade_size_from_vault_not_trader_balance() {
+        let mut d = dec();
+        let mut t = buy_tx(CLMM);
+        t["transaction"]["message"]["accountKeys"].as_array_mut().unwrap().push(json!("FWD"));
+        t["meta"]["preBalances"].as_array_mut().unwrap().push(json!(0));
+        t["meta"]["postBalances"].as_array_mut().unwrap().push(json!(0));
+        t["meta"]["postTokenBalances"] = json!([tb(1, "P", "MINT", 1_000), tb(2, "AUTH", "MINT", 99_000_000), tb(3, "AUTH", WSOL, 51_000_000_000), tb(5, "Q", "MINT", 999_000)]);
+        let p = d.decode(&t).expect("trade");
+        assert_eq!((p.trade.token_raw, p.trade.sol_lamports), (1_000_000, 1_000_000_000));
+        let price = p.quote_res as f64 / p.token_res as f64;
+        assert!((price - 1_000.0).abs() < 1e-6, "{price}");
     }
 
     #[test]

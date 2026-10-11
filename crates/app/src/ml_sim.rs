@@ -285,6 +285,8 @@ pub struct Engine {
     mkt10_sum: f64,
     /// Birth times of radar newborns within 60 s.
     new_coins: VecDeque<i64>,
+    /// Tradable venues = gate C18 list (else pump.fun / PumpSwap only).
+    c18_venues: bool,
 }
 
 /// What the engine tells the caller after applying one event.
@@ -327,6 +329,7 @@ impl Engine {
             mkt10: VecDeque::new(),
             mkt10_sum: 0.0,
             new_coins: VecDeque::new(),
+            c18_venues: false,
         }
     }
 
@@ -334,6 +337,12 @@ impl Engine {
         self.feed.set_clusters(ctx.clusters.clone());
         self.clusters_known = ctx.clusters.is_some();
         self.ctx = ctx;
+        self
+    }
+
+    /// Entries also on the venues that passed gate C18 (fill accuracy), not only pump.fun / PumpSwap.
+    pub fn with_c18_venues(mut self, on: bool) -> Self {
+        self.c18_venues = on;
         self
     }
 
@@ -663,7 +672,7 @@ impl Engine {
             Some("pool_unknown")
         } else if p.complete && !p.amm {
             Some("migrating_curve_complete")
-        } else if !decoder::venue_pool::code::validated(p.venue) {
+        } else if !(if self.c18_venues { decoder::venue_pool::code::fill_validated(p.venue) } else { decoder::venue_pool::code::validated(p.venue) }) {
             Some("venue_unvalidated")
         } else if p.exit_liquidity_sol() < min_exit_sol {
             Some("low_liquidity")
