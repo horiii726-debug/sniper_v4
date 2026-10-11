@@ -20,6 +20,9 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use serde::{Deserialize, Serialize};
 use std::collections::VecDeque;
 
+/// Minimum real exit liquidity (SOL) to enter (curve: real quote reserve, V5-13).
+const MIN_EXIT_LIQ_SOL: f64 = 0.5;
+
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
 pub struct StratV5 {
     pub ev_min: f64,
@@ -508,7 +511,7 @@ pub fn simulate(w: &WindowData, rp: RadarParams, scorer: &mut dyn Scorer, st: &S
             block("blacklisted");
             continue;
         }
-        if let Some(r) = eng.untradable(e.coin, 0.5) {
+        if let Some(r) = eng.untradable(e.coin, MIN_EXIT_LIQ_SOL) {
             block(r);
             continue;
         }

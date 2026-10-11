@@ -105,6 +105,12 @@ struct Pool {
 }
 
 impl Pool {
+    /// SOL that can actually be withdrawn by selling (V4-4 / V5-13): the real quote reserve on the bonding curve
+    /// (the virtual ~30 SOL is not withdrawable), the pool quote reserve on the AMM.
+    fn exit_liquidity_sol(&self) -> f64 {
+        (if self.amm { self.quote_res as f64 } else { self.real_quote as f64 }) / 1e9
+    }
+
     fn price(&self) -> f64 {
         if self.token_res == 0 {
             0.0
@@ -547,14 +553,14 @@ impl Engine {
         }
     }
 
-    /// None if tradable, otherwise the reason.
-    pub fn untradable(&self, coin: u32, min_quote_sol: f64) -> Option<&'static str> {
+    /// None if tradable, otherwise the reason. `min_exit_sol` is compared with the real exit liquidity.
+    pub fn untradable(&self, coin: u32, min_exit_sol: f64) -> Option<&'static str> {
         let p = &self.pools[coin as usize];
         if !p.known {
             Some("pool_unknown")
         } else if p.complete && !p.amm {
             Some("migrating_curve_complete")
-        } else if (p.quote_res as f64 / 1e9) < min_quote_sol {
+        } else if p.exit_liquidity_sol() < min_exit_sol {
             Some("low_liquidity")
         } else {
             None
@@ -568,6 +574,11 @@ impl Engine {
 
     pub fn is_amm(&self, coin: u32) -> bool {
         self.pools[coin as usize].amm
+    }
+
+    /// Real exit liquidity of the coin's current pool, SOL (curve: real quote reserve).
+    pub fn exit_liquidity_sol(&self, coin: u32) -> f64 {
+        self.pools[coin as usize].exit_liquidity_sol()
     }
 
     pub fn quote_res_sol(&self, coin: u32) -> f64 {
@@ -1855,6 +1866,33 @@ mod tests {
             }
         }
         assert_eq!(all[0].1.len(), FEATURES.len());
+    }
+
+    /// V5-13: the liquidity gate uses the real quote reserve on the curve (virtual ~30 SOL is not withdrawable).
+    #[test]
+    fn untradable_uses_real_quote_on_curve() {
+        let events = Events::new(vec![], vec!["m".into()], (0, 0), vec![]);
+        let mut eng = Engine::new(&events, RadarParams::default());
+        let mut e = ev(10, 0, 1, true);
+        e.amm = false;
+        e.quote_res = 31_000_000_000;
+        e.real_quote = 300_000_000;
+        e.real_token = 700_000_000_000_000;
+        eng.apply(&e);
+        assert_eq!(eng.untradable(0, 0.5), Some("low_liquidity"));
+        e.real_quote = 2_000_000_000;
+        e.slot = 11;
+        eng.apply(&e);
+        assert_eq!(eng.untradable(0, 0.5), None);
+        assert!((eng.exit_liquidity_sol(0) - 2.0).abs() < 1e-12);
+        let mut a = ev(12, 0, 1, true);
+        a.quote_res = 300_000_000;
+        eng.apply(&a);
+        assert_eq!(eng.untradable(0, 0.5), Some("low_liquidity"), "AMM uses the pool quote reserve");
+        a.quote_res = 10_000_000_000;
+        a.slot = 13;
+        eng.apply(&a);
+        assert_eq!(eng.untradable(0, 0.5), None);
     }
 
     /// Bundle marker: two distinct buyers in one transaction count as a bundle tx once the tx closes.

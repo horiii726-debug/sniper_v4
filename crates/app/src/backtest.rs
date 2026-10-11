@@ -241,6 +241,13 @@ struct Pool {
     known: bool,
 }
 
+impl Pool {
+    /// Withdrawable SOL (V4-4): real quote reserve on the curve, pool quote reserve on the AMM.
+    fn exit_liquidity_sol(&self) -> f64 {
+        (if self.amm { self.quote_res as f64 } else { self.real_quote as f64 }) / 1e9
+    }
+}
+
 struct Pos {
     tokens: u64,
     cost: f64,
@@ -603,7 +610,7 @@ pub fn simulate(ev: &Events, st: &Strategy, c: &Costs, radar_p: RadarParams, sta
             block("curve_complete_waiting_amm");
             continue;
         }
-        if (pool.quote_res as f64 / 1e9) < st.entry_min_quote_res_sol {
+        if pool.exit_liquidity_sol() < st.entry_min_quote_res_sol {
             block("low_liquidity");
             continue;
         }
@@ -742,4 +749,18 @@ pub fn tune(dev: &[(&Events, f64)], costs: &Costs, rp: RadarParams) -> (Strategy
         .map(|x| x.0)
         .unwrap_or_default();
     (best, all)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// V4-4: exit liquidity is the real quote reserve on the curve, the pool quote reserve on the AMM.
+    #[test]
+    fn exit_liquidity_uses_real_quote_on_curve() {
+        let curve = Pool { quote_res: 31_000_000_000, real_quote: 300_000_000, amm: false, known: true, ..Default::default() };
+        assert!((curve.exit_liquidity_sol() - 0.3).abs() < 1e-12);
+        let amm = Pool { quote_res: 10_000_000_000, real_quote: 0, amm: true, known: true, ..Default::default() };
+        assert!((amm.exit_liquidity_sol() - 10.0).abs() < 1e-12);
+    }
 }
