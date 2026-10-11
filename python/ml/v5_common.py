@@ -11,7 +11,8 @@ import re
 
 import numpy as np
 
-H_S = 36_000  # label horizon / purge gap (ml_sim.rs::H_S)
+# label horizon / purge gap: must equal the --label-horizon-s used for the snapshots (ml_sim.rs::label_h)
+H_S = int(os.environ.get("LABEL_H", "36000"))
 ID_COLS = ["coin", "order", "time", "is_signal", "in_window"]
 REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 ML_SIM = os.path.join(REPO, "crates", "app", "src", "ml_sim.rs")
