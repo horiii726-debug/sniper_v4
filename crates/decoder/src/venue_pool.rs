@@ -12,7 +12,7 @@
 //! marginal price); for the other venues the token reserve is set so that quote / token = the trade's execution
 //! price (their vault ratio is not a price).
 
-use crate::balance_delta::{self, Outcome, Side, Trade, WSOL};
+use crate::balance_delta::{self, Outcome, Side, Trade, USDC, USDT, WSOL};
 use rustc_hash::FxHashMap;
 use serde_json::Value;
 
@@ -110,6 +110,9 @@ pub enum Skip {
     NotTrade(Outcome),
     NoTokenVault,
     NoSolVault,
+    /// Several quote vaults (or several vaults of the traded mint) of the pool's owner moved: with a vault authority
+    /// shared by all pools of a program the token vault cannot be paired with its SOL vault by owner.
+    AmbiguousVaults,
 }
 
 /// Non-pump venue programs (program id -> venue code).
@@ -210,6 +213,14 @@ impl VenueDecoder {
             .min_by_key(|(i, a)| (((a.3 - a.2) + trader_tok).unsigned_abs(), **i));
         let Some((&tv_idx, tv_acc)) = tv else { return self.skip(Skip::NoTokenVault) };
         let owner = tv_acc.0.clone();
+        // Shared vault authorities (Raydium AMM v4 / CPMM / LaunchLab, Meteora DAMM v2 / DBC sign for all their pools):
+        // in a multi-hop or arbitrage through two pools of one program, several quote vaults (or several vaults of the
+        // mint) of this owner move and the owner no longer identifies the pool. Seen: a bonkSOL/USDC Raydium v4 pool
+        // paired with another pool's WSOL vault, priced 86x off the real price and labelled a 50x runner.
+        let moved = |m: &str| acc.values().filter(|a| a.0 == owner && a.1 == m && a.3 != a.2).count();
+        if moved(WSOL) + moved(USDC) + moved(USDT) > 1 || moved(&tr.mint) > 1 {
+            return self.skip(Skip::AmbiguousVaults);
+        }
         // SOL vault: WSOL account of the same owner moving opposite to the trader's SOL (largest move)
         let sol_dir: i128 = if tr.side == Side::Buy { 1 } else { -1 };
         let sv = acc
@@ -292,6 +303,22 @@ mod tests {
         assert_eq!((p.trade.token_raw, p.trade.sol_lamports), (1_000_000, 1_000_000_000));
         let price = p.quote_res as f64 / p.token_res as f64;
         assert!((price - 1_000.0).abs() < 1e-6, "{price}");
+    }
+
+    /// Multi-hop through two pools of a program with one vault authority: the WSOL vault of the other pool moves too.
+    #[test]
+    fn shared_authority_multi_hop_is_ambiguous() {
+        let mut d = dec();
+        let mut t = buy_tx(CLMM);
+        t["transaction"]["message"]["accountKeys"].as_array_mut().unwrap().push(json!("SVAULT2"));
+        t["meta"]["preBalances"].as_array_mut().unwrap().push(json!(0));
+        t["meta"]["postBalances"].as_array_mut().unwrap().push(json!(0));
+        t["meta"]["preTokenBalances"].as_array_mut().unwrap().push(tb(5, "AUTH", WSOL, 70_000_000_000));
+        t["meta"]["postTokenBalances"].as_array_mut().unwrap().push(tb(5, "AUTH", WSOL, 60_000_000_000));
+        assert!(d.decode(&t).is_none());
+        assert_eq!(d.skipped[&Skip::AmbiguousVaults], 1);
+        // the same tx with one pool decodes
+        assert!(d.decode(&buy_tx(CLMM)).is_some());
     }
 
     #[test]

@@ -177,7 +177,9 @@ impl ActivePool {
         if e.token_res == 0 {
             return false; // no price (see `repair_exec_prices`)
         }
-        let same = if e.pool != NO_POOL && self.pool != NO_POOL { e.pool == self.pool } else { e.venue == self.venue };
+        // a pool id seen with a stable quote and with SOL (same token vault decoded two ways) is not "the same" source
+        let stable = |v: u8| v == decoder::venue_pool::code::STABLE_QUOTED;
+        let same = (if e.pool != NO_POOL && self.pool != NO_POOL { e.pool == self.pool } else { e.venue == self.venue }) && stable(e.venue) == stable(self.venue);
         // An AMM pool with < 1 SOL never BECOMES the price source (empty / dust pools carry absurd prices: a 0-SOL
         // DAMM v2 pool showed a fake 58x); the active pool itself keeps updating when it is drained (rugs stay visible).
         // Program-agnostic legs of unknown programs and stable-quoted legs never become the price source either:
