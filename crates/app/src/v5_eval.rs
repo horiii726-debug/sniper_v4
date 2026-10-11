@@ -56,6 +56,7 @@ pub struct WindowResult {
     pub window: String,
     pub rk: [f64; 7],
     pub rk_trades: [usize; 7],
+    pub hold: Option<s5::HoldTable>,
     pub report: ReportV5,
 }
 
@@ -74,10 +75,10 @@ pub fn run_walk_forward(all: &[Loaded], data: &[WindowData], tests: &[usize], mo
         // Out-of-sample scores of each training window (from its own earlier fold), when that fold exists.
         let own: Vec<Option<FileScores>> = train.iter().map(|d| scores(models, &d.name, &d.name).ok()).collect();
         let pairs: Vec<(&WindowData, Option<&FileScores>)> = train.iter().zip(own.iter()).map(|(d, s)| (*d, s.as_ref())).collect();
-        let (rk, rk_trades) = s5::estimate_rk(&pairs, rp, st, c);
+        let (rk, rk_trades, hold) = s5::estimate_rk(&pairs, rp, st, c);
         let mut sc = scores(models, &w.name, &w.name)?;
-        let report = s5::simulate(&data[ti], rp, &mut sc, st, c, &rk, false);
-        Ok(WindowResult { window: w.name.clone(), rk, rk_trades, report })
+        let report = s5::simulate(&data[ti], rp, &mut sc, st, c, &rk, hold.as_ref(), false);
+        Ok(WindowResult { window: w.name.clone(), rk, rk_trades, hold, report })
     }).collect()
 }
 
@@ -312,7 +313,7 @@ pub fn run(recs: &[PathBuf], rp: RadarParams, o: &EvalOpts) -> Result<()> {
         "strategy": chosen, "costs": o.costs, "test_windows": tests.iter().map(|i| &all[*i].name).collect::<Vec<_>>(),
         "summary": base_sum, "acceptance": acc, "sensitivity": sens.iter().map(|(n, s)| serde_json::json!({"variant": n, "summary": s})).collect::<Vec<_>>(),
         "monte_carlo": mc, "grid_sorted_by_median_return": grid_rows,
-        "windows": base.iter().map(|w| serde_json::json!({ "window": w.window, "rk": w.rk, "rk_trades": w.rk_trades,
+        "windows": base.iter().map(|w| serde_json::json!({ "window": w.window, "rk": w.rk, "rk_trades": w.rk_trades, "hold": w.hold,
             "report": { "return_pct": w.report.return_pct, "trades": w.report.trades, "win_rate": w.report.win_rate, "profit_factor": w.report.profit_factor,
                 "expectancy_sol": w.report.expectancy_sol, "expectancy_excl_top1pct_sol": w.report.expectancy_excl_top1pct_sol, "max_drawdown_pct": w.report.max_drawdown_pct,
                 "costs_sol": w.report.costs_sol, "failed_buys": w.report.failed_buys, "exits_by_reason": w.report.exits_by_reason, "final_reasons": w.report.final_reasons,
@@ -387,7 +388,7 @@ pub fn compare(recs: &[PathBuf], rp: RadarParams, v4: &crate::backtest::Strategy
         let r4 = crate::backtest::simulate(&l.ev, v4, &c4, rp, crate::units::start_sol(), l.sol_usd);
         // V5 without a model: every signal has EV = 1 >= ev_min, rug/hold/hazard models silent.
         let c5 = CostsV5 { latency_slots: c4.latency_slots, buy_fail_prob: c4.buy_fail_prob, default_fee_bps: c4.default_fee_bps, ..Default::default() };
-        let r5 = s5::simulate(&d, rp, &mut s5::NoScores, st, &c5, &[1.0; 7], false);
+        let r5 = s5::simulate(&d, rp, &mut s5::NoScores, st, &c5, &[1.0; 7], None, false);
         // Runners: peak multiple after the coin's FIRST in-window signal (labels over the available data).
         let mut first_sig: rustc_hash::FxHashMap<u32, i64> = Default::default();
         {
@@ -433,7 +434,7 @@ pub fn compare(recs: &[PathBuf], rp: RadarParams, v4: &crate::backtest::Strategy
             "v5_no_model": { "start_sol": r5.start_sol, "final_sol": r5.final_sol, "pnl_sol": r5.final_sol - r5.start_sol, "final_usd": r5.final_sol * l.sol_usd, "pnl_usd": (r5.final_sol - r5.start_sol) * l.sol_usd, "trades": r5.trades, "win_rate": r5.win_rate,
                     "profit_factor": r5.profit_factor, "max_drawdown_pct": r5.max_drawdown_pct, "exits": r5.exits_by_reason, "final_exits": r5.final_reasons,
                     "held_to_5x": r5.trades_list.iter().filter(|t| t.max_mult >= 5.0).count(), "runners_caught_5x": r5.runners_10x_captured_5x,
-                    "signals": r5.signals_in_window, "blocked": r5.blocked },
+                    "signals": r5.signals_in_window, "blocked": r5.blocked, "replacements": r5.replacements, "merged_in_tick": r5.merged_in_tick },
             "runners_10x": runners.len(), "runners": runners,
         }))
     }).collect::<Result<_>>()?;

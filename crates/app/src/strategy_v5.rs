@@ -24,6 +24,7 @@ use std::collections::VecDeque;
 const MIN_EXIT_LIQ_SOL: f64 = 0.5;
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
+#[serde(default)]
 pub struct StratV5 {
     pub ev_min: f64,
     pub rug_veto: f32,
@@ -49,6 +50,9 @@ pub struct StratV5 {
     pub lp_drop_frac: f64,
     pub dead_exit: f32,
     pub max_hold_s: i64,
+    /// V5-1: entry candidates are collected per decision tick of this many seconds, ranked by EV, and only then
+    /// checked against exposure / slots / cash (0 = batch per slot).
+    pub decision_tick_s: i64,
 }
 
 impl Default for StratV5 {
@@ -59,6 +63,7 @@ impl Default for StratV5 {
             max_positions: 18, replace_margin: 0.15, max_entries_per_min: 3, bet_sol: 0.05, max_total_exposure: 0.6,
             pre_tp_stop: 0.35, stop_grace_s: 20, tp1_mult: 2.0, tp1_sell_frac: 0.5, tp2_mult: 5.0, tp2_sell_frac: 0.25,
             bag_trail: 0.55, trail_k: 3.0, hold_min: 0.4, dev_kill_min_frac: 0.5, lp_drop_frac: 0.6, dead_exit: 0.7, max_hold_s: 36_000,
+            decision_tick_s: 2,
         }
     }
 }
@@ -182,6 +187,10 @@ struct Pos {
     entry_label: Option<Labels>,
     /// (time, quote reserve) within 60 s, AMM pools only.
     q_hist: VecDeque<(i64, f64)>,
+    /// V5-7: latest P(hold) prediction while held (None until the model scored a held snapshot).
+    last_hold: Option<f32>,
+    /// V5-7 (oracle runs only): (P(hold) bucket, liquidation value, legs sold so far) at held snapshots.
+    marks: Vec<(u8, f64, u32)>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -208,6 +217,9 @@ pub struct TradeV5 {
     pub true_bin: Option<u8>,
     pub true_logmax: Option<f32>,
     pub legs: Vec<Leg>,
+    /// V5-7 (oracle runs): forward net return observations (bucket, return, weight) for the hold table.
+    #[serde(skip)]
+    pub hold_obs: Vec<(u8, f64, f64)>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -233,6 +245,10 @@ pub struct ReportV5 {
     pub moonshot_capture: f64,
     pub signals_in_window: usize,
     pub blocked: std::collections::BTreeMap<&'static str, usize>,
+    /// V5-1: open positions replaced by a better candidate.
+    pub replacements: usize,
+    /// V5-1: signal rows merged into a later row of the same coin in the same decision tick.
+    pub merged_in_tick: usize,
     pub trades_list: Vec<TradeV5>,
     /// Per signal row: (coin, first blocking reason or "entered").
     #[serde(skip)]
@@ -245,6 +261,171 @@ fn hash01(a: u64, b: u64, seed: u64) -> f64 {
     x = x.wrapping_mul(0xBF58476D1CE4E5B9);
     x ^= x >> 29;
     (x >> 11) as f64 / (1u64 << 53) as f64
+}
+
+/// V5-7: weight of the pooled prior when shrinking hold-table buckets.
+pub const HOLD_PRIOR_W: f64 = 5.0;
+
+/// V5-7: expected NET forward return of continuing to hold under this exit policy, per SOL of current liquidation
+/// value, by P(hold) decile (index 10 = no prediction yet). Measured on training windows' oracle runs, like R_k.
+#[derive(Debug, Clone, Copy, Serialize, PartialEq)]
+pub struct HoldTable {
+    pub r: [f64; 11],
+    pub w: [f64; 11],
+}
+
+impl HoldTable {
+    pub const NO_PRED: usize = 10;
+
+    pub fn bucket(p: Option<f32>) -> usize {
+        match p {
+            Some(x) if x.is_finite() => ((x.clamp(0.0, 1.0) * 10.0) as usize).min(9),
+            _ => Self::NO_PRED,
+        }
+    }
+
+    /// obs = (bucket, forward net return, weight); returns clipped to [-1, 1000] and each bucket shrunk toward the
+    /// pooled mean with weight HOLD_PRIOR_W. None without observations (replacement then stays disabled).
+    pub fn fit(obs: &[(u8, f64, f64)]) -> Option<Self> {
+        let (mut sw, mut swr) = ([0f64; 11], [0f64; 11]);
+        for &(b, r, w) in obs {
+            if !r.is_finite() || !(w > 0.0) {
+                continue;
+            }
+            let b = (b as usize).min(10);
+            sw[b] += w;
+            swr[b] += w * r.clamp(-1.0, 1000.0);
+        }
+        let tw: f64 = sw.iter().sum();
+        if tw <= 0.0 {
+            return None;
+        }
+        let prior = swr.iter().sum::<f64>() / tw;
+        let mut r = [0f64; 11];
+        for k in 0..11 {
+            r[k] = (swr[k] + HOLD_PRIOR_W * prior) / (sw[k] + HOLD_PRIOR_W);
+        }
+        Some(Self { r, w: sw })
+    }
+
+    pub fn value(&self, p: Option<f32>) -> f64 {
+        self.r[Self::bucket(p)]
+    }
+}
+
+/// V5-7: forward net return from each hold mark (bucket, value at the mark, legs already sold at the mark):
+/// sum over the later legs of (proceeds - txc) / value - 1, each mark weighted 1 / marks (each trade weighs 1).
+pub fn forward_returns(marks: &[(u8, f64, u32)], legs: &[Leg], txc: f64) -> Vec<(u8, f64, f64)> {
+    let w = 1.0 / marks.len().max(1) as f64;
+    marks
+        .iter()
+        .filter(|m| m.1 > 0.0)
+        .map(|&(b, v, k)| {
+            let got: f64 = legs.iter().skip(k as usize).map(|l| l.proceeds_sol - txc).sum();
+            (b, got / v - 1.0, w)
+        })
+        .collect()
+}
+
+/// V5-1: one entry candidate of the current decision tick.
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct Cand {
+    pub coin: u32,
+    pub ev: f64,
+    pub order: u64,
+    pub label: Option<Labels>,
+}
+
+/// V5-1: an open position that may be replaced. `hold_sol` = value x H(P(hold)) (expected net SOL of holding).
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct Held {
+    pub coin: u32,
+    pub hold_sol: f64,
+    pub cost_share: f64,
+    pub value: f64,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct Capacity {
+    pub open_cost: f64,
+    pub equity: f64,
+    pub cash_free: f64,
+    pub slots_used: usize,
+    pub entries_60s: usize,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub(crate) enum Decision {
+    Enter(usize),
+    /// (candidate index, coin of the position sold to make room)
+    Replace(usize, u32),
+    Block(usize, &'static str),
+    Merged(usize),
+}
+
+/// V5-1: rank the tick's candidates by EV (one row per coin: the latest), then apply the per-minute cap, exposure,
+/// slots and cash in rank order. When capacity binds, the weakest held position (lowest expected net SOL of holding)
+/// is replaced iff `bet * EV - txc > hold_sol + replace_margin * bet` (V5-7: both sides in expected net SOL).
+pub(crate) fn allocate(cands: &[Cand], held: &[Held], mut cap: Capacity, st: &StratV5, txc: f64, can_replace: bool, oracle: bool) -> Vec<Decision> {
+    let mut out = Vec::with_capacity(cands.len());
+    let mut latest: FxHashMap<u32, usize> = FxHashMap::default();
+    for (i, c) in cands.iter().enumerate() {
+        let e = latest.entry(c.coin).or_insert(i);
+        if cands[*e].order < c.order {
+            *e = i;
+        }
+    }
+    let mut keep = Vec::with_capacity(latest.len());
+    for (i, c) in cands.iter().enumerate() {
+        if latest[&c.coin] == i {
+            keep.push(i);
+        } else {
+            out.push(Decision::Merged(i));
+        }
+    }
+    keep.sort_by(|&a, &b| cands[b].ev.total_cmp(&cands[a].ev).then(cands[a].order.cmp(&cands[b].order)));
+    if oracle {
+        out.extend(keep.into_iter().map(Decision::Enter));
+        return out;
+    }
+    let mut victims: Vec<Held> = held.to_vec();
+    victims.sort_by(|a, b| a.hold_sol.total_cmp(&b.hold_sol).then(a.coin.cmp(&b.coin)));
+    let mut vi = 0;
+    let b = st.bet_sol;
+    for i in keep {
+        let c = &cands[i];
+        if cap.entries_60s >= st.max_entries_per_min {
+            out.push(Decision::Block(i, "max_entries_per_min"));
+            continue;
+        }
+        let exp_full = cap.open_cost + b > st.max_total_exposure * cap.equity;
+        let slots_full = cap.slots_used >= st.max_positions;
+        let cash_short = cap.cash_free < b + 3.0 * txc;
+        if !exp_full && !slots_full && !cash_short {
+            out.push(Decision::Enter(i));
+            cap.open_cost += b;
+            cap.slots_used += 1;
+            cap.cash_free -= b + txc;
+            cap.entries_60s += 1;
+            continue;
+        }
+        if can_replace && vi < victims.len() {
+            let w = victims[vi];
+            let better = b * c.ev - txc > w.hold_sol + st.replace_margin * b;
+            let exp_ok = cap.open_cost - w.cost_share + b <= st.max_total_exposure * cap.equity;
+            let cash_ok = cap.cash_free + w.value - txc >= b + 3.0 * txc;
+            if better && exp_ok && cash_ok {
+                out.push(Decision::Replace(i, w.coin));
+                vi += 1;
+                cap.open_cost += b - w.cost_share;
+                cap.cash_free += w.value - 2.0 * txc - b;
+                cap.entries_60s += 1;
+                continue;
+            }
+        }
+        out.push(Decision::Block(i, if exp_full { "exposure_cap" } else if slots_full { "slots_full" } else { "no_cash" }));
+    }
+    out
 }
 
 enum Order {
@@ -283,7 +464,7 @@ fn idx() -> Idx {
 /// Simulate one window. `rk` = net return per entry bin (from `estimate_rk`). `oracle` = enter every
 /// in-window signal with a fixed bet, no gates, unlimited cash and slots (used to measure R_k).
 #[allow(clippy::too_many_arguments)]
-pub fn simulate(w: &WindowData, rp: RadarParams, scorer: &mut dyn Scorer, st: &StratV5, c: &CostsV5, rk: &[f64; 7], oracle: bool) -> ReportV5 {
+pub fn simulate(w: &WindowData, rp: RadarParams, scorer: &mut dyn Scorer, st: &StratV5, c: &CostsV5, rk: &[f64; 7], hold: Option<&HoldTable>, oracle: bool) -> ReportV5 {
     let ev = w.ev;
     let ix = idx();
     let mut eng = Engine::new(ev, rp).with_ctx(w.ctx.clone());
@@ -308,12 +489,82 @@ pub fn simulate(w: &WindowData, rp: RadarParams, scorer: &mut dyn Scorer, st: &S
     let mut runner: FxHashSet<u32> = FxHashSet::default();
     let mut captured: FxHashSet<u32> = FxHashSet::default();
     let ev_of = |p: &Pred| -> f64 { p.bin.iter().zip(rk).map(|(a, b)| *a as f64 * b).sum() };
-    // Current EV of holding: +100% before -50% (the hold label) as a two-outcome bet.
-    let hold_ev = |p: &Pred| -> f64 { p.hold as f64 * 1.0 - (1.0 - p.hold as f64) * 0.5 };
+    let (mut replacements, mut merged_in_tick) = (0usize, 0usize);
+    // V5-1: candidates of the open decision tick (decided when the tick closes, causally).
+    let mut cands: Vec<Cand> = Vec::new();
+    let mut cand_tick = i64::MIN;
+    let (mut last_slot, mut last_t) = (0u64, i64::MIN);
+    let tick_of = |slot: u64, t: i64| -> i64 { if st.decision_tick_s > 0 { t.div_euclid(st.decision_tick_s) } else { slot as i64 } };
     let evs = &ev.evs;
     let mut i = 0usize;
     loop {
         let (cur_slot, cur_t) = if i < evs.len() { (evs[i].slot, evs[i].time) } else { (u64::MAX, ev.data_end() + 1) };
+        // 0) Close the decision tick: rank its candidates, then apply caps (only events of the closed tick were applied).
+        if !cands.is_empty() && (i >= evs.len() || tick_of(cur_slot, cur_t) != cand_tick) {
+            let tick = std::mem::take(&mut cands);
+            if i >= evs.len() {
+                for cd in &tick {
+                    *blocked.entry("data_end").or_default() += 1;
+                    outcomes.push((cd.coin, "data_end"));
+                }
+            } else {
+                let mut live = Vec::with_capacity(tick.len());
+                for cd in tick {
+                    if let Some(r) = eng.untradable(cd.coin, MIN_EXIT_LIQ_SOL) {
+                        *blocked.entry(r).or_default() += 1;
+                        outcomes.push((cd.coin, r));
+                    } else {
+                        live.push(cd);
+                    }
+                }
+                while entries.front().is_some_and(|t| *t <= last_t - 60) {
+                    entries.pop_front();
+                }
+                let n_pending_buys = busy.iter().filter(|b| !pos.contains_key(b)).count();
+                let open_cost: f64 = pos.values().map(|p| p.cost * p.tokens as f64 / p.tokens0.max(1) as f64).sum::<f64>() + pending_buy_cost;
+                let equity = cash + pos.iter().map(|(cid, p)| eng.pool_value(*cid, p.tokens, c.default_fee_bps)).sum::<f64>();
+                let cap = Capacity {
+                    open_cost, equity, cash_free: cash - pending_buy_cost - n_pending_buys as f64 * txc, slots_used: pos.len() + n_pending_buys, entries_60s: entries.len(),
+                };
+                let held: Vec<Held> = match hold {
+                    Some(h) => pos.iter().filter(|(cid, _)| !busy.contains(cid)).map(|(cid, p)| {
+                        let value = eng.pool_value(*cid, p.tokens, c.default_fee_bps);
+                        Held { coin: *cid, hold_sol: value * h.value(p.last_hold), cost_share: p.cost * p.tokens as f64 / p.tokens0.max(1) as f64, value }
+                    }).collect(),
+                    None => Vec::new(),
+                };
+                for d in allocate(&live, &held, cap, st, txc, hold.is_some(), oracle) {
+                    let (ci, victim) = match d {
+                        Decision::Merged(k) => {
+                            merged_in_tick += 1;
+                            outcomes.push((live[k].coin, "merged_in_tick"));
+                            continue;
+                        }
+                        Decision::Block(k, r) => {
+                            *blocked.entry(r).or_default() += 1;
+                            outcomes.push((live[k].coin, r));
+                            continue;
+                        }
+                        Decision::Enter(k) => (k, None),
+                        Decision::Replace(k, wc) => (k, Some(wc)),
+                    };
+                    if let Some(wc) = victim {
+                        busy.insert(wc);
+                        let t = pos[&wc].tokens;
+                        pending.push((last_slot + c.latency_slots, Order::Sell { coin: wc, tokens: t, reason: "Replaced", close: true }));
+                        replacements += 1;
+                    }
+                    let cd = live[ci];
+                    outcomes.push((cd.coin, "entered"));
+                    busy.insert(cd.coin);
+                    pending_buy_cost += st.bet_sol;
+                    if !oracle {
+                        entries.push_back(last_t);
+                    }
+                    pending.push((last_slot + c.latency_slots, Order::Buy { coin: cd.coin, lamports: (st.bet_sol * 1e9) as u64, ev: cd.ev, label: cd.label }));
+                }
+            }
+        }
         // 1) Fill due orders: sells first so replacement proceeds fund the buy.
         let mut due: Vec<Order> = Vec::new();
         let mut k = 0;
@@ -345,10 +596,11 @@ pub fn simulate(w: &WindowData, rp: RadarParams, scorer: &mut dyn Scorer, st: &S
                             blacklist.insert(coin);
                         }
                         let pnl = p.proceeds - p.cost - p.tx_paid;
+                        let hold_obs = forward_returns(&p.marks, &p.legs, txc);
                         trades.push(TradeV5 {
                             mint: ev.mints[coin as usize].clone(), entry_t: p.entry_t - ev.window.0, exit_t: cur_t - ev.window.0, cost_sol: p.cost,
                             proceeds_sol: p.proceeds, tx_sol: p.tx_paid, pnl_sol: pnl, ret: pnl / p.cost, max_mult: p.max_mult, final_reason: reason,
-                            entry_ev: p.entry_ev, true_bin: p.entry_label.map(|l| l.bin), true_logmax: p.entry_label.map(|l| l.logmax), legs: p.legs,
+                            entry_ev: p.entry_ev, true_bin: p.entry_label.map(|l| l.bin), true_logmax: p.entry_label.map(|l| l.logmax), legs: p.legs, hold_obs,
                         });
                     } else {
                         busy.remove(&coin);
@@ -370,7 +622,7 @@ pub fn simulate(w: &WindowData, rp: RadarParams, scorer: &mut dyn Scorer, st: &S
                     pos.insert(coin, Pos {
                         tokens0: toks as u64, tokens: toks as u64, cost: size, entry_t: cur_t, entry_px: lamports as f64 / toks as f64, peak_px: px, max_mult: 1.0,
                         stage: Stage::PreTp, proceeds: 0.0, tx_paid: txc, legs: Vec::new(), last: Pred::default(), last_vol: 0.0, entry_ev: e_ev,
-                        entry_label: label, q_hist: VecDeque::new(),
+                        entry_label: label, q_hist: VecDeque::new(), last_hold: None, marks: Vec::new(),
                     });
                 }
             }
@@ -389,6 +641,7 @@ pub fn simulate(w: &WindowData, rp: RadarParams, scorer: &mut dyn Scorer, st: &S
         }
         let e = &evs[i];
         i += 1;
+        (last_slot, last_t) = (e.slot, e.time);
         let step = eng.apply(e);
         // 2) Once per second: max hold, data end of a coin, equity.
         if e.time > last_sec {
@@ -434,6 +687,10 @@ pub fn simulate(w: &WindowData, rp: RadarParams, scorer: &mut dyn Scorer, st: &S
             if let (Some(pr), Some(x)) = (pred, step.snapshot.as_ref()) {
                 p.last = pr;
                 p.last_vol = x[ix.vol] as f64;
+                p.last_hold = Some(pr.hold);
+            }
+            if oracle && step.snapshot.is_some() {
+                p.marks.push((HoldTable::bucket(pred.map(|q| q.hold)) as u8, val, p.legs.len() as u32));
             }
             if is_amm {
                 p.q_hist.push_back((e.time, qres));
@@ -539,44 +796,11 @@ pub fn simulate(w: &WindowData, rp: RadarParams, scorer: &mut dyn Scorer, st: &S
                 block(g);
                 continue;
             }
-            while entries.front().is_some_and(|t| *t <= e.time - 60) {
-                entries.pop_front();
-            }
-            if entries.len() >= st.max_entries_per_min {
-                block("max_entries_per_min");
-                continue;
-            }
-            let open_cost: f64 = pos.values().map(|p| p.cost * p.tokens as f64 / p.tokens0.max(1) as f64).sum::<f64>() + pending_buy_cost;
-            let eq = cash + pos.iter().map(|(cid, p)| eng.pool_value(*cid, p.tokens, c.default_fee_bps)).sum::<f64>();
-            if open_cost + st.bet_sol > st.max_total_exposure * eq {
-                block("exposure_cap");
-                continue;
-            }
-            let n_busy_buys = busy.iter().filter(|b| !pos.contains_key(b)).count();
-            if pos.len() + n_busy_buys >= st.max_positions {
-                // Replace the weakest open position (by current hold EV) if the candidate is clearly better.
-                let weakest = pos.iter().filter(|(cid, _)| !busy.contains(cid)).map(|(cid, p)| (*cid, hold_ev(&p.last))).min_by(|a, b| a.1.total_cmp(&b.1));
-                match weakest {
-                    Some((wc, wev)) if e_ev > wev + st.replace_margin => {
-                        busy.insert(wc);
-                        let t = pos[&wc].tokens;
-                        pending.push((e.slot + c.latency_slots, Order::Sell { coin: wc, tokens: t, reason: "Replaced", close: true }));
-                    }
-                    _ => {
-                        block("slots_full");
-                        continue;
-                    }
-                }
-            } else if cash < st.bet_sol + 3.0 * txc {
-                block("no_cash");
-                continue;
-            }
-            entries.push_back(e.time);
         }
-        outcomes.push((e.coin, "entered"));
-        busy.insert(e.coin);
-        pending_buy_cost += st.bet_sol;
-        pending.push((e.slot + c.latency_slots, Order::Buy { coin: e.coin, lamports: (st.bet_sol * 1e9) as u64, ev: e_ev, label }));
+        if cands.is_empty() {
+            cand_tick = tick_of(e.slot, e.time);
+        }
+        cands.push(Cand { coin: e.coin, ev: e_ev, order: e.order, label });
     }
     let n = trades.len();
     let mut pnls: Vec<f64> = trades.iter().map(|t| t.pnl_sol).collect();
@@ -612,6 +836,8 @@ pub fn simulate(w: &WindowData, rp: RadarParams, scorer: &mut dyn Scorer, st: &S
         moonshot_capture: if runner.is_empty() { 0.0 } else { caught as f64 / runner.len() as f64 },
         signals_in_window: signals,
         blocked,
+        replacements,
+        merged_in_tick,
         trades_list: trades,
         signal_outcomes: outcomes,
     }
@@ -620,12 +846,12 @@ pub fn simulate(w: &WindowData, rp: RadarParams, scorer: &mut dyn Scorer, st: &S
 /// R_k (§7.2): mean net return of this exit policy per true entry bin, from oracle runs (every in-window signal
 /// entered, fixed bet) on TRAINING windows only. Each training window uses its own out-of-sample scores when
 /// given (so model exits act as in the test), else no model (price exits only). Bins with few trades are shrunk
-/// toward the pooled mean (prior weight 5 trades). Returns (R, trades per bin).
-pub fn estimate_rk(train: &[(&WindowData, Option<&FileScores>)], rp: RadarParams, st: &StratV5, c: &CostsV5) -> ([f64; 7], [usize; 7]) {
+/// toward the pooled mean (prior weight 5 trades). Returns (R, trades per bin, hold table from the same runs).
+pub fn estimate_rk(train: &[(&WindowData, Option<&FileScores>)], rp: RadarParams, st: &StratV5, c: &CostsV5) -> ([f64; 7], [usize; 7], Option<HoldTable>) {
     use rayon::prelude::*;
     let reps: Vec<ReportV5> = train.par_iter().map(|(w, sc)| match sc {
-        Some(sc) => simulate(w, rp, &mut FileScoresRef(sc), st, c, &[0.0; 7], true),
-        None => simulate(w, rp, &mut NoScores, st, c, &[0.0; 7], true),
+        Some(sc) => simulate(w, rp, &mut FileScoresRef(sc), st, c, &[0.0; 7], None, true),
+        None => simulate(w, rp, &mut NoScores, st, c, &[0.0; 7], None, true),
     }).collect();
     let (mut sum, mut cnt) = ([0f64; 7], [0usize; 7]);
     let (mut all_s, mut all_n) = (0.0, 0usize);
@@ -644,7 +870,8 @@ pub fn estimate_rk(train: &[(&WindowData, Option<&FileScores>)], rp: RadarParams
     for k in 0..7 {
         rk[k] = (sum[k] + 5.0 * prior) / (cnt[k] as f64 + 5.0);
     }
-    (rk, cnt)
+    let obs: Vec<(u8, f64, f64)> = reps.iter().flat_map(|r| r.trades_list.iter().flat_map(|t| t.hold_obs.iter().copied())).collect();
+    (rk, cnt, HoldTable::fit(&obs))
 }
 
 #[cfg(test)]
@@ -697,7 +924,7 @@ mod tests {
         let rk = [0.0, 0.0, 0.0, 0.0, 0.0, 3.0, 0.0];
         let c = CostsV5 { buy_fail_prob: 0.0, ..Default::default() };
         let st = StratV5 { max_ret_60s_entry: 10.0, max_top10_share: 1.0, max_bundle_share: 1.0, ..Default::default() };
-        let r = simulate(&w, rp, &mut Fixed(pr), &st, &c, &rk, false);
+        let r = simulate(&w, rp, &mut Fixed(pr), &st, &c, &rk, None, false);
         assert!(r.signals_in_window >= 1, "{r:?}");
         assert_eq!(r.trades, 1, "{:?}", r.blocked);
         let t = &r.trades_list[0];
@@ -763,11 +990,152 @@ mod tests {
         let pr = Pred { bin: [0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0], tp1: 0.9, rug: 0.0, hold: 0.0, dead: 0.0 };
         let c = CostsV5 { buy_fail_prob: 0.0, ..Default::default() };
         let st = StratV5 { max_ret_60s_entry: 10.0, max_top10_share: 1.0, max_bundle_share: 1.0, ..Default::default() };
-        let r = simulate(&w, rp, &mut Fixed(pr), &st, &c, &[0.0, 0.0, 0.0, 0.0, 0.0, 3.0, 0.0], false);
+        let r = simulate(&w, rp, &mut Fixed(pr), &st, &c, &[0.0, 0.0, 0.0, 0.0, 0.0, 3.0, 0.0], None, false);
         assert_eq!(r.trades, 1, "{:?}", r.blocked);
         let t = &r.trades_list[0];
         assert_eq!(t.final_reason, "DevSell", "{t:?}");
         assert!(t.exit_t >= 70 && t.exit_t < 90, "{t:?}");
+    }
+
+    fn cand(coin: u32, ev: f64, order: u64) -> Cand {
+        Cand { coin, ev, order, label: None }
+    }
+
+    fn cap_for(n_bets: f64, st: &StratV5) -> Capacity {
+        // equity such that exactly `n_bets` bets fit under max_total_exposure
+        Capacity { open_cost: 0.0, equity: (n_bets + 0.5) * st.bet_sol / st.max_total_exposure, cash_free: 10.0, slots_used: 0, entries_60s: 0 }
+    }
+
+    #[test]
+    fn allocate_ranks_by_ev_not_arrival() {
+        let st = StratV5::default();
+        let d = allocate(&[cand(1, 0.2, 1), cand(2, 0.9, 2)], &[], cap_for(1.0, &st), &st, 0.0005, false, false);
+        assert_eq!(d, vec![Decision::Enter(1), Decision::Block(0, "exposure_cap")]);
+    }
+
+    /// The V5-1 scenario: slots are free (10 < 18) but exposure binds; the weakest held position is replaced.
+    #[test]
+    fn allocate_replaces_when_exposure_is_binding() {
+        let st = StratV5::default();
+        let cap = Capacity { open_cost: 0.5, equity: 0.9, cash_free: 0.4, slots_used: 10, entries_60s: 0 };
+        let held = [Held { coin: 7, hold_sol: 0.004, cost_share: 0.05, value: 0.05 }, Held { coin: 8, hold_sol: -0.02, cost_share: 0.05, value: 0.03 }];
+        let d = allocate(&[cand(1, 0.6, 1)], &held, cap, &st, 0.0005, true, false);
+        assert_eq!(d, vec![Decision::Replace(0, 8)]);
+        let d = allocate(&[cand(1, 0.6, 1)], &held, cap, &st, 0.0005, false, false);
+        assert_eq!(d, vec![Decision::Block(0, "exposure_cap")], "no hold table -> never replaces");
+    }
+
+    #[test]
+    fn allocate_replacement_compares_expected_sol() {
+        let st = StratV5 { bet_sol: 0.05, replace_margin: 0.15, ..Default::default() };
+        // exposure binds (0.55 > 0.6 x 0.85 = 0.51) but the swap keeps it at 0.5 <= 0.51
+        let cap = Capacity { open_cost: 0.5, equity: 0.85, cash_free: 0.4, slots_used: 10, entries_60s: 0 };
+        // b * ev - txc = 0.0145; threshold = hold_sol + 0.0075
+        for (hs, want) in [(0.005, true), (0.008, false)] {
+            let held = [Held { coin: 9, hold_sol: hs, cost_share: 0.05, value: 0.05 }];
+            let d = allocate(&[cand(1, 0.3, 1)], &held, cap, &st, 0.0005, true, false);
+            assert_eq!(d[0] == Decision::Replace(0, 9), want, "{hs}: {d:?}");
+        }
+    }
+
+    #[test]
+    fn allocate_dedupes_coin_keeps_latest_row() {
+        let st = StratV5::default();
+        let d = allocate(&[cand(1, 0.9, 5), cand(1, 0.3, 9), cand(2, 0.5, 6)], &[], cap_for(5.0, &st), &st, 0.0005, false, false);
+        assert_eq!(d, vec![Decision::Merged(0), Decision::Enter(2), Decision::Enter(1)]);
+    }
+
+    #[test]
+    fn allocate_respects_entries_per_minute_in_rank_order() {
+        let st = StratV5 { max_entries_per_min: 1, ..Default::default() };
+        let d = allocate(&[cand(1, 0.2, 1), cand(2, 0.9, 2), cand(3, 0.5, 3)], &[], cap_for(5.0, &st), &st, 0.0005, false, false);
+        assert_eq!(d, vec![Decision::Enter(1), Decision::Block(2, "max_entries_per_min"), Decision::Block(0, "max_entries_per_min")]);
+    }
+
+    #[test]
+    fn allocate_cash_reserved_by_pending_buys() {
+        let st = StratV5::default();
+        let cap = Capacity { open_cost: 0.0, equity: 10.0, cash_free: 0.06, slots_used: 0, entries_60s: 0 };
+        let d = allocate(&[cand(1, 0.9, 1), cand(2, 0.5, 2)], &[], cap, &st, 0.0005, false, false);
+        assert_eq!(d, vec![Decision::Enter(0), Decision::Block(1, "no_cash")]);
+    }
+
+    #[test]
+    fn hold_table_fit_and_lookup() {
+        let h = HoldTable::fit(&[(0, -0.5, 1.0), (9, 1.0, 1.0)]).unwrap();
+        assert!((h.r[0] - 0.125).abs() < 1e-12 && (h.r[9] - 0.375).abs() < 1e-12 && (h.r[5] - 0.25).abs() < 1e-12);
+        assert!((h.value(None) - 0.25).abs() < 1e-12 && (h.value(Some(f32::NAN)) - 0.25).abs() < 1e-12);
+        assert!((h.value(Some(1.0)) - 0.375).abs() < 1e-12, "p = 1 falls in the top decile");
+        assert!(HoldTable::fit(&[]).is_none());
+    }
+
+    #[test]
+    fn forward_returns_from_marks() {
+        let leg = |p: f64| Leg { t: 0, reason: "x", tokens_frac: 0.5, proceeds_sol: p };
+        let r = forward_returns(&[(3, 0.10, 0), (7, 0.20, 1)], &[leg(0.10), leg(0.15)], 0.0005);
+        assert_eq!(r.len(), 2);
+        assert!(r[0].0 == 3 && (r[0].1 - 1.49).abs() < 1e-12 && (r[0].2 - 0.5).abs() < 1e-12);
+        assert!(r[1].0 == 7 && (r[1].1 + 0.2525).abs() < 1e-12);
+    }
+
+    fn mkc(slot: u64, time: i64, coin: u32, user: u32, q: u128) -> Ev {
+        let mut e = mk(slot, time, user, true, 300_000_000, q, 1_000_000_000_000_000);
+        e.coin = coin;
+        e
+    }
+
+    /// Scores by pool size: >= 70 SOL quote reserve -> bin 5, else bin 1.
+    struct ByPool;
+    impl Scorer for ByPool {
+        fn score(&mut self, _o: u64, x: &[f32]) -> Option<Pred> {
+            let mut bin = [0f32; 7];
+            bin[if x[3] >= 70.0 { 5 } else { 1 }] = 1.0;
+            Some(Pred { bin, ..Default::default() })
+        }
+    }
+
+    /// Two coins promoted in the same decision tick with room for one bet: the higher-EV coin enters even though
+    /// the other was promoted first. With per-slot batching (tick 0) the earlier coin enters (first-come).
+    #[test]
+    fn two_coins_same_tick_higher_ev_wins() {
+        let mut evs = Vec::new();
+        let mut slot = 100;
+        for s in 0..30i64 {
+            for u in 0..3u32 {
+                slot += 1;
+                evs.push(mkc(slot, s, 1, 1000 + (s as u32) * 3 + u, 50_000_000_000)); // low-EV coin first in each second
+                slot += 1;
+                evs.push(mkc(slot, s, 0, (s as u32) * 3 + u, 80_000_000_000));
+            }
+        }
+        let mut ev = Events::new(evs, vec!["A".into(), "B".into()], (0, 60), vec![]);
+        ev.cover_end = vec![100_000, 100_000];
+        let rp = RadarParams { min_buyers: 5, min_buy_sol: 1.0, max_median_buy_sol: 1.0, ..RadarParams::default() };
+        let w = WindowData::new("t".into(), &ev, Context::default(), f64::NAN);
+        let c = CostsV5 { buy_fail_prob: 0.0, start_sol: 0.1, ..Default::default() };
+        let rk = [0.0, 0.2, 0.0, 0.0, 0.0, 3.0, 0.0];
+        let outcome = |tick: i64| {
+            let st = StratV5 { max_ret_60s_entry: 10.0, max_top10_share: 1.0, max_bundle_share: 1.0, decision_tick_s: tick, ..Default::default() };
+            let r = simulate(&w, rp, &mut ByPool, &st, &c, &rk, None, false);
+            let get = |coin: u32| r.signal_outcomes.iter().find(|x| x.0 == coin).map(|x| x.1);
+            (get(0), get(1))
+        };
+        assert_eq!(outcome(10), (Some("entered"), Some("exposure_cap")));
+        assert_eq!(outcome(0), (Some("exposure_cap"), Some("entered")));
+    }
+
+    #[test]
+    fn estimate_rk_returns_hold_table() {
+        let mut ev = Events::new(runner_events(), vec!["M".into()], (0, 120), vec![]);
+        ev.cover_end = vec![100_000];
+        let rp = RadarParams { min_buyers: 5, min_buy_sol: 1.0, max_median_buy_sol: 1.0, ..RadarParams::default() };
+        let w = WindowData::new("t".into(), &ev, Context::default(), f64::NAN);
+        let (rk, cnt, hold) = estimate_rk(&[(&w, None)], rp, &StratV5::default(), &CostsV5 { buy_fail_prob: 0.0, ..Default::default() });
+        assert_eq!(cnt.iter().sum::<usize>(), 1);
+        assert!(rk.iter().all(|x| x.is_finite()));
+        let h = hold.expect("hold table from the oracle run");
+        // NoScores predicts hold = 0 at every held snapshot -> bucket 0
+        assert!(h.r.iter().all(|x| x.is_finite()) && h.w[0] > 0.0 && (h.w.iter().sum::<f64>() - h.w[0]).abs() < 1e-12);
     }
 
     /// EV gate: same runner, but the model says bin 1 with negative R -> no entry.
@@ -783,7 +1151,7 @@ mod tests {
         let rp = RadarParams { min_buyers: 5, min_buy_sol: 1.0, max_median_buy_sol: 1.0, ..RadarParams::default() };
         let w = WindowData::new("t".into(), &ev, Context::default(), 200.0);
         let pr = Pred { bin: [0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0], ..Default::default() };
-        let r = simulate(&w, rp, &mut Fixed(pr), &StratV5::default(), &CostsV5::default(), &[0.0, -0.5, 0.0, 0.0, 0.0, 0.0, 0.0], false);
+        let r = simulate(&w, rp, &mut Fixed(pr), &StratV5::default(), &CostsV5::default(), &[0.0, -0.5, 0.0, 0.0, 0.0, 0.0, 0.0], None, false);
         assert_eq!(r.trades, 0);
         assert!(r.blocked.get("ev_below_min").copied().unwrap_or(0) >= 1, "{:?}", r.blocked);
     }
