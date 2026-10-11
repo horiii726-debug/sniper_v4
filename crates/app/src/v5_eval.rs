@@ -563,6 +563,8 @@ pub fn ablate(recs: &[PathBuf], rp: RadarParams, st: &StratV5, out: &Path) -> Re
         ("no_entries_per_min_cap".into(), rp, StratV5 { max_entries_per_min: 1_000_000, ..*st }),
         ("no_reentry_cooldown".into(), rp, StratV5 { reentry_cooldown_s: 0, ..*st }),
         ("no_mint_gate".into(), rp, StratV5 { mint_gate: false, ..*st }),
+        ("risk_loss_limit_30pct".into(), rp, StratV5 { max_loss_frac: Some(0.30), ..*st }),
+        ("risk_loss_streak_5".into(), rp, StratV5 { loss_streak: 5, ..*st }),
         ("legacy_v4_radar".into(), legacy, *st),
     ];
     let strat_rows: Vec<serde_json::Value> = strat_variants

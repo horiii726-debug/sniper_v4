@@ -108,6 +108,11 @@ pub struct StratV5 {
     pub disaster_stop: Option<f64>,
     /// Block entries into mints with a honeypot-risk flag (freeze authority, transfer hook, ...; mint_safety.rs).
     pub mint_gate: bool,
+    /// E9 account risk: no new entries once equity <= start x (1 - this) (None = off).
+    pub max_loss_frac: Option<f64>,
+    /// E9 account risk: after this many consecutive losing trades, no new entries for `loss_streak_pause_s` (0 = off).
+    pub loss_streak: u32,
+    pub loss_streak_pause_s: i64,
 }
 
 impl Default for StratV5 {
@@ -133,6 +138,9 @@ impl Default for StratV5 {
             time_stop_gain: 0.10,
             time_stop_max_buyers60: 1.0,
             mint_gate: true,
+            max_loss_frac: None,
+            loss_streak: 0,
+            loss_streak_pause_s: 900,
             d_min: 0.15,
             d_max: 0.60,
             trail_fixed: 0.30,
@@ -622,6 +630,8 @@ pub fn simulate(w: &WindowData, rp: RadarParams, scorer: &mut dyn Scorer, st: &S
     let mut trades: Vec<TradeV5> = Vec::new();
     let (mut failed, mut costs) = (0usize, 0.0);
     let (mut slippage_failed, mut sell_retries) = (0usize, 0usize);
+    // E9 account risk state: equity at the last 1-s mark, consecutive losing trades, entry pause end
+    let (mut last_eq, mut losing_run, mut paused_until) = (start, 0u32, None::<i64>);
     let (mut peak_eq, mut max_dd) = (start, 0.0f64);
     let mut last_sec = i64::MIN;
     let mut exits: std::collections::BTreeMap<&'static str, usize> = Default::default();
@@ -757,6 +767,11 @@ pub fn simulate(w: &WindowData, rp: RadarParams, scorer: &mut dyn Scorer, st: &S
                             blacklist.insert(coin);
                         }
                         let pnl = p.proceeds - p.cost - p.tx_paid;
+                        losing_run = if pnl < 0.0 { losing_run + 1 } else { 0 };
+                        if st.loss_streak > 0 && losing_run >= st.loss_streak {
+                            paused_until = Some(cur_t + st.loss_streak_pause_s);
+                            losing_run = 0;
+                        }
                         let hold_obs = forward_returns(&p.marks, &p.legs, txc);
                         trades.push(TradeV5 {
                             mint: ev.mints[coin as usize].clone(), entry_t: p.entry_t - ev.window.0, exit_t: cur_t - ev.window.0, cost_sol: p.cost,
@@ -837,6 +852,7 @@ pub fn simulate(w: &WindowData, rp: RadarParams, scorer: &mut dyn Scorer, st: &S
                 }
             }
             let eq = cash + pos.iter().map(|(cid, p)| eng.pool_value(*cid, p.tokens, c.default_fee_bps)).sum::<f64>();
+            last_eq = eq;
             peak_eq = peak_eq.max(eq);
             if peak_eq > 0.0 {
                 max_dd = max_dd.max(1.0 - eq / peak_eq);
@@ -988,6 +1004,14 @@ pub fn simulate(w: &WindowData, rp: RadarParams, scorer: &mut dyn Scorer, st: &S
         }
         if st.mint_gate && eng.mint_unsafe(e.coin) {
             block("mint_unsafe");
+            continue;
+        }
+        if st.max_loss_frac.is_some_and(|x| last_eq <= start * (1.0 - x)) {
+            block("risk_loss_limit");
+            continue;
+        }
+        if paused_until.is_some_and(|t| e.time < t) {
+            block("risk_loss_streak");
             continue;
         }
         let Some(pr) = pred else {
@@ -1193,6 +1217,27 @@ mod tests {
         assert!((t.tx_sol - (1 + 3 * legs + end_legs) as f64 * c.tx_sol()).abs() < 1e-12);
         // rent locked at the buy is refunded at the close: cash accounting closes on pnl alone
         assert!((r.final_sol - (r.start_sol + t.pnl_sol)).abs() < 1e-9, "cash accounting with rent");
+    }
+
+    /// E9: a loss limit already hit (0 % allowed loss: equity <= start) blocks every entry; a loose limit changes nothing.
+    #[test]
+    fn account_loss_limit_blocks_entries() {
+        let mut ev = Events::new(runner_events(), vec!["M".into()], (0, 120), vec![]);
+        ev.cover_end = vec![100_000];
+        let rp = RadarParams { min_buyers: 5, min_buy_sol: 1.0, max_median_buy_sol: 1.0, ..RadarParams::default() };
+        let w = WindowData::new("t".into(), &ev, Context::default(), 200.0);
+        let pr = Pred { bin: [0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0], tp1: 0.9, rug: 0.0, hold: 0.0, dead: 0.0 };
+        let rk = [0.0, 0.0, 0.0, 0.0, 0.0, 3.0, 0.0];
+        let c = CostsV5 { buy_fail_prob: 0.0, sell_fail_prob: 0.0, ..Default::default() };
+        let base = StratV5 { max_ret_60s_entry: 10.0, max_top10_share: 1.0, max_bundle_share: 1.0, exit_mode: ExitMode::Ladder, max_entry_ret: None, ..Default::default() };
+        let r0 = simulate(&w, rp, &mut Fixed(pr), &base, &c, &rk, None, false);
+        assert_eq!(r0.trades, 1);
+        let r = simulate(&w, rp, &mut Fixed(pr), &StratV5 { max_loss_frac: Some(0.0), ..base }, &c, &rk, None, false);
+        assert_eq!(r.trades, 0);
+        assert!(r.blocked.get("risk_loss_limit").copied().unwrap_or(0) >= 1, "{:?}", r.blocked);
+        let r = simulate(&w, rp, &mut Fixed(pr), &StratV5 { max_loss_frac: Some(0.9), loss_streak: 3, ..base }, &c, &rk, None, false);
+        assert_eq!(r.trades, r0.trades);
+        assert!((r.final_sol - r0.final_sol).abs() < 1e-12);
     }
 
     /// Runner stream of `ladder_on_a_runner` (steady buying 0-40 s, then +1.2%/s until 400 s).
