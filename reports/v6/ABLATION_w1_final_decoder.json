@@ -1,0 +1,1950 @@
+{
+  "label": "EXPLORATORY component ablation (paper only). Strategy rows run WITHOUT a model (direction only); a component is kept only if it improves out-of-sample expectancy after costs on most test windows.",
+  "radar": [
+    {
+      "variant": "base",
+      "windows": [
+        {
+          "cusum_alarmed_before_10": 69,
+          "cusum_false_per_coin_hour": 7.73419197131726,
+          "cusum_runners_5x": 239,
+          "hot_per_min": 27.00475435816165,
+          "naive_precision_2x": 0.2296774193548387,
+          "new_5x": {
+            "armed_before_10": 128,
+            "hot_at_30": 67,
+            "hot_before_10": 64,
+            "n": 128
+          },
+          "old_5x": {
+            "armed_before_10": 104,
+            "hot_at_30": 104,
+            "hot_before_10": 100,
+            "n": 111
+          },
+          "precision_2x": 0.23595505617977527,
+          "watch_per_min": 70.29658139008377,
+          "window": "v5_s02d_14h"
+        }
+      ]
+    },
+    {
+      "variant": "legacy_v4_radar",
+      "windows": [
+        {
+          "cusum_alarmed_before_10": 0,
+          "cusum_false_per_coin_hour": 0.0,
+          "cusum_runners_5x": 240,
+          "hot_per_min": 69.4136291600634,
+          "naive_precision_2x": 0.022813688212927757,
+          "new_5x": {
+            "armed_before_10": 232,
+            "hot_at_30": 233,
+            "hot_before_10": 232,
+            "n": 234
+          },
+          "old_5x": {
+            "armed_before_10": 3,
+            "hot_at_30": 5,
+            "hot_before_10": 3,
+            "n": 6
+          },
+          "precision_2x": 0.0784313725490196,
+          "watch_per_min": 0.0,
+          "window": "v5_s02d_14h"
+        }
+      ]
+    },
+    {
+      "variant": "no_cusum",
+      "windows": [
+        {
+          "cusum_alarmed_before_10": 0,
+          "cusum_false_per_coin_hour": 0.0,
+          "cusum_runners_5x": 239,
+          "hot_per_min": 27.00475435816165,
+          "naive_precision_2x": 0.2296774193548387,
+          "new_5x": {
+            "armed_before_10": 128,
+            "hot_at_30": 67,
+            "hot_before_10": 64,
+            "n": 128
+          },
+          "old_5x": {
+            "armed_before_10": 103,
+            "hot_at_30": 104,
+            "hot_before_10": 100,
+            "n": 111
+          },
+          "precision_2x": 0.23595505617977527,
+          "watch_per_min": 46.701381027846956,
+          "window": "v5_s02d_14h"
+        }
+      ]
+    },
+    {
+      "variant": "no_flow_rule",
+      "windows": [
+        {
+          "cusum_alarmed_before_10": 69,
+          "cusum_false_per_coin_hour": 7.73419197131726,
+          "cusum_runners_5x": 239,
+          "hot_per_min": 26.964002716776093,
+          "naive_precision_2x": 0.2296774193548387,
+          "new_5x": {
+            "armed_before_10": 128,
+            "hot_at_30": 67,
+            "hot_before_10": 64,
+            "n": 128
+          },
+          "old_5x": {
+            "armed_before_10": 104,
+            "hot_at_30": 104,
+            "hot_before_10": 100,
+            "n": 111
+          },
+          "precision_2x": 0.23633440514469453,
+          "watch_per_min": 70.31016527054562,
+          "window": "v5_s02d_14h"
+        }
+      ]
+    },
+    {
+      "variant": "no_watch",
+      "windows": [
+        {
+          "cusum_alarmed_before_10": 69,
+          "cusum_false_per_coin_hour": 7.73419197131726,
+          "cusum_runners_5x": 239,
+          "hot_per_min": 27.00475435816165,
+          "naive_precision_2x": 0.2296774193548387,
+          "new_5x": {
+            "armed_before_10": 64,
+            "hot_at_30": 67,
+            "hot_before_10": 64,
+            "n": 128
+          },
+          "old_5x": {
+            "armed_before_10": 100,
+            "hot_at_30": 104,
+            "hot_before_10": 100,
+            "n": 111
+          },
+          "precision_2x": 0.23595505617977527,
+          "watch_per_min": 0.0,
+          "window": "v5_s02d_14h"
+        }
+      ]
+    },
+    {
+      "variant": "old_median_block_1.0",
+      "windows": [
+        {
+          "cusum_alarmed_before_10": 69,
+          "cusum_false_per_coin_hour": 7.73419197131726,
+          "cusum_runners_5x": 239,
+          "hot_per_min": 26.950418836314242,
+          "naive_precision_2x": 0.2296774193548387,
+          "new_5x": {
+            "armed_before_10": 128,
+            "hot_at_30": 67,
+            "hot_before_10": 64,
+            "n": 128
+          },
+          "old_5x": {
+            "armed_before_10": 104,
+            "hot_at_30": 104,
+            "hot_before_10": 100,
+            "n": 111
+          },
+          "precision_2x": 0.23633440514469453,
+          "watch_per_min": 70.32374915100748,
+          "window": "v5_s02d_14h"
+        }
+      ]
+    },
+    {
+      "variant": "no_old_buy_sell_cap",
+      "windows": [
+        {
+          "cusum_alarmed_before_10": 69,
+          "cusum_false_per_coin_hour": 7.73419197131726,
+          "cusum_runners_5x": 239,
+          "hot_per_min": 27.194928684627577,
+          "naive_precision_2x": 0.2296774193548387,
+          "new_5x": {
+            "armed_before_10": 128,
+            "hot_at_30": 67,
+            "hot_before_10": 64,
+            "n": 128
+          },
+          "old_5x": {
+            "armed_before_10": 104,
+            "hot_at_30": 104,
+            "hot_before_10": 101,
+            "n": 111
+          },
+          "precision_2x": 0.23444976076555024,
+          "watch_per_min": 70.24224586823637,
+          "window": "v5_s02d_14h"
+        }
+      ]
+    },
+    {
+      "variant": "wallets_not_clusters",
+      "windows": [
+        {
+          "cusum_alarmed_before_10": 69,
+          "cusum_false_per_coin_hour": 7.73419197131726,
+          "cusum_runners_5x": 239,
+          "hot_per_min": 27.00475435816165,
+          "naive_precision_2x": 0.2296774193548387,
+          "new_5x": {
+            "armed_before_10": 128,
+            "hot_at_30": 67,
+            "hot_before_10": 64,
+            "n": 128
+          },
+          "old_5x": {
+            "armed_before_10": 104,
+            "hot_at_30": 104,
+            "hot_before_10": 100,
+            "n": 111
+          },
+          "precision_2x": 0.23595505617977527,
+          "watch_per_min": 70.29658139008377,
+          "window": "v5_s02d_14h"
+        }
+      ]
+    },
+    {
+      "variant": "creator_counted",
+      "windows": [
+        {
+          "cusum_alarmed_before_10": 69,
+          "cusum_false_per_coin_hour": 7.73419197131726,
+          "cusum_runners_5x": 239,
+          "hot_per_min": 27.00475435816165,
+          "naive_precision_2x": 0.2296774193548387,
+          "new_5x": {
+            "armed_before_10": 128,
+            "hot_at_30": 67,
+            "hot_before_10": 64,
+            "n": 128
+          },
+          "old_5x": {
+            "armed_before_10": 104,
+            "hot_at_30": 104,
+            "hot_before_10": 100,
+            "n": 111
+          },
+          "precision_2x": 0.23595505617977527,
+          "watch_per_min": 70.29658139008377,
+          "window": "v5_s02d_14h"
+        }
+      ]
+    },
+    {
+      "variant": "no_new_coin_age_limit",
+      "windows": [
+        {
+          "cusum_alarmed_before_10": 69,
+          "cusum_false_per_coin_hour": 7.73419197131726,
+          "cusum_runners_5x": 239,
+          "hot_per_min": 27.00475435816165,
+          "naive_precision_2x": 0.2296774193548387,
+          "new_5x": {
+            "armed_before_10": 128,
+            "hot_at_30": 67,
+            "hot_before_10": 64,
+            "n": 128
+          },
+          "old_5x": {
+            "armed_before_10": 104,
+            "hot_at_30": 104,
+            "hot_before_10": 100,
+            "n": 111
+          },
+          "precision_2x": 0.23595505617977527,
+          "watch_per_min": 74.04573239755491,
+          "window": "v5_s02d_14h"
+        }
+      ]
+    }
+  ],
+  "strategy": [
+    {
+      "summary": {
+        "costs_sol": 0.017500000000000012,
+        "expectancy_excl_top1pct_sol": 0.006670344642857142,
+        "expectancy_sol": 0.008341219266666665,
+        "max_drawdown_pct_worst": 7.2940816349490785,
+        "mean_return_pct": 14.540292778370677,
+        "median_return_pct": 14.540292778370677,
+        "moonshot_capture": 0.0,
+        "positive_windows": 1,
+        "profit_factor": 6.025042177476291,
+        "runners_10x": 109,
+        "runners_captured_5x": 0,
+        "total_pnl_sol": 0.12511828899999997,
+        "trades": 15,
+        "win_rate": 0.6,
+        "windows": 1
+      },
+      "variant": "base",
+      "windows": [
+        {
+          "blocked": {
+            "blacklisted": 6,
+            "bundle_share_too_high": 301,
+            "exposure_cap": 32093,
+            "low_liquidity": 3393,
+            "max_entries_per_min": 1683,
+            "migrating_curve_complete": 1,
+            "mint_unsafe": 297,
+            "price_guard": 17142,
+            "reentry_cooldown": 139,
+            "top10_share_too_high": 1646,
+            "venue_unvalidated": 59945
+          },
+          "failed_buys": 5,
+          "final_exits": {
+            "DataEnd": 10,
+            "DevSell": 1,
+            "Trail": 4
+          },
+          "held_to_5x": 0,
+          "pnl_sol": 0.12261828899999994,
+          "signals_in_window": 116666,
+          "trades": 15,
+          "window": "v5_s02d_14h"
+        }
+      ]
+    },
+    {
+      "summary": {
+        "costs_sol": 0.02600000000000002,
+        "expectancy_excl_top1pct_sol": -0.0010898802500000021,
+        "expectancy_sol": 0.0004731361428571398,
+        "max_drawdown_pct_worst": 9.230969213108132,
+        "mean_return_pct": 0.7038846199453941,
+        "median_return_pct": 0.7038846199453941,
+        "moonshot_capture": 0.0,
+        "positive_windows": 1,
+        "profit_factor": 1.0985294196104445,
+        "runners_10x": 109,
+        "runners_captured_5x": 0,
+        "total_pnl_sol": 0.009935858999999936,
+        "trades": 21,
+        "win_rate": 0.42857142857142855,
+        "windows": 1
+      },
+      "variant": "exit_fade_and_drawdown",
+      "windows": [
+        {
+          "blocked": {
+            "bundle_share_too_high": 301,
+            "exposure_cap": 31509,
+            "low_liquidity": 3392,
+            "max_entries_per_min": 2090,
+            "migrating_curve_complete": 1,
+            "mint_unsafe": 297,
+            "price_guard": 17159,
+            "reentry_cooldown": 266,
+            "top10_share_too_high": 1646,
+            "venue_unvalidated": 59930
+          },
+          "failed_buys": 8,
+          "final_exits": {
+            "DataEnd": 9,
+            "Dead": 4,
+            "MomentumFade": 8
+          },
+          "held_to_5x": 0,
+          "pnl_sol": 0.005935858999999599,
+          "signals_in_window": 116620,
+          "trades": 21,
+          "window": "v5_s02d_14h"
+        }
+      ]
+    },
+    {
+      "summary": {
+        "costs_sol": 0.017500000000000012,
+        "expectancy_excl_top1pct_sol": 0.006670344642857142,
+        "expectancy_sol": 0.008341219266666665,
+        "max_drawdown_pct_worst": 7.2940816349490785,
+        "mean_return_pct": 14.540292778370677,
+        "median_return_pct": 14.540292778370677,
+        "moonshot_capture": 0.0,
+        "positive_windows": 1,
+        "profit_factor": 6.025042177476291,
+        "runners_10x": 109,
+        "runners_captured_5x": 0,
+        "total_pnl_sol": 0.12511828899999997,
+        "trades": 15,
+        "win_rate": 0.6,
+        "windows": 1
+      },
+      "variant": "exit_trail",
+      "windows": [
+        {
+          "blocked": {
+            "blacklisted": 6,
+            "bundle_share_too_high": 301,
+            "exposure_cap": 32093,
+            "low_liquidity": 3393,
+            "max_entries_per_min": 1683,
+            "migrating_curve_complete": 1,
+            "mint_unsafe": 297,
+            "price_guard": 17142,
+            "reentry_cooldown": 139,
+            "top10_share_too_high": 1646,
+            "venue_unvalidated": 59945
+          },
+          "failed_buys": 5,
+          "final_exits": {
+            "DataEnd": 10,
+            "DevSell": 1,
+            "Trail": 4
+          },
+          "held_to_5x": 0,
+          "pnl_sol": 0.12261828899999994,
+          "signals_in_window": 116666,
+          "trades": 15,
+          "window": "v5_s02d_14h"
+        }
+      ]
+    },
+    {
+      "summary": {
+        "costs_sol": 0.017500000000000012,
+        "expectancy_excl_top1pct_sol": 0.002046363714285711,
+        "expectancy_sol": 0.004025503733333329,
+        "max_drawdown_pct_worst": 7.547508165487127,
+        "mean_return_pct": 6.8638154867781465,
+        "median_return_pct": 6.8638154867781465,
+        "moonshot_capture": 0.0,
+        "positive_windows": 1,
+        "profit_factor": 1.9883127228877775,
+        "runners_10x": 109,
+        "runners_captured_5x": 0,
+        "total_pnl_sol": 0.060382555999999935,
+        "trades": 15,
+        "win_rate": 0.5333333333333333,
+        "windows": 1
+      },
+      "variant": "exit_adaptive_trail",
+      "windows": [
+        {
+          "blocked": {
+            "bundle_share_too_high": 301,
+            "exposure_cap": 32078,
+            "low_liquidity": 3393,
+            "max_entries_per_min": 1683,
+            "migrating_curve_complete": 1,
+            "mint_unsafe": 297,
+            "price_guard": 17297,
+            "reentry_cooldown": 243,
+            "top10_share_too_high": 1646,
+            "venue_unvalidated": 59951
+          },
+          "failed_buys": 5,
+          "final_exits": {
+            "AdaptiveTrail": 7,
+            "DataEnd": 8
+          },
+          "held_to_5x": 0,
+          "pnl_sol": 0.05788255600000003,
+          "signals_in_window": 116910,
+          "trades": 15,
+          "window": "v5_s02d_14h"
+        }
+      ]
+    },
+    {
+      "summary": {
+        "costs_sol": 0.01650000000000001,
+        "expectancy_excl_top1pct_sol": 0.0032454958333333304,
+        "expectancy_sol": 0.0054368779999999966,
+        "max_drawdown_pct_worst": 4.444411657138437,
+        "mean_return_pct": 8.084835052768913,
+        "median_return_pct": 8.084835052768913,
+        "moonshot_capture": 0.0,
+        "positive_windows": 1,
+        "profit_factor": 3.370203981754372,
+        "runners_10x": 109,
+        "runners_captured_5x": 0,
+        "total_pnl_sol": 0.07067941399999995,
+        "trades": 13,
+        "win_rate": 0.6153846153846154,
+        "windows": 1
+      },
+      "variant": "exit_ladder",
+      "windows": [
+        {
+          "blocked": {
+            "blacklisted": 6,
+            "bundle_share_too_high": 301,
+            "exposure_cap": 31492,
+            "low_liquidity": 3393,
+            "max_entries_per_min": 1698,
+            "migrating_curve_complete": 1,
+            "mint_unsafe": 297,
+            "price_guard": 17296,
+            "reentry_cooldown": 97,
+            "top10_share_too_high": 1646,
+            "venue_unvalidated": 59607
+          },
+          "failed_buys": 5,
+          "final_exits": {
+            "DataEnd": 10,
+            "DevSell": 1,
+            "Stop": 1,
+            "Trail": 1
+          },
+          "held_to_5x": 0,
+          "pnl_sol": 0.06817941400000016,
+          "signals_in_window": 115852,
+          "trades": 13,
+          "window": "v5_s02d_14h"
+        }
+      ]
+    },
+    {
+      "summary": {
+        "costs_sol": 0.019000000000000013,
+        "expectancy_excl_top1pct_sol": -0.006145965000000004,
+        "expectancy_sol": -0.004362546058823532,
+        "max_drawdown_pct_worst": 17.85289455398803,
+        "mean_return_pct": -9.031576307363952,
+        "median_return_pct": -9.031576307363952,
+        "moonshot_capture": 0.0,
+        "positive_windows": 0,
+        "profit_factor": 0.47819826854909125,
+        "runners_10x": 109,
+        "runners_captured_5x": 0,
+        "total_pnl_sol": -0.07416328300000005,
+        "trades": 17,
+        "win_rate": 0.29411764705882354,
+        "windows": 1
+      },
+      "variant": "no_price_guard",
+      "windows": [
+        {
+          "blocked": {
+            "blacklisted": 14,
+            "bundle_share_too_high": 373,
+            "exposure_cap": 42771,
+            "low_liquidity": 3485,
+            "max_entries_per_min": 3005,
+            "migrating_curve_complete": 1,
+            "mint_unsafe": 297,
+            "reentry_cooldown": 196,
+            "ret_60s_too_high": 2180,
+            "top10_share_too_high": 4101,
+            "venue_unvalidated": 60950
+          },
+          "failed_buys": 4,
+          "final_exits": {
+            "DataEnd": 7,
+            "DevSell": 4,
+            "LpDrop": 1,
+            "Trail": 5
+          },
+          "held_to_5x": 0,
+          "pnl_sol": -0.07616328300000019,
+          "signals_in_window": 117394,
+          "trades": 17,
+          "window": "v5_s02d_14h"
+        }
+      ]
+    },
+    {
+      "summary": {
+        "costs_sol": 0.014000000000000009,
+        "expectancy_excl_top1pct_sol": -0.003441828000000003,
+        "expectancy_sol": -0.0015468789230769268,
+        "max_drawdown_pct_worst": 11.668111211255717,
+        "mean_return_pct": -2.5031929325269875,
+        "median_return_pct": -2.5031929325269875,
+        "moonshot_capture": 0.0,
+        "positive_windows": 0,
+        "profit_factor": 0.6499742372988974,
+        "runners_10x": 78,
+        "runners_captured_5x": 0,
+        "total_pnl_sol": -0.020109426000000048,
+        "trades": 13,
+        "win_rate": 0.23076923076923078,
+        "windows": 1
+      },
+      "variant": "promote_rows_only",
+      "windows": [
+        {
+          "blocked": {
+            "bundle_share_too_high": 6,
+            "exposure_cap": 394,
+            "low_liquidity": 169,
+            "max_entries_per_min": 109,
+            "mint_unsafe": 1,
+            "price_guard": 655,
+            "top10_share_too_high": 1,
+            "venue_unvalidated": 638
+          },
+          "failed_buys": 2,
+          "final_exits": {
+            "DataEnd": 9,
+            "DevSell": 2,
+            "Trail": 2
+          },
+          "held_to_5x": 0,
+          "pnl_sol": -0.021109426000000098,
+          "signals_in_window": 1988,
+          "trades": 13,
+          "window": "v5_s02d_14h"
+        }
+      ]
+    },
+    {
+      "summary": {
+        "costs_sol": 0.018500000000000013,
+        "expectancy_excl_top1pct_sol": -0.012787638230769236,
+        "expectancy_sol": -0.010118968928571432,
+        "max_drawdown_pct_worst": 28.19890092963353,
+        "mean_return_pct": -17.273279378631567,
+        "median_return_pct": -17.273279378631567,
+        "moonshot_capture": 0.0,
+        "positive_windows": 0,
+        "profit_factor": 0.3541910121453362,
+        "runners_10x": 109,
+        "runners_captured_5x": 0,
+        "total_pnl_sol": -0.14166556500000005,
+        "trades": 14,
+        "win_rate": 0.35714285714285715,
+        "windows": 1
+      },
+      "variant": "tick_per_slot",
+      "windows": [
+        {
+          "blocked": {
+            "blacklisted": 7,
+            "bundle_share_too_high": 301,
+            "exposure_cap": 31677,
+            "low_liquidity": 3347,
+            "max_entries_per_min": 2068,
+            "migrating_curve_complete": 1,
+            "mint_unsafe": 297,
+            "price_guard": 17214,
+            "reentry_cooldown": 88,
+            "top10_share_too_high": 1646,
+            "venue_unvalidated": 60724
+          },
+          "failed_buys": 8,
+          "final_exits": {
+            "DataEnd": 6,
+            "DevSell": 2,
+            "LpDrop": 1,
+            "Trail": 5
+          },
+          "held_to_5x": 0,
+          "pnl_sol": -0.14566556500000005,
+          "signals_in_window": 117392,
+          "trades": 14,
+          "window": "v5_s02d_14h"
+        }
+      ]
+    },
+    {
+      "summary": {
+        "costs_sol": 0.017500000000000012,
+        "expectancy_excl_top1pct_sol": 0.006670344642857142,
+        "expectancy_sol": 0.008341219266666665,
+        "max_drawdown_pct_worst": 7.2940816349490785,
+        "mean_return_pct": 14.540292778370677,
+        "median_return_pct": 14.540292778370677,
+        "moonshot_capture": 0.0,
+        "positive_windows": 1,
+        "profit_factor": 6.025042177476291,
+        "runners_10x": 109,
+        "runners_captured_5x": 0,
+        "total_pnl_sol": 0.12511828899999997,
+        "trades": 15,
+        "win_rate": 0.6,
+        "windows": 1
+      },
+      "variant": "no_time_stop",
+      "windows": [
+        {
+          "blocked": {
+            "blacklisted": 6,
+            "bundle_share_too_high": 301,
+            "exposure_cap": 32093,
+            "low_liquidity": 3393,
+            "max_entries_per_min": 1683,
+            "migrating_curve_complete": 1,
+            "mint_unsafe": 297,
+            "price_guard": 17142,
+            "reentry_cooldown": 139,
+            "top10_share_too_high": 1646,
+            "venue_unvalidated": 59945
+          },
+          "failed_buys": 5,
+          "final_exits": {
+            "DataEnd": 10,
+            "DevSell": 1,
+            "Trail": 4
+          },
+          "held_to_5x": 0,
+          "pnl_sol": 0.12261828899999994,
+          "signals_in_window": 116666,
+          "trades": 15,
+          "window": "v5_s02d_14h"
+        }
+      ]
+    },
+    {
+      "summary": {
+        "costs_sol": 0.09050000000000007,
+        "expectancy_excl_top1pct_sol": -0.0030000753375000024,
+        "expectancy_sol": -0.0025712662098765445,
+        "max_drawdown_pct_worst": 33.03707788756254,
+        "mean_return_pct": -25.70527250088971,
+        "median_return_pct": -25.70527250088971,
+        "moonshot_capture": 0.0,
+        "positive_windows": 0,
+        "profit_factor": 0.38161451441395544,
+        "runners_10x": 109,
+        "runners_captured_5x": 0,
+        "total_pnl_sol": -0.2082725630000001,
+        "trades": 81,
+        "win_rate": 0.09876543209876543,
+        "windows": 1
+      },
+      "variant": "time_stop_classic",
+      "windows": [
+        {
+          "blocked": {
+            "blacklisted": 6,
+            "bundle_share_too_high": 301,
+            "exposure_cap": 28465,
+            "low_liquidity": 3389,
+            "max_entries_per_min": 4662,
+            "migrating_curve_complete": 1,
+            "mint_unsafe": 297,
+            "price_guard": 17092,
+            "reentry_cooldown": 1856,
+            "top10_share_too_high": 1646,
+            "venue_unvalidated": 60614
+          },
+          "failed_buys": 17,
+          "final_exits": {
+            "DataEnd": 5,
+            "DevSell": 1,
+            "TimeStop": 67,
+            "Trail": 8
+          },
+          "held_to_5x": 0,
+          "pnl_sol": -0.21677256300000292,
+          "signals_in_window": 118427,
+          "trades": 81,
+          "window": "v5_s02d_14h"
+        }
+      ]
+    },
+    {
+      "summary": {
+        "costs_sol": 0.021000000000000015,
+        "expectancy_excl_top1pct_sol": 0.006696841470588233,
+        "expectancy_sol": 0.00820623872222222,
+        "max_drawdown_pct_worst": 7.2940816349490785,
+        "mean_return_pct": 17.160239179414184,
+        "median_return_pct": 17.160239179414184,
+        "moonshot_capture": 0.0,
+        "positive_windows": 1,
+        "profit_factor": 5.123169417729657,
+        "runners_10x": 109,
+        "runners_captured_5x": 0,
+        "total_pnl_sol": 0.14771229699999996,
+        "trades": 18,
+        "win_rate": 0.5,
+        "windows": 1
+      },
+      "variant": "time_stop_flow_le1",
+      "windows": [
+        {
+          "blocked": {
+            "blacklisted": 6,
+            "bundle_share_too_high": 301,
+            "exposure_cap": 31781,
+            "low_liquidity": 3393,
+            "max_entries_per_min": 1683,
+            "migrating_curve_complete": 1,
+            "mint_unsafe": 297,
+            "price_guard": 17142,
+            "reentry_cooldown": 198,
+            "top10_share_too_high": 1646,
+            "venue_unvalidated": 59945
+          },
+          "failed_buys": 6,
+          "final_exits": {
+            "DataEnd": 6,
+            "DevSell": 1,
+            "TimeStop": 7,
+            "Trail": 4
+          },
+          "held_to_5x": 0,
+          "pnl_sol": 0.14471229699999988,
+          "signals_in_window": 116417,
+          "trades": 18,
+          "window": "v5_s02d_14h"
+        }
+      ]
+    },
+    {
+      "summary": {
+        "costs_sol": 0.04250000000000003,
+        "expectancy_excl_top1pct_sol": 0.0005648430810810797,
+        "expectancy_sol": 0.005090782210526317,
+        "max_drawdown_pct_worst": 9.5965367983601,
+        "mean_return_pct": 22.52457298707451,
+        "median_return_pct": 22.52457298707451,
+        "moonshot_capture": 0.009174311926605505,
+        "positive_windows": 1,
+        "profit_factor": 2.4707978579982566,
+        "runners_10x": 109,
+        "runners_captured_5x": 1,
+        "total_pnl_sol": 0.19344972400000005,
+        "trades": 38,
+        "win_rate": 0.2631578947368421,
+        "windows": 1
+      },
+      "variant": "time_stop_flow_le3",
+      "windows": [
+        {
+          "blocked": {
+            "blacklisted": 6,
+            "bundle_share_too_high": 301,
+            "exposure_cap": 31825,
+            "low_liquidity": 3393,
+            "max_entries_per_min": 1683,
+            "migrating_curve_complete": 1,
+            "mint_unsafe": 297,
+            "price_guard": 17071,
+            "reentry_cooldown": 564,
+            "top10_share_too_high": 1646,
+            "venue_unvalidated": 59945
+          },
+          "failed_buys": 7,
+          "final_exits": {
+            "DataEnd": 7,
+            "DevSell": 2,
+            "TimeStop": 24,
+            "Trail": 5
+          },
+          "held_to_5x": 1,
+          "pnl_sol": 0.18994972399999932,
+          "signals_in_window": 116777,
+          "trades": 38,
+          "window": "v5_s02d_14h"
+        }
+      ]
+    },
+    {
+      "summary": {
+        "costs_sol": 0.022500000000000017,
+        "expectancy_excl_top1pct_sol": -0.003501439050000004,
+        "expectancy_sol": -0.0020059696666666705,
+        "max_drawdown_pct_worst": 11.969439345428711,
+        "mean_return_pct": -5.1731724178821885,
+        "median_return_pct": -5.1731724178821885,
+        "moonshot_capture": 0.0,
+        "positive_windows": 0,
+        "profit_factor": 0.7203372139173099,
+        "runners_10x": 109,
+        "runners_captured_5x": 0,
+        "total_pnl_sol": -0.04212536300000008,
+        "trades": 21,
+        "win_rate": 0.38095238095238093,
+        "windows": 1
+      },
+      "variant": "no_entries_per_min_cap",
+      "windows": [
+        {
+          "blocked": {
+            "blacklisted": 9,
+            "bundle_share_too_high": 301,
+            "exposure_cap": 33409,
+            "low_liquidity": 3390,
+            "migrating_curve_complete": 1,
+            "mint_unsafe": 297,
+            "price_guard": 17013,
+            "reentry_cooldown": 280,
+            "top10_share_too_high": 1646,
+            "venue_unvalidated": 60637
+          },
+          "failed_buys": 3,
+          "final_exits": {
+            "DataEnd": 6,
+            "DevSell": 2,
+            "Trail": 13
+          },
+          "held_to_5x": 0,
+          "pnl_sol": -0.04362536300000053,
+          "signals_in_window": 117007,
+          "trades": 21,
+          "window": "v5_s02d_14h"
+        }
+      ]
+    },
+    {
+      "summary": {
+        "costs_sol": 0.017500000000000012,
+        "expectancy_excl_top1pct_sol": 0.006670344642857142,
+        "expectancy_sol": 0.008341219266666665,
+        "max_drawdown_pct_worst": 7.2940816349490785,
+        "mean_return_pct": 14.540292778370677,
+        "median_return_pct": 14.540292778370677,
+        "moonshot_capture": 0.0,
+        "positive_windows": 1,
+        "profit_factor": 6.025042177476291,
+        "runners_10x": 109,
+        "runners_captured_5x": 0,
+        "total_pnl_sol": 0.12511828899999997,
+        "trades": 15,
+        "win_rate": 0.6,
+        "windows": 1
+      },
+      "variant": "no_reentry_cooldown",
+      "windows": [
+        {
+          "blocked": {
+            "blacklisted": 6,
+            "bundle_share_too_high": 301,
+            "exposure_cap": 32093,
+            "low_liquidity": 3393,
+            "max_entries_per_min": 1693,
+            "migrating_curve_complete": 1,
+            "mint_unsafe": 297,
+            "price_guard": 17212,
+            "top10_share_too_high": 1646,
+            "venue_unvalidated": 60004
+          },
+          "failed_buys": 5,
+          "final_exits": {
+            "DataEnd": 10,
+            "DevSell": 1,
+            "Trail": 4
+          },
+          "held_to_5x": 0,
+          "pnl_sol": 0.12261828899999994,
+          "signals_in_window": 116666,
+          "trades": 15,
+          "window": "v5_s02d_14h"
+        }
+      ]
+    },
+    {
+      "summary": {
+        "costs_sol": 0.017500000000000012,
+        "expectancy_excl_top1pct_sol": 0.006670344642857142,
+        "expectancy_sol": 0.008341219266666665,
+        "max_drawdown_pct_worst": 7.2940816349490785,
+        "mean_return_pct": 14.540292778370677,
+        "median_return_pct": 14.540292778370677,
+        "moonshot_capture": 0.0,
+        "positive_windows": 1,
+        "profit_factor": 6.025042177476291,
+        "runners_10x": 109,
+        "runners_captured_5x": 0,
+        "total_pnl_sol": 0.12511828899999997,
+        "trades": 15,
+        "win_rate": 0.6,
+        "windows": 1
+      },
+      "variant": "no_mint_gate",
+      "windows": [
+        {
+          "blocked": {
+            "blacklisted": 6,
+            "bundle_share_too_high": 301,
+            "exposure_cap": 32358,
+            "low_liquidity": 3393,
+            "max_entries_per_min": 1715,
+            "migrating_curve_complete": 1,
+            "price_guard": 17142,
+            "reentry_cooldown": 139,
+            "top10_share_too_high": 1646,
+            "venue_unvalidated": 59945
+          },
+          "failed_buys": 5,
+          "final_exits": {
+            "DataEnd": 10,
+            "DevSell": 1,
+            "Trail": 4
+          },
+          "held_to_5x": 0,
+          "pnl_sol": 0.12261828899999994,
+          "signals_in_window": 116666,
+          "trades": 15,
+          "window": "v5_s02d_14h"
+        }
+      ]
+    },
+    {
+      "summary": {
+        "costs_sol": 0.017500000000000012,
+        "expectancy_excl_top1pct_sol": 0.006670344642857142,
+        "expectancy_sol": 0.008341219266666665,
+        "max_drawdown_pct_worst": 7.2940816349490785,
+        "mean_return_pct": 14.540292778370677,
+        "median_return_pct": 14.540292778370677,
+        "moonshot_capture": 0.0,
+        "positive_windows": 1,
+        "profit_factor": 6.025042177476291,
+        "runners_10x": 109,
+        "runners_captured_5x": 0,
+        "total_pnl_sol": 0.12511828899999997,
+        "trades": 15,
+        "win_rate": 0.6,
+        "windows": 1
+      },
+      "variant": "risk_loss_limit_30pct",
+      "windows": [
+        {
+          "blocked": {
+            "blacklisted": 6,
+            "bundle_share_too_high": 301,
+            "exposure_cap": 32093,
+            "low_liquidity": 3393,
+            "max_entries_per_min": 1683,
+            "migrating_curve_complete": 1,
+            "mint_unsafe": 297,
+            "price_guard": 17142,
+            "reentry_cooldown": 139,
+            "top10_share_too_high": 1646,
+            "venue_unvalidated": 59945
+          },
+          "failed_buys": 5,
+          "final_exits": {
+            "DataEnd": 10,
+            "DevSell": 1,
+            "Trail": 4
+          },
+          "held_to_5x": 0,
+          "pnl_sol": 0.12261828899999994,
+          "signals_in_window": 116666,
+          "trades": 15,
+          "window": "v5_s02d_14h"
+        }
+      ]
+    },
+    {
+      "summary": {
+        "costs_sol": 0.017500000000000012,
+        "expectancy_excl_top1pct_sol": 0.006670344642857142,
+        "expectancy_sol": 0.008341219266666665,
+        "max_drawdown_pct_worst": 7.2940816349490785,
+        "mean_return_pct": 14.540292778370677,
+        "median_return_pct": 14.540292778370677,
+        "moonshot_capture": 0.0,
+        "positive_windows": 1,
+        "profit_factor": 6.025042177476291,
+        "runners_10x": 109,
+        "runners_captured_5x": 0,
+        "total_pnl_sol": 0.12511828899999997,
+        "trades": 15,
+        "win_rate": 0.6,
+        "windows": 1
+      },
+      "variant": "risk_loss_streak_5",
+      "windows": [
+        {
+          "blocked": {
+            "blacklisted": 6,
+            "bundle_share_too_high": 301,
+            "exposure_cap": 32093,
+            "low_liquidity": 3393,
+            "max_entries_per_min": 1683,
+            "migrating_curve_complete": 1,
+            "mint_unsafe": 297,
+            "price_guard": 17142,
+            "reentry_cooldown": 139,
+            "top10_share_too_high": 1646,
+            "venue_unvalidated": 59945
+          },
+          "failed_buys": 5,
+          "final_exits": {
+            "DataEnd": 10,
+            "DevSell": 1,
+            "Trail": 4
+          },
+          "held_to_5x": 0,
+          "pnl_sol": 0.12261828899999994,
+          "signals_in_window": 116666,
+          "trades": 15,
+          "window": "v5_s02d_14h"
+        }
+      ]
+    },
+    {
+      "summary": {
+        "costs_sol": 0.01700000000000001,
+        "expectancy_excl_top1pct_sol": -0.01012813361538462,
+        "expectancy_sol": -0.007411594214285717,
+        "max_drawdown_pct_worst": 20.960257169999508,
+        "mean_return_pct": -12.482191272382337,
+        "median_return_pct": -12.482191272382337,
+        "moonshot_capture": 0.0,
+        "positive_windows": 0,
+        "profit_factor": 0.3909076317157168,
+        "runners_10x": 131,
+        "runners_captured_5x": 0,
+        "total_pnl_sol": -0.10376231900000005,
+        "trades": 14,
+        "win_rate": 0.35714285714285715,
+        "windows": 1
+      },
+      "variant": "entry_on_watch",
+      "windows": [
+        {
+          "blocked": {
+            "blacklisted": 6,
+            "bundle_share_too_high": 385,
+            "exposure_cap": 41643,
+            "low_liquidity": 8465,
+            "max_entries_per_min": 2448,
+            "migrating_curve_complete": 23,
+            "mint_unsafe": 299,
+            "price_guard": 17504,
+            "reentry_cooldown": 113,
+            "top10_share_too_high": 1661,
+            "venue_unvalidated": 68697
+          },
+          "failed_buys": 3,
+          "final_exits": {
+            "DataEnd": 7,
+            "DevSell": 1,
+            "LpDrop": 1,
+            "Trail": 5
+          },
+          "held_to_5x": 0,
+          "pnl_sol": -0.10526231900000027,
+          "signals_in_window": 141463,
+          "trades": 14,
+          "window": "v5_s02d_14h"
+        }
+      ]
+    },
+    {
+      "summary": {
+        "costs_sol": 0.01450000000000001,
+        "expectancy_excl_top1pct_sol": -0.0035945471666666714,
+        "expectancy_sol": -0.001687850461538466,
+        "max_drawdown_pct_worst": 10.719931680833128,
+        "mean_return_pct": -2.720509427250073,
+        "median_return_pct": -2.720509427250073,
+        "moonshot_capture": 0.0,
+        "positive_windows": 0,
+        "profit_factor": 0.6967104795564277,
+        "runners_10x": 109,
+        "runners_captured_5x": 0,
+        "total_pnl_sol": -0.021942056000000057,
+        "trades": 13,
+        "win_rate": 0.46153846153846156,
+        "windows": 1
+      },
+      "variant": "c18_venues_open",
+      "windows": [
+        {
+          "blocked": {
+            "bundle_share_too_high": 502,
+            "exposure_cap": 43665,
+            "low_liquidity": 3537,
+            "max_entries_per_min": 2033,
+            "migrating_curve_complete": 1,
+            "mint_unsafe": 2367,
+            "price_guard": 40254,
+            "reentry_cooldown": 144,
+            "top10_share_too_high": 2032,
+            "venue_unvalidated": 22314
+          },
+          "failed_buys": 2,
+          "final_exits": {
+            "DataEnd": 8,
+            "LpDrop": 1,
+            "Trail": 4
+          },
+          "held_to_5x": 0,
+          "pnl_sol": -0.022942055999999877,
+          "signals_in_window": 116864,
+          "trades": 13,
+          "window": "v5_s02d_14h"
+        }
+      ]
+    },
+    {
+      "summary": {
+        "costs_sol": 0.03350000000000002,
+        "expectancy_excl_top1pct_sol": -0.0028924709,
+        "expectancy_sol": 0.0030817392903225846,
+        "max_drawdown_pct_worst": 17.095915925530612,
+        "mean_return_pct": 11.03212593383136,
+        "median_return_pct": 11.03212593383136,
+        "moonshot_capture": 0.0,
+        "positive_windows": 1,
+        "profit_factor": 1.4696986212155108,
+        "runners_10x": 109,
+        "runners_captured_5x": 0,
+        "total_pnl_sol": 0.09553391800000012,
+        "trades": 31,
+        "win_rate": 0.3870967741935484,
+        "windows": 1
+      },
+      "variant": "compounding_1_18",
+      "windows": [
+        {
+          "blocked": {
+            "blacklisted": 12,
+            "bundle_share_too_high": 293,
+            "exposure_cap": 12564,
+            "low_liquidity": 3386,
+            "migrating_curve_complete": 1,
+            "mint_unsafe": 297,
+            "no_cash": 20464,
+            "price_guard": 16871,
+            "reentry_cooldown": 345,
+            "top10_share_too_high": 1646,
+            "venue_unvalidated": 58780
+          },
+          "failed_buys": 5,
+          "final_exits": {
+            "DataEnd": 15,
+            "DevSell": 3,
+            "LpDrop": 1,
+            "Trail": 12
+          },
+          "held_to_5x": 1,
+          "pnl_sol": 0.09303391799999994,
+          "signals_in_window": 114695,
+          "trades": 31,
+          "window": "v5_s02d_14h"
+        }
+      ]
+    },
+    {
+      "summary": {
+        "costs_sol": 0.1490000000000001,
+        "expectancy_excl_top1pct_sol": -0.0015744403863636389,
+        "expectancy_sol": -0.0008805789253731363,
+        "max_drawdown_pct_worst": 25.280014344587244,
+        "mean_return_pct": -15.533923396182281,
+        "median_return_pct": -15.533923396182281,
+        "moonshot_capture": 0.0,
+        "positive_windows": 0,
+        "profit_factor": 0.5972968590188831,
+        "runners_10x": 109,
+        "runners_captured_5x": 0,
+        "total_pnl_sol": -0.11799757600000027,
+        "trades": 134,
+        "win_rate": 0.07462686567164178,
+        "windows": 1
+      },
+      "variant": "max_hold_5m",
+      "windows": [
+        {
+          "blocked": {
+            "blacklisted": 5,
+            "bundle_share_too_high": 289,
+            "exposure_cap": 18549,
+            "low_liquidity": 3389,
+            "max_entries_per_min": 12642,
+            "migrating_curve_complete": 1,
+            "mint_unsafe": 297,
+            "price_guard": 17178,
+            "reentry_cooldown": 2974,
+            "top10_share_too_high": 1646,
+            "venue_unvalidated": 60861
+          },
+          "failed_buys": 26,
+          "final_exits": {
+            "DevSell": 1,
+            "MaxHold": 129,
+            "Trail": 4
+          },
+          "held_to_5x": 0,
+          "pnl_sol": -0.13099757600000517,
+          "signals_in_window": 117991,
+          "trades": 134,
+          "window": "v5_s02d_14h"
+        }
+      ]
+    },
+    {
+      "summary": {
+        "costs_sol": 0.08500000000000006,
+        "expectancy_excl_top1pct_sol": -0.0021274673972602764,
+        "expectancy_sol": -0.0014119474324324338,
+        "max_drawdown_pct_worst": 20.199915579287474,
+        "mean_return_pct": -13.338563974860973,
+        "median_return_pct": -13.338563974860973,
+        "moonshot_capture": 0.0,
+        "positive_windows": 0,
+        "profit_factor": 0.5829614023967795,
+        "runners_10x": 109,
+        "runners_captured_5x": 0,
+        "total_pnl_sol": -0.1044841100000001,
+        "trades": 74,
+        "win_rate": 0.12162162162162163,
+        "windows": 1
+      },
+      "variant": "max_hold_10m",
+      "windows": [
+        {
+          "blocked": {
+            "blacklisted": 11,
+            "bundle_share_too_high": 301,
+            "exposure_cap": 25573,
+            "low_liquidity": 3389,
+            "max_entries_per_min": 7440,
+            "migrating_curve_complete": 1,
+            "mint_unsafe": 297,
+            "price_guard": 17187,
+            "reentry_cooldown": 1398,
+            "top10_share_too_high": 1646,
+            "venue_unvalidated": 60701
+          },
+          "failed_buys": 16,
+          "final_exits": {
+            "DevSell": 1,
+            "MaxHold": 67,
+            "Trail": 6
+          },
+          "held_to_5x": 0,
+          "pnl_sol": -0.11248411000000258,
+          "signals_in_window": 118034,
+          "trades": 74,
+          "window": "v5_s02d_14h"
+        }
+      ]
+    },
+    {
+      "summary": {
+        "costs_sol": 0.04950000000000004,
+        "expectancy_excl_top1pct_sol": -0.0009239486428571455,
+        "expectancy_sol": -0.0002535447674418613,
+        "max_drawdown_pct_worst": 10.429270590707429,
+        "mean_return_pct": -1.8857375785605868,
+        "median_return_pct": -1.8857375785605868,
+        "moonshot_capture": 0.0,
+        "positive_windows": 0,
+        "profit_factor": 0.8956858130179748,
+        "runners_10x": 109,
+        "runners_captured_5x": 0,
+        "total_pnl_sol": -0.010902425000000035,
+        "trades": 43,
+        "win_rate": 0.18604651162790697,
+        "windows": 1
+      },
+      "variant": "max_hold_20m",
+      "windows": [
+        {
+          "blocked": {
+            "blacklisted": 14,
+            "bundle_share_too_high": 267,
+            "exposure_cap": 29767,
+            "low_liquidity": 3389,
+            "max_entries_per_min": 3068,
+            "migrating_curve_complete": 1,
+            "mint_unsafe": 297,
+            "price_guard": 17262,
+            "reentry_cooldown": 938,
+            "top10_share_too_high": 1646,
+            "venue_unvalidated": 60387
+          },
+          "failed_buys": 10,
+          "final_exits": {
+            "DevSell": 2,
+            "MaxHold": 38,
+            "Trail": 3
+          },
+          "held_to_5x": 0,
+          "pnl_sol": -0.015902425000001386,
+          "signals_in_window": 117089,
+          "trades": 43,
+          "window": "v5_s02d_14h"
+        }
+      ]
+    },
+    {
+      "summary": {
+        "costs_sol": 0.04250000000000003,
+        "expectancy_excl_top1pct_sol": -0.0005722390588235313,
+        "expectancy_sol": 0.0003507810285714274,
+        "max_drawdown_pct_worst": 8.573610373022545,
+        "mean_return_pct": 0.7443775643305228,
+        "median_return_pct": 0.7443775643305228,
+        "moonshot_capture": 0.0,
+        "positive_windows": 1,
+        "profit_factor": 1.1205911367596397,
+        "runners_10x": 109,
+        "runners_captured_5x": 0,
+        "total_pnl_sol": 0.012277335999999958,
+        "trades": 35,
+        "win_rate": 0.2,
+        "windows": 1
+      },
+      "variant": "max_hold_30m",
+      "windows": [
+        {
+          "blocked": {
+            "blacklisted": 6,
+            "bundle_share_too_high": 301,
+            "exposure_cap": 29395,
+            "low_liquidity": 3393,
+            "max_entries_per_min": 3990,
+            "migrating_curve_complete": 1,
+            "mint_unsafe": 297,
+            "price_guard": 17180,
+            "reentry_cooldown": 660,
+            "top10_share_too_high": 1646,
+            "venue_unvalidated": 60252
+          },
+          "failed_buys": 12,
+          "final_exits": {
+            "DevSell": 1,
+            "MaxHold": 29,
+            "Trail": 5
+          },
+          "held_to_5x": 0,
+          "pnl_sol": 0.006277335999999245,
+          "signals_in_window": 117168,
+          "trades": 35,
+          "window": "v5_s02d_14h"
+        }
+      ]
+    },
+    {
+      "summary": {
+        "costs_sol": 0.02750000000000002,
+        "expectancy_excl_top1pct_sol": 0.0017153981818181804,
+        "expectancy_sol": 0.0030205314782608688,
+        "max_drawdown_pct_worst": 7.2940816349490785,
+        "mean_return_pct": 7.882393454286696,
+        "median_return_pct": 7.882393454286696,
+        "moonshot_capture": 0.0,
+        "positive_windows": 1,
+        "profit_factor": 1.7547679392665811,
+        "runners_10x": 109,
+        "runners_captured_5x": 0,
+        "total_pnl_sol": 0.06947222399999999,
+        "trades": 23,
+        "win_rate": 0.34782608695652173,
+        "windows": 1
+      },
+      "variant": "max_hold_60m",
+      "windows": [
+        {
+          "blocked": {
+            "blacklisted": 6,
+            "bundle_share_too_high": 301,
+            "exposure_cap": 31534,
+            "low_liquidity": 3390,
+            "max_entries_per_min": 2109,
+            "migrating_curve_complete": 1,
+            "mint_unsafe": 297,
+            "price_guard": 17147,
+            "reentry_cooldown": 397,
+            "top10_share_too_high": 1646,
+            "venue_unvalidated": 59987
+          },
+          "failed_buys": 6,
+          "final_exits": {
+            "DevSell": 1,
+            "MaxHold": 19,
+            "Trail": 3
+          },
+          "held_to_5x": 0,
+          "pnl_sol": 0.06647222399999964,
+          "signals_in_window": 116844,
+          "trades": 23,
+          "window": "v5_s02d_14h"
+        }
+      ]
+    },
+    {
+      "summary": {
+        "costs_sol": 0.021000000000000015,
+        "expectancy_excl_top1pct_sol": -0.0008928465625000039,
+        "expectancy_sol": 0.0010263481764705845,
+        "max_drawdown_pct_worst": 4.710279260049766,
+        "mean_return_pct": 1.6539688129965757,
+        "median_return_pct": 1.6539688129965757,
+        "moonshot_capture": 0.0,
+        "positive_windows": 1,
+        "profit_factor": 1.4860416697425098,
+        "runners_10x": 109,
+        "runners_captured_5x": 0,
+        "total_pnl_sol": 0.017447918999999937,
+        "trades": 17,
+        "win_rate": 0.29411764705882354,
+        "windows": 1
+      },
+      "variant": "trail_05pct",
+      "windows": [
+        {
+          "blocked": {
+            "bundle_share_too_high": 301,
+            "exposure_cap": 32086,
+            "low_liquidity": 3393,
+            "max_entries_per_min": 2169,
+            "migrating_curve_complete": 1,
+            "mint_unsafe": 297,
+            "price_guard": 17364,
+            "reentry_cooldown": 347,
+            "top10_share_too_high": 1646,
+            "venue_unvalidated": 60084
+          },
+          "failed_buys": 7,
+          "final_exits": {
+            "DataEnd": 9,
+            "Trail": 8
+          },
+          "held_to_5x": 0,
+          "pnl_sol": 0.013947919000000142,
+          "signals_in_window": 117712,
+          "trades": 17,
+          "window": "v5_s02d_14h"
+        }
+      ]
+    },
+    {
+      "summary": {
+        "costs_sol": 0.020000000000000014,
+        "expectancy_excl_top1pct_sol": -0.002298610812500004,
+        "expectancy_sol": -0.0002967240588235329,
+        "max_drawdown_pct_worst": 5.5776142535277735,
+        "mean_return_pct": -0.9539083362978706,
+        "median_return_pct": -0.9539083362978706,
+        "moonshot_capture": 0.0,
+        "positive_windows": 0,
+        "profit_factor": 0.9232277315616596,
+        "runners_10x": 109,
+        "runners_captured_5x": 0,
+        "total_pnl_sol": -0.005044309000000059,
+        "trades": 17,
+        "win_rate": 0.29411764705882354,
+        "windows": 1
+      },
+      "variant": "trail_10pct",
+      "windows": [
+        {
+          "blocked": {
+            "bundle_share_too_high": 301,
+            "exposure_cap": 32328,
+            "low_liquidity": 3393,
+            "max_entries_per_min": 1698,
+            "migrating_curve_complete": 1,
+            "mint_unsafe": 297,
+            "price_guard": 17345,
+            "reentry_cooldown": 310,
+            "top10_share_too_high": 1646,
+            "venue_unvalidated": 60081
+          },
+          "failed_buys": 6,
+          "final_exits": {
+            "DataEnd": 7,
+            "Trail": 10
+          },
+          "held_to_5x": 0,
+          "pnl_sol": -0.008044308999999972,
+          "signals_in_window": 117423,
+          "trades": 17,
+          "window": "v5_s02d_14h"
+        }
+      ]
+    },
+    {
+      "summary": {
+        "costs_sol": 0.017500000000000012,
+        "expectancy_excl_top1pct_sol": -0.0013306525714285758,
+        "expectancy_sol": 0.0008736218666666638,
+        "max_drawdown_pct_worst": 4.683501956599024,
+        "mean_return_pct": 1.2574799003913562,
+        "median_return_pct": 1.2574799003913562,
+        "moonshot_capture": 0.0,
+        "positive_windows": 1,
+        "profit_factor": 1.25816139159061,
+        "runners_10x": 109,
+        "runners_captured_5x": 0,
+        "total_pnl_sol": 0.013104327999999957,
+        "trades": 15,
+        "win_rate": 0.3333333333333333,
+        "windows": 1
+      },
+      "variant": "trail_15pct",
+      "windows": [
+        {
+          "blocked": {
+            "bundle_share_too_high": 301,
+            "exposure_cap": 31805,
+            "low_liquidity": 3393,
+            "max_entries_per_min": 1698,
+            "migrating_curve_complete": 1,
+            "mint_unsafe": 297,
+            "price_guard": 17366,
+            "reentry_cooldown": 230,
+            "top10_share_too_high": 1646,
+            "venue_unvalidated": 60077
+          },
+          "failed_buys": 5,
+          "final_exits": {
+            "DataEnd": 8,
+            "Trail": 7
+          },
+          "held_to_5x": 0,
+          "pnl_sol": 0.010604328000000218,
+          "signals_in_window": 116834,
+          "trades": 15,
+          "window": "v5_s02d_14h"
+        }
+      ]
+    },
+    {
+      "summary": {
+        "costs_sol": 0.020500000000000015,
+        "expectancy_excl_top1pct_sol": 0.006805847687499998,
+        "expectancy_sol": 0.00864601570588235,
+        "max_drawdown_pct_worst": 8.001941205093143,
+        "mean_return_pct": 17.073670935610096,
+        "median_return_pct": 17.073670935610096,
+        "moonshot_capture": 0.0,
+        "positive_windows": 1,
+        "profit_factor": 6.894608409412693,
+        "runners_10x": 109,
+        "runners_captured_5x": 0,
+        "total_pnl_sol": 0.14698226699999997,
+        "trades": 17,
+        "win_rate": 0.6470588235294118,
+        "windows": 1
+      },
+      "variant": "trail_20pct",
+      "windows": [
+        {
+          "blocked": {
+            "bundle_share_too_high": 301,
+            "exposure_cap": 31366,
+            "low_liquidity": 3393,
+            "max_entries_per_min": 1821,
+            "migrating_curve_complete": 1,
+            "mint_unsafe": 297,
+            "price_guard": 17125,
+            "reentry_cooldown": 258,
+            "top10_share_too_high": 1646,
+            "venue_unvalidated": 59946
+          },
+          "failed_buys": 6,
+          "final_exits": {
+            "DataEnd": 9,
+            "Trail": 8
+          },
+          "held_to_5x": 0,
+          "pnl_sol": 0.14398226699999994,
+          "signals_in_window": 116177,
+          "trades": 17,
+          "window": "v5_s02d_14h"
+        }
+      ]
+    },
+    {
+      "summary": {
+        "costs_sol": 0.01550000000000001,
+        "expectancy_excl_top1pct_sol": 0.0030850764999999967,
+        "expectancy_sol": 0.005288798615384614,
+        "max_drawdown_pct_worst": 6.192383728803219,
+        "mean_return_pct": 7.8565613660619205,
+        "median_return_pct": 7.8565613660619205,
+        "moonshot_capture": 0.0,
+        "positive_windows": 1,
+        "profit_factor": 3.1104933549327636,
+        "runners_10x": 109,
+        "runners_captured_5x": 0,
+        "total_pnl_sol": 0.06875438199999998,
+        "trades": 13,
+        "win_rate": 0.5384615384615384,
+        "windows": 1
+      },
+      "variant": "trail_45pct",
+      "windows": [
+        {
+          "blocked": {
+            "blacklisted": 6,
+            "bundle_share_too_high": 301,
+            "exposure_cap": 32222,
+            "low_liquidity": 3393,
+            "max_entries_per_min": 1683,
+            "migrating_curve_complete": 1,
+            "mint_unsafe": 297,
+            "price_guard": 17293,
+            "reentry_cooldown": 100,
+            "top10_share_too_high": 1646,
+            "venue_unvalidated": 59733
+          },
+          "failed_buys": 5,
+          "final_exits": {
+            "DataEnd": 10,
+            "DevSell": 1,
+            "Trail": 2
+          },
+          "held_to_5x": 0,
+          "pnl_sol": 0.06625438200000011,
+          "signals_in_window": 116693,
+          "trades": 13,
+          "window": "v5_s02d_14h"
+        }
+      ]
+    },
+    {
+      "summary": {
+        "costs_sol": 0.03800000000000003,
+        "expectancy_excl_top1pct_sol": -0.001371985843750002,
+        "expectancy_sol": 0.0031413816060606014,
+        "max_drawdown_pct_worst": 18.217904872880307,
+        "mean_return_pct": 11.699939879046584,
+        "median_return_pct": 11.699939879046584,
+        "moonshot_capture": 0.0,
+        "positive_windows": 1,
+        "profit_factor": 1.4621616719170927,
+        "runners_10x": 109,
+        "runners_captured_5x": 0,
+        "total_pnl_sol": 0.10366559299999985,
+        "trades": 33,
+        "win_rate": 0.42424242424242425,
+        "windows": 1
+      },
+      "variant": "c18_venues_open_pos18",
+      "windows": [
+        {
+          "blocked": {
+            "blacklisted": 9,
+            "bundle_share_too_high": 497,
+            "exposure_cap": 25157,
+            "low_liquidity": 3537,
+            "migrating_curve_complete": 1,
+            "mint_unsafe": 2367,
+            "no_cash": 19794,
+            "price_guard": 39400,
+            "reentry_cooldown": 470,
+            "top10_share_too_high": 2032,
+            "venue_unvalidated": 21886
+          },
+          "failed_buys": 10,
+          "final_exits": {
+            "DataEnd": 15,
+            "DevSell": 2,
+            "LpDrop": 2,
+            "Trail": 14
+          },
+          "held_to_5x": 0,
+          "pnl_sol": 0.09866559299999988,
+          "signals_in_window": 115193,
+          "trades": 33,
+          "window": "v5_s02d_14h"
+        }
+      ]
+    },
+    {
+      "summary": {
+        "costs_sol": 0.021500000000000016,
+        "expectancy_excl_top1pct_sol": -0.00624221305263158,
+        "expectancy_sol": -0.003551857000000001,
+        "max_drawdown_pct_worst": 19.412335942132074,
+        "mean_return_pct": -8.601581880706732,
+        "median_return_pct": -8.601581880706732,
+        "moonshot_capture": 0.0,
+        "positive_windows": 0,
+        "profit_factor": 0.7220888217898676,
+        "runners_10x": 109,
+        "runners_captured_5x": 0,
+        "total_pnl_sol": -0.07103714000000003,
+        "trades": 20,
+        "win_rate": 0.35,
+        "windows": 1
+      },
+      "variant": "only_position_limit_10",
+      "windows": [
+        {
+          "blocked": {
+            "blacklisted": 12,
+            "bundle_share_too_high": 301,
+            "exposure_cap": 29829,
+            "low_liquidity": 3386,
+            "migrating_curve_complete": 1,
+            "mint_unsafe": 297,
+            "no_cash": 4120,
+            "price_guard": 17150,
+            "reentry_cooldown": 224,
+            "top10_share_too_high": 1646,
+            "venue_unvalidated": 60637
+          },
+          "failed_buys": 3,
+          "final_exits": {
+            "DataEnd": 6,
+            "DevSell": 3,
+            "Trail": 11
+          },
+          "held_to_5x": 0,
+          "pnl_sol": -0.07253713999999989,
+          "signals_in_window": 117626,
+          "trades": 20,
+          "window": "v5_s02d_14h"
+        }
+      ]
+    },
+    {
+      "summary": {
+        "costs_sol": 0.03150000000000002,
+        "expectancy_excl_top1pct_sol": -0.0015401878928571456,
+        "expectancy_sol": 0.0051024808620689635,
+        "max_drawdown_pct_worst": 11.96434756314474,
+        "mean_return_pct": 17.250319577848927,
+        "median_return_pct": 17.250319577848927,
+        "moonshot_capture": 0.0,
+        "positive_windows": 1,
+        "profit_factor": 1.880756699400838,
+        "runners_10x": 109,
+        "runners_captured_5x": 0,
+        "total_pnl_sol": 0.14797194499999994,
+        "trades": 29,
+        "win_rate": 0.4482758620689655,
+        "windows": 1
+      },
+      "variant": "only_position_limit_18",
+      "windows": [
+        {
+          "blocked": {
+            "blacklisted": 9,
+            "bundle_share_too_high": 293,
+            "exposure_cap": 9622,
+            "low_liquidity": 3390,
+            "migrating_curve_complete": 1,
+            "mint_unsafe": 297,
+            "no_cash": 23366,
+            "price_guard": 16832,
+            "reentry_cooldown": 341,
+            "top10_share_too_high": 1646,
+            "venue_unvalidated": 58924
+          },
+          "failed_buys": 5,
+          "final_exits": {
+            "DataEnd": 12,
+            "DevSell": 2,
+            "Trail": 15
+          },
+          "held_to_5x": 1,
+          "pnl_sol": 0.14547194500000005,
+          "signals_in_window": 114755,
+          "trades": 29,
+          "window": "v5_s02d_14h"
+        }
+      ]
+    },
+    {
+      "summary": {
+        "costs_sol": 0.04250000000000003,
+        "expectancy_excl_top1pct_sol": -0.0023442441794871796,
+        "expectancy_sol": 0.0005710344999999998,
+        "max_drawdown_pct_worst": 20.120015059883613,
+        "mean_return_pct": 2.4121166844540465,
+        "median_return_pct": 2.4121166844540465,
+        "moonshot_capture": 0.0,
+        "positive_windows": 1,
+        "profit_factor": 1.1156850202288155,
+        "runners_10x": 109,
+        "runners_captured_5x": 0,
+        "total_pnl_sol": 0.022841379999999994,
+        "trades": 40,
+        "win_rate": 0.375,
+        "windows": 1
+      },
+      "variant": "only_position_limit_30",
+      "windows": [
+        {
+          "blocked": {
+            "blacklisted": 9,
+            "bundle_share_too_high": 279,
+            "exposure_cap": 9966,
+            "low_liquidity": 3389,
+            "migrating_curve_complete": 1,
+            "mint_unsafe": 297,
+            "no_cash": 20259,
+            "price_guard": 16473,
+            "reentry_cooldown": 413,
+            "top10_share_too_high": 1646,
+            "venue_unvalidated": 58006
+          },
+          "failed_buys": 5,
+          "final_exits": {
+            "DataEnd": 22,
+            "DevSell": 2,
+            "LpDrop": 2,
+            "Trail": 14
+          },
+          "held_to_5x": 1,
+          "pnl_sol": 0.020341380000000964,
+          "signals_in_window": 110783,
+          "trades": 40,
+          "window": "v5_s02d_14h"
+        }
+      ]
+    },
+    {
+      "summary": {
+        "costs_sol": 0.017500000000000012,
+        "expectancy_excl_top1pct_sol": -0.009251168400000006,
+        "expectancy_sol": -0.007348438500000004,
+        "max_drawdown_pct_worst": 20.05533882922874,
+        "mean_return_pct": -14.06083434127835,
+        "median_return_pct": -14.06083434127835,
+        "moonshot_capture": 0.0,
+        "positive_windows": 0,
+        "profit_factor": 0.2635769229297323,
+        "runners_10x": 105,
+        "runners_captured_5x": 0,
+        "total_pnl_sol": -0.11757501600000006,
+        "trades": 16,
+        "win_rate": 0.1875,
+        "windows": 1
+      },
+      "variant": "legacy_v4_radar",
+      "windows": [
+        {
+          "blocked": {
+            "bundle_share_too_high": 6,
+            "exposure_cap": 1691,
+            "low_liquidity": 1018,
+            "max_entries_per_min": 222,
+            "migrating_curve_complete": 22,
+            "mint_unsafe": 1,
+            "price_guard": 118,
+            "top10_share_too_high": 3,
+            "venue_unvalidated": 2010
+          },
+          "failed_buys": 2,
+          "final_exits": {
+            "DataEnd": 8,
+            "DevSell": 3,
+            "Trail": 5
+          },
+          "held_to_5x": 0,
+          "pnl_sol": -0.11857501600000031,
+          "signals_in_window": 5109,
+          "trades": 16,
+          "window": "v5_s02d_14h"
+        }
+      ]
+    }
+  ],
+  "windows": [
+    "v5_s02d_14h"
+  ]
+}

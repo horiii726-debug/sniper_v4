@@ -1,0 +1,67 @@
+{
+ "dir": "data/v5_s02d_14h",
+ "trades_checked": 1672828,
+ "outlier_share": 0.01587192466888407,
+ "by_venue": {
+  "meteora_damm_v2": {
+   "trades": 324553,
+   "outlier_share": 0.0047419065607158155,
+   "arb_share_of_outliers": 0.000649772579597141
+  },
+  "meteora_dbc": {
+   "trades": 118361,
+   "outlier_share": 0.01947432008854268,
+   "arb_share_of_outliers": 0.0
+  },
+  "meteora_dlmm": {
+   "trades": 40753,
+   "outlier_share": 0.0006625279120555542,
+   "arb_share_of_outliers": 0.1111111111111111
+  },
+  "orca_whirlpool": {
+   "trades": 37074,
+   "outlier_share": 0.0009710309111506716,
+   "arb_share_of_outliers": 0.0
+  },
+  "other_venue": {
+   "trades": 332482,
+   "outlier_share": 0.01926119308714457,
+   "arb_share_of_outliers": 0.0010930668332292317
+  },
+  "pumpfun_curve": {
+   "trades": 230987,
+   "outlier_share": 0.06202946486165888,
+   "arb_share_of_outliers": 0.0
+  },
+  "pumpswap": {
+   "trades": 445801,
+   "outlier_share": 0.0029093698757966,
+   "arb_share_of_outliers": 0.0015420200462606013
+  },
+  "raydium_amm_v4": {
+   "trades": 11976,
+   "outlier_share": 0.0010855043420173681,
+   "arb_share_of_outliers": 0.0
+  },
+  "raydium_clmm": {
+   "trades": 19999,
+   "outlier_share": 0.00035001750087504374,
+   "arb_share_of_outliers": 0.0
+  },
+  "raydium_cpmm": {
+   "trades": 1950,
+   "outlier_share": 0.031794871794871796,
+   "arb_share_of_outliers": 0.016129032258064516
+  },
+  "raydium_launchlab": {
+   "trades": 333,
+   "outlier_share": 0.04504504504504504,
+   "arb_share_of_outliers": 0.0
+  },
+  "stable_quoted": {
+   "trades": 108559,
+   "outlier_share": 0.004771598854079348,
+   "arb_share_of_outliers": 0.777992277992278
+  }
+ }
+}

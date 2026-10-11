@@ -1,0 +1,175 @@
+{
+ "label": "EXPLORATORY pre-takeoff traits (5 min before +10 %), descriptive",
+ "coins": 747,
+ "class_counts": {
+  "runner_2_10x": 274,
+  "moonshot_10x": 184,
+  "fizzle_lt_1.5x": 179,
+  "mid_1.5_2x": 110
+ },
+ "class_by_venue": {
+  "meteora_damm_v2": {
+   "fizzle_lt_1.5x": 23,
+   "mid_1.5_2x": 15,
+   "moonshot_10x": 25,
+   "runner_2_10x": 47
+  },
+  "meteora_dbc": {
+   "fizzle_lt_1.5x": 4,
+   "mid_1.5_2x": 12,
+   "moonshot_10x": 5,
+   "runner_2_10x": 29
+  },
+  "meteora_dlmm": {
+   "fizzle_lt_1.5x": 7,
+   "mid_1.5_2x": 0,
+   "moonshot_10x": 5,
+   "runner_2_10x": 0
+  },
+  "orca_whirlpool": {
+   "fizzle_lt_1.5x": 1,
+   "mid_1.5_2x": 0,
+   "moonshot_10x": 1,
+   "runner_2_10x": 1
+  },
+  "other_venue": {
+   "fizzle_lt_1.5x": 13,
+   "mid_1.5_2x": 9,
+   "moonshot_10x": 92,
+   "runner_2_10x": 25
+  },
+  "pumpfun_curve": {
+   "fizzle_lt_1.5x": 80,
+   "mid_1.5_2x": 56,
+   "moonshot_10x": 23,
+   "runner_2_10x": 154
+  },
+  "pumpswap": {
+   "fizzle_lt_1.5x": 41,
+   "mid_1.5_2x": 14,
+   "moonshot_10x": 29,
+   "runner_2_10x": 12
+  },
+  "raydium_amm_v4": {
+   "fizzle_lt_1.5x": 2,
+   "mid_1.5_2x": 0,
+   "moonshot_10x": 0,
+   "runner_2_10x": 0
+  },
+  "raydium_clmm": {
+   "fizzle_lt_1.5x": 0,
+   "mid_1.5_2x": 0,
+   "moonshot_10x": 0,
+   "runner_2_10x": 1
+  },
+  "raydium_cpmm": {
+   "fizzle_lt_1.5x": 2,
+   "mid_1.5_2x": 0,
+   "moonshot_10x": 1,
+   "runner_2_10x": 1
+  },
+  "stable_quoted": {
+   "fizzle_lt_1.5x": 6,
+   "mid_1.5_2x": 4,
+   "moonshot_10x": 3,
+   "runner_2_10x": 4
+  }
+ },
+ "median_by_class": {
+  "fizzle_lt_1.5x": {
+   "age_at_t0_s": 147.0,
+   "trades_5m": 58.0,
+   "buyers_5m": 15.0,
+   "sellers_5m": 12.0,
+   "buy_sol_5m": 8.482256764,
+   "sell_sol_5m": 7.939261264,
+   "net_flow_over_liq": 0.04509581717884251,
+   "buy_sell_count_ratio": 1.2941176470588236,
+   "median_buy_usd": 24.81733072308,
+   "max_buy_usd": 213.46200000000002,
+   "dust_share_of_buys": 0.1288430420711974,
+   "top_buyer_share": 0.268229436293429,
+   "new_wallet_share": 0.2761904761904762,
+   "buyer_accel_60s": 0.0,
+   "liquidity_usd": 4766.88116982153,
+   "arb_share": 0.0,
+   "venues_5m": 1.0
+  },
+  "mid_1.5_2x": {
+   "age_at_t0_s": 122.0,
+   "trades_5m": 98.0,
+   "buyers_5m": 30.5,
+   "sellers_5m": 18.5,
+   "buy_sol_5m": 21.945501432,
+   "sell_sol_5m": 15.341399191,
+   "net_flow_over_liq": 0.1394122803441732,
+   "buy_sell_count_ratio": 1.2624641545504853,
+   "median_buy_usd": 23.657880621615,
+   "max_buy_usd": 277.17520908171,
+   "dust_share_of_buys": 0.106203007518797,
+   "top_buyer_share": 0.19687174536817864,
+   "new_wallet_share": 0.15576923076923077,
+   "buyer_accel_60s": -0.5,
+   "liquidity_usd": 4439.538006763994,
+   "arb_share": 0.0,
+   "venues_5m": 1.0
+  },
+  "moonshot_10x": {
+   "age_at_t0_s": 120.0,
+   "trades_5m": 456.0,
+   "buyers_5m": 171.0,
+   "sellers_5m": 38.0,
+   "buy_sol_5m": 6.5066719995,
+   "sell_sol_5m": 0.9494589805,
+   "net_flow_over_liq": 0.0216324047401698,
+   "buy_sell_count_ratio": 3.5091130791939418,
+   "median_buy_usd": 12.569415233145001,
+   "max_buy_usd": 109.95481863066,
+   "dust_share_of_buys": 0.7692365707951409,
+   "top_buyer_share": 0.08720371898235242,
+   "new_wallet_share": 0.0754985754985755,
+   "buyer_accel_60s": -2.0,
+   "liquidity_usd": 10213.947653046405,
+   "arb_share": 0.0,
+   "venues_5m": 2.0
+  },
+  "runner_2_10x": {
+   "age_at_t0_s": 120.0,
+   "trades_5m": 193.5,
+   "buyers_5m": 62.5,
+   "sellers_5m": 31.5,
+   "buy_sol_5m": 36.865985812,
+   "sell_sol_5m": 22.265783003,
+   "net_flow_over_liq": 0.23532146178699875,
+   "buy_sell_count_ratio": 1.3053728070175439,
+   "median_buy_usd": 17.342317962367503,
+   "max_buy_usd": 285.177477577785,
+   "dust_share_of_buys": 0.11559162303664922,
+   "top_buyer_share": 0.16513630944539903,
+   "new_wallet_share": 0.12416666666666668,
+   "buyer_accel_60s": 0.0,
+   "liquidity_usd": 4899.171375214365,
+   "arb_share": 0.0,
+   "venues_5m": 1.0
+  }
+ },
+ "auc_moonshot_vs_fizzle": {
+  "age_at_t0_s": 0.1711349283458829,
+  "trades_5m": 0.8063213504979354,
+  "buyers_5m": 0.7845063152781151,
+  "dust_share_of_buys": 0.7783799462628237,
+  "venues_5m": 0.7575601165897499,
+  "buy_sell_count_ratio": 0.7218089628370172,
+  "median_buy_usd": 0.3340114160796696,
+  "top_buyer_share": 0.3512762579384465,
+  "arb_share": 0.6403631284916201,
+  "sellers_5m": 0.6293721156181686,
+  "liquidity_usd": 0.6256983240223464,
+  "sell_sol_5m": 0.38435146951663834,
+  "new_wallet_share": 0.38728932584269665,
+  "net_flow_over_liq": 0.6051736701481661,
+  "max_buy_usd": 0.4753764877337867,
+  "buy_sol_5m": 0.5159703667719213,
+  "buyer_accel_60s": 0.4893581491377217
+ }
+}
