@@ -1,0 +1,338 @@
+{
+ "label": "EXPLORATORY coin-level accuracy (first passing row per coin)",
+ "windows": {
+  "s02d_14h": {
+   "coins": 2891,
+   "decision_rows": 120507,
+   "base_first_row": {
+    "ge2x": 0.15012106537530268,
+    "ge10x": 0.020062262193012798,
+    "rugdead": 0.06433759944655829
+   },
+   "coins_ever_ge2x": 652,
+   "coins_ever_ge10x": 99,
+   "entry": [
+    {
+     "top_rows_pct": 20.0,
+     "threshold": 0.026805960386000006,
+     "coins_bought": 1063,
+     "prec_ge2x": 0.2982126058325494,
+     "prec_ge10x": 0.02916274694261524,
+     "rugdead": 0.14769520225776106,
+     "share_of_10x_coins_caught": 0.31313131313131315
+    },
+    {
+     "top_rows_pct": 10.0,
+     "threshold": 0.06242819526800001,
+     "coins_bought": 605,
+     "prec_ge2x": 0.32727272727272727,
+     "prec_ge10x": 0.03966942148760331,
+     "rugdead": 0.16859504132231404,
+     "share_of_10x_coins_caught": 0.24242424242424243
+    },
+    {
+     "top_rows_pct": 5.0,
+     "threshold": 0.068984296116,
+     "coins_bought": 453,
+     "prec_ge2x": 0.32671081677704195,
+     "prec_ge10x": 0.039735099337748346,
+     "rugdead": 0.19426048565121412,
+     "share_of_10x_coins_caught": 0.18181818181818182
+    },
+    {
+     "top_rows_pct": 2.0,
+     "threshold": 0.0733794738856001,
+     "coins_bought": 240,
+     "prec_ge2x": 0.31666666666666665,
+     "prec_ge10x": 0.041666666666666664,
+     "rugdead": 0.17083333333333334,
+     "share_of_10x_coins_caught": 0.10101010101010101
+    },
+    {
+     "top_rows_pct": 1.0,
+     "threshold": 0.0753345678676,
+     "coins_bought": 136,
+     "prec_ge2x": 0.3161764705882353,
+     "prec_ge10x": 0.04411764705882353,
+     "rugdead": 0.08088235294117647,
+     "share_of_10x_coins_caught": 0.06060606060606061
+    },
+    {
+     "top_rows_pct": 0.5,
+     "threshold": 0.077487067884,
+     "coins_bought": 78,
+     "prec_ge2x": 0.38461538461538464,
+     "prec_ge10x": 0.0641025641025641,
+     "rugdead": 0.08974358974358974,
+     "share_of_10x_coins_caught": 0.050505050505050504
+    }
+   ],
+   "rug": [
+    {
+     "top_rows_pct": 20.0,
+     "threshold": 0.0516336781,
+     "coins_flagged": 1279,
+     "prec_rugdead": 0.16184519155590305,
+     "ge2x_among_flagged": 0.21266614542611414
+    },
+    {
+     "top_rows_pct": 10.0,
+     "threshold": 0.357948653,
+     "coins_flagged": 661,
+     "prec_rugdead": 0.2874432677760968,
+     "ge2x_among_flagged": 0.2980332829046899
+    },
+    {
+     "top_rows_pct": 5.0,
+     "threshold": 0.431451686,
+     "coins_flagged": 409,
+     "prec_rugdead": 0.34963325183374083,
+     "ge2x_among_flagged": 0.3422982885085575
+    },
+    {
+     "top_rows_pct": 2.0,
+     "threshold": 0.557480949,
+     "coins_flagged": 65,
+     "prec_rugdead": 0.47692307692307695,
+     "ge2x_among_flagged": 0.4307692307692308
+    },
+    {
+     "top_rows_pct": 1.0,
+     "threshold": 0.693640161,
+     "coins_flagged": 21,
+     "prec_rugdead": 0.5714285714285714,
+     "ge2x_among_flagged": 0.42857142857142855
+    },
+    {
+     "top_rows_pct": 0.5,
+     "threshold": 0.83097166,
+     "coins_flagged": 11,
+     "prec_rugdead": 0.5454545454545454,
+     "ge2x_among_flagged": 0.45454545454545453
+    }
+   ]
+  },
+  "s04d_04h": {
+   "coins": 1084,
+   "decision_rows": 33318,
+   "base_first_row": {
+    "ge2x": 0.07564575645756458,
+    "ge10x": 0.015682656826568265,
+    "rugdead": 0.0470479704797048
+   },
+   "coins_ever_ge2x": 138,
+   "coins_ever_ge10x": 30,
+   "entry": [
+    {
+     "top_rows_pct": 20.0,
+     "threshold": 0.013641208503200001,
+     "coins_bought": 245,
+     "prec_ge2x": 0.2693877551020408,
+     "prec_ge10x": 0.04081632653061224,
+     "rugdead": 0.19591836734693877,
+     "share_of_10x_coins_caught": 0.3333333333333333
+    },
+    {
+     "top_rows_pct": 10.0,
+     "threshold": 0.0219674460317,
+     "coins_bought": 172,
+     "prec_ge2x": 0.3313953488372093,
+     "prec_ge10x": 0.06395348837209303,
+     "rugdead": 0.21511627906976744,
+     "share_of_10x_coins_caught": 0.36666666666666664
+    },
+    {
+     "top_rows_pct": 5.0,
+     "threshold": 0.0248298154114,
+     "coins_bought": 107,
+     "prec_ge2x": 0.4485981308411215,
+     "prec_ge10x": 0.04672897196261682,
+     "rugdead": 0.08411214953271028,
+     "share_of_10x_coins_caught": 0.16666666666666666
+    },
+    {
+     "top_rows_pct": 2.0,
+     "threshold": 0.02719133014038,
+     "coins_bought": 55,
+     "prec_ge2x": 0.4727272727272727,
+     "prec_ge10x": 0.05454545454545454,
+     "rugdead": 0.16363636363636364,
+     "share_of_10x_coins_caught": 0.1
+    },
+    {
+     "top_rows_pct": 1.0,
+     "threshold": 0.02958828665841007,
+     "coins_bought": 32,
+     "prec_ge2x": 0.40625,
+     "prec_ge10x": 0.0,
+     "rugdead": 0.125,
+     "share_of_10x_coins_caught": 0.0
+    },
+    {
+     "top_rows_pct": 0.5,
+     "threshold": 0.030973533737925028,
+     "coins_bought": 22,
+     "prec_ge2x": 0.4090909090909091,
+     "prec_ge10x": 0.045454545454545456,
+     "rugdead": 0.13636363636363635,
+     "share_of_10x_coins_caught": 0.03333333333333333
+    }
+   ],
+   "rug": [
+    {
+     "top_rows_pct": 20.0,
+     "threshold": 0.0603088771,
+     "coins_flagged": 440,
+     "prec_rugdead": 0.11818181818181818,
+     "ge2x_among_flagged": 0.11818181818181818
+    },
+    {
+     "top_rows_pct": 10.0,
+     "threshold": 0.3157252494999998,
+     "coins_flagged": 133,
+     "prec_rugdead": 0.37593984962406013,
+     "ge2x_among_flagged": 0.22556390977443608
+    },
+    {
+     "top_rows_pct": 5.0,
+     "threshold": 0.443822927,
+     "coins_flagged": 100,
+     "prec_rugdead": 0.46,
+     "ge2x_among_flagged": 0.26
+    },
+    {
+     "top_rows_pct": 2.0,
+     "threshold": 0.509929904,
+     "coins_flagged": 56,
+     "prec_rugdead": 0.44642857142857145,
+     "ge2x_among_flagged": 0.30357142857142855
+    },
+    {
+     "top_rows_pct": 1.0,
+     "threshold": 0.548919299,
+     "coins_flagged": 30,
+     "prec_rugdead": 0.43333333333333335,
+     "ge2x_among_flagged": 0.4
+    },
+    {
+     "top_rows_pct": 0.5,
+     "threshold": 0.5789326,
+     "coins_flagged": 13,
+     "prec_rugdead": 0.6153846153846154,
+     "ge2x_among_flagged": 0.23076923076923078
+    }
+   ]
+  },
+  "s05d_11h": {
+   "coins": 1694,
+   "decision_rows": 48617,
+   "base_first_row": {
+    "ge2x": 0.10566706021251476,
+    "ge10x": 0.009445100354191263,
+    "rugdead": 0.06080283353010626
+   },
+   "coins_ever_ge2x": 289,
+   "coins_ever_ge10x": 41,
+   "entry": [
+    {
+     "top_rows_pct": 20.0,
+     "threshold": 0.0525476592,
+     "coins_bought": 293,
+     "prec_ge2x": 0.26621160409556316,
+     "prec_ge10x": 0.023890784982935155,
+     "rugdead": 0.16723549488054607,
+     "share_of_10x_coins_caught": 0.17073170731707318
+    },
+    {
+     "top_rows_pct": 10.0,
+     "threshold": 0.08738277636000001,
+     "coins_bought": 164,
+     "prec_ge2x": 0.2926829268292683,
+     "prec_ge10x": 0.024390243902439025,
+     "rugdead": 0.17682926829268292,
+     "share_of_10x_coins_caught": 0.0975609756097561
+    },
+    {
+     "top_rows_pct": 5.0,
+     "threshold": 0.11127341775999998,
+     "coins_bought": 103,
+     "prec_ge2x": 0.22330097087378642,
+     "prec_ge10x": 0.02912621359223301,
+     "rugdead": 0.20388349514563106,
+     "share_of_10x_coins_caught": 0.07317073170731707
+    },
+    {
+     "top_rows_pct": 2.0,
+     "threshold": 0.165116545396,
+     "coins_bought": 59,
+     "prec_ge2x": 0.2033898305084746,
+     "prec_ge10x": 0.03389830508474576,
+     "rugdead": 0.11864406779661017,
+     "share_of_10x_coins_caught": 0.04878048780487805
+    },
+    {
+     "top_rows_pct": 1.0,
+     "threshold": 0.22995736109199996,
+     "coins_bought": 43,
+     "prec_ge2x": 0.13953488372093023,
+     "prec_ge10x": 0.046511627906976744,
+     "rugdead": 0.18604651162790697,
+     "share_of_10x_coins_caught": 0.04878048780487805
+    },
+    {
+     "top_rows_pct": 0.5,
+     "threshold": 0.2886414227239938,
+     "coins_bought": 26,
+     "prec_ge2x": 0.15384615384615385,
+     "prec_ge10x": 0.038461538461538464,
+     "rugdead": 0.07692307692307693,
+     "share_of_10x_coins_caught": 0.024390243902439025
+    }
+   ],
+   "rug": [
+    {
+     "top_rows_pct": 20.0,
+     "threshold": 0.201776326,
+     "coins_flagged": 537,
+     "prec_rugdead": 0.18994413407821228,
+     "ge2x_among_flagged": 0.2011173184357542
+    },
+    {
+     "top_rows_pct": 10.0,
+     "threshold": 0.497511985,
+     "coins_flagged": 236,
+     "prec_rugdead": 0.3771186440677966,
+     "ge2x_among_flagged": 0.3177966101694915
+    },
+    {
+     "top_rows_pct": 5.0,
+     "threshold": 0.563731051,
+     "coins_flagged": 166,
+     "prec_rugdead": 0.40963855421686746,
+     "ge2x_among_flagged": 0.3674698795180723
+    },
+    {
+     "top_rows_pct": 2.0,
+     "threshold": 0.687327044,
+     "coins_flagged": 68,
+     "prec_rugdead": 0.4852941176470588,
+     "ge2x_among_flagged": 0.38235294117647056
+    },
+    {
+     "top_rows_pct": 1.0,
+     "threshold": 0.776451003,
+     "coins_flagged": 40,
+     "prec_rugdead": 0.55,
+     "ge2x_among_flagged": 0.35
+    },
+    {
+     "top_rows_pct": 0.5,
+     "threshold": 0.881850854,
+     "coins_flagged": 13,
+     "prec_rugdead": 0.6153846153846154,
+     "ge2x_among_flagged": 0.23076923076923078
+    }
+   ]
+  }
+ }
+}
