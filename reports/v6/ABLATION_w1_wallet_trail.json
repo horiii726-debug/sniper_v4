@@ -1,0 +1,915 @@
+{
+  "label": "EXPLORATORY component ablation (paper only). Strategy rows run WITHOUT a model (direction only); a component is kept only if it improves out-of-sample expectancy after costs on most test windows.",
+  "radar": [
+    {
+      "variant": "base",
+      "windows": [
+        {
+          "cusum_alarmed_before_10": 70,
+          "cusum_false_per_coin_hour": 7.888191892568696,
+          "cusum_runners_5x": 240,
+          "hot_per_min": 27.262848086936838,
+          "naive_precision_2x": 0.22972972972972974,
+          "new_5x": {
+            "armed_before_10": 128,
+            "hot_at_30": 67,
+            "hot_before_10": 64,
+            "n": 128
+          },
+          "old_5x": {
+            "armed_before_10": 105,
+            "hot_at_30": 105,
+            "hot_before_10": 101,
+            "n": 112
+          },
+          "precision_2x": 0.23504499735309686,
+          "watch_per_min": 70.74484944532489,
+          "window": "v5_s02d_14h"
+        }
+      ]
+    },
+    {
+      "variant": "legacy_v4_radar",
+      "windows": [
+        {
+          "cusum_alarmed_before_10": 0,
+          "cusum_false_per_coin_hour": 0.0,
+          "cusum_runners_5x": 241,
+          "hot_per_min": 69.71247453022414,
+          "naive_precision_2x": 0.022813688212927757,
+          "new_5x": {
+            "armed_before_10": 233,
+            "hot_at_30": 234,
+            "hot_before_10": 233,
+            "n": 235
+          },
+          "old_5x": {
+            "armed_before_10": 3,
+            "hot_at_30": 5,
+            "hot_before_10": 3,
+            "n": 6
+          },
+          "precision_2x": 0.08052884615384616,
+          "watch_per_min": 0.0,
+          "window": "v5_s02d_14h"
+        }
+      ]
+    },
+    {
+      "variant": "no_cusum",
+      "windows": [
+        {
+          "cusum_alarmed_before_10": 0,
+          "cusum_false_per_coin_hour": 0.0,
+          "cusum_runners_5x": 240,
+          "hot_per_min": 27.262848086936838,
+          "naive_precision_2x": 0.22972972972972974,
+          "new_5x": {
+            "armed_before_10": 128,
+            "hot_at_30": 67,
+            "hot_before_10": 64,
+            "n": 128
+          },
+          "old_5x": {
+            "armed_before_10": 104,
+            "hot_at_30": 105,
+            "hot_before_10": 101,
+            "n": 112
+          },
+          "precision_2x": 0.23504499735309686,
+          "watch_per_min": 46.6606293864614,
+          "window": "v5_s02d_14h"
+        }
+      ]
+    },
+    {
+      "variant": "no_flow_rule",
+      "windows": [
+        {
+          "cusum_alarmed_before_10": 70,
+          "cusum_false_per_coin_hour": 7.888191892568696,
+          "cusum_runners_5x": 240,
+          "hot_per_min": 27.22209644555128,
+          "naive_precision_2x": 0.22972972972972974,
+          "new_5x": {
+            "armed_before_10": 128,
+            "hot_at_30": 67,
+            "hot_before_10": 64,
+            "n": 128
+          },
+          "old_5x": {
+            "armed_before_10": 105,
+            "hot_at_30": 105,
+            "hot_before_10": 101,
+            "n": 112
+          },
+          "precision_2x": 0.2354188759278897,
+          "watch_per_min": 70.74484944532489,
+          "window": "v5_s02d_14h"
+        }
+      ]
+    },
+    {
+      "variant": "no_watch",
+      "windows": [
+        {
+          "cusum_alarmed_before_10": 70,
+          "cusum_false_per_coin_hour": 7.888191892568696,
+          "cusum_runners_5x": 240,
+          "hot_per_min": 27.262848086936838,
+          "naive_precision_2x": 0.22972972972972974,
+          "new_5x": {
+            "armed_before_10": 64,
+            "hot_at_30": 67,
+            "hot_before_10": 64,
+            "n": 128
+          },
+          "old_5x": {
+            "armed_before_10": 101,
+            "hot_at_30": 105,
+            "hot_before_10": 101,
+            "n": 112
+          },
+          "precision_2x": 0.23504499735309686,
+          "watch_per_min": 0.0,
+          "window": "v5_s02d_14h"
+        }
+      ]
+    },
+    {
+      "variant": "old_median_block_1.0",
+      "windows": [
+        {
+          "cusum_alarmed_before_10": 70,
+          "cusum_false_per_coin_hour": 7.888191892568696,
+          "cusum_runners_5x": 240,
+          "hot_per_min": 27.20851256508943,
+          "naive_precision_2x": 0.22972972972972974,
+          "new_5x": {
+            "armed_before_10": 128,
+            "hot_at_30": 67,
+            "hot_before_10": 64,
+            "n": 128
+          },
+          "old_5x": {
+            "armed_before_10": 105,
+            "hot_at_30": 105,
+            "hot_before_10": 101,
+            "n": 112
+          },
+          "precision_2x": 0.2354188759278897,
+          "watch_per_min": 70.77201720624859,
+          "window": "v5_s02d_14h"
+        }
+      ]
+    },
+    {
+      "variant": "no_old_buy_sell_cap",
+      "windows": [
+        {
+          "cusum_alarmed_before_10": 70,
+          "cusum_false_per_coin_hour": 7.888191892568696,
+          "cusum_runners_5x": 240,
+          "hot_per_min": 27.453022413402763,
+          "naive_precision_2x": 0.22972972972972974,
+          "new_5x": {
+            "armed_before_10": 128,
+            "hot_at_30": 67,
+            "hot_before_10": 64,
+            "n": 128
+          },
+          "old_5x": {
+            "armed_before_10": 105,
+            "hot_at_30": 105,
+            "hot_before_10": 102,
+            "n": 112
+          },
+          "precision_2x": 0.2335612835349816,
+          "watch_per_min": 70.70409780393933,
+          "window": "v5_s02d_14h"
+        }
+      ]
+    },
+    {
+      "variant": "wallets_not_clusters",
+      "windows": [
+        {
+          "cusum_alarmed_before_10": 70,
+          "cusum_false_per_coin_hour": 7.888191892568696,
+          "cusum_runners_5x": 240,
+          "hot_per_min": 27.262848086936838,
+          "naive_precision_2x": 0.22972972972972974,
+          "new_5x": {
+            "armed_before_10": 128,
+            "hot_at_30": 67,
+            "hot_before_10": 64,
+            "n": 128
+          },
+          "old_5x": {
+            "armed_before_10": 105,
+            "hot_at_30": 105,
+            "hot_before_10": 101,
+            "n": 112
+          },
+          "precision_2x": 0.23504499735309686,
+          "watch_per_min": 70.74484944532489,
+          "window": "v5_s02d_14h"
+        }
+      ]
+    },
+    {
+      "variant": "creator_counted",
+      "windows": [
+        {
+          "cusum_alarmed_before_10": 70,
+          "cusum_false_per_coin_hour": 7.888191892568696,
+          "cusum_runners_5x": 240,
+          "hot_per_min": 27.262848086936838,
+          "naive_precision_2x": 0.22972972972972974,
+          "new_5x": {
+            "armed_before_10": 128,
+            "hot_at_30": 67,
+            "hot_before_10": 64,
+            "n": 128
+          },
+          "old_5x": {
+            "armed_before_10": 105,
+            "hot_at_30": 105,
+            "hot_before_10": 101,
+            "n": 112
+          },
+          "precision_2x": 0.23504499735309686,
+          "watch_per_min": 70.74484944532489,
+          "window": "v5_s02d_14h"
+        }
+      ]
+    },
+    {
+      "variant": "no_new_coin_age_limit",
+      "windows": [
+        {
+          "cusum_alarmed_before_10": 70,
+          "cusum_false_per_coin_hour": 7.888191892568696,
+          "cusum_runners_5x": 240,
+          "hot_per_min": 27.262848086936838,
+          "naive_precision_2x": 0.22972972972972974,
+          "new_5x": {
+            "armed_before_10": 128,
+            "hot_at_30": 67,
+            "hot_before_10": 64,
+            "n": 128
+          },
+          "old_5x": {
+            "armed_before_10": 105,
+            "hot_at_30": 105,
+            "hot_before_10": 101,
+            "n": 112
+          },
+          "precision_2x": 0.23504499735309686,
+          "watch_per_min": 74.49400045279602,
+          "window": "v5_s02d_14h"
+        }
+      ]
+    }
+  ],
+  "strategy": [
+    {
+      "summary": {
+        "costs_sol": 0.017500000000000012,
+        "expectancy_excl_top1pct_sol": 0.006670344642857142,
+        "expectancy_sol": 0.008341219266666665,
+        "max_drawdown_pct_worst": 7.2940816349490785,
+        "mean_return_pct": 14.540292778370677,
+        "median_return_pct": 14.540292778370677,
+        "moonshot_capture": 0.0,
+        "positive_windows": 1,
+        "profit_factor": 6.025042177476291,
+        "runners_10x": 140,
+        "runners_captured_5x": 0,
+        "total_pnl_sol": 0.12511828899999997,
+        "trades": 15,
+        "win_rate": 0.6,
+        "windows": 1
+      },
+      "variant": "base",
+      "windows": [
+        {
+          "final_exits": {
+            "DataEnd": 10,
+            "DevSell": 1,
+            "Trail": 4
+          },
+          "held_to_5x": 0,
+          "pnl_sol": 0.12261828899999994,
+          "trades": 15,
+          "window": "v5_s02d_14h"
+        }
+      ]
+    },
+    {
+      "summary": {
+        "costs_sol": 0.02600000000000002,
+        "expectancy_excl_top1pct_sol": -0.0010898802500000021,
+        "expectancy_sol": 0.0004731361428571398,
+        "max_drawdown_pct_worst": 9.230969213108132,
+        "mean_return_pct": 0.7038846199453941,
+        "median_return_pct": 0.7038846199453941,
+        "moonshot_capture": 0.0,
+        "positive_windows": 1,
+        "profit_factor": 1.0985294196104445,
+        "runners_10x": 140,
+        "runners_captured_5x": 0,
+        "total_pnl_sol": 0.009935858999999936,
+        "trades": 21,
+        "win_rate": 0.42857142857142855,
+        "windows": 1
+      },
+      "variant": "exit_fade_and_drawdown",
+      "windows": [
+        {
+          "final_exits": {
+            "DataEnd": 9,
+            "Dead": 4,
+            "MomentumFade": 8
+          },
+          "held_to_5x": 0,
+          "pnl_sol": 0.005935858999999599,
+          "trades": 21,
+          "window": "v5_s02d_14h"
+        }
+      ]
+    },
+    {
+      "summary": {
+        "costs_sol": 0.017500000000000012,
+        "expectancy_excl_top1pct_sol": 0.006670344642857142,
+        "expectancy_sol": 0.008341219266666665,
+        "max_drawdown_pct_worst": 7.2940816349490785,
+        "mean_return_pct": 14.540292778370677,
+        "median_return_pct": 14.540292778370677,
+        "moonshot_capture": 0.0,
+        "positive_windows": 1,
+        "profit_factor": 6.025042177476291,
+        "runners_10x": 140,
+        "runners_captured_5x": 0,
+        "total_pnl_sol": 0.12511828899999997,
+        "trades": 15,
+        "win_rate": 0.6,
+        "windows": 1
+      },
+      "variant": "exit_trail",
+      "windows": [
+        {
+          "final_exits": {
+            "DataEnd": 10,
+            "DevSell": 1,
+            "Trail": 4
+          },
+          "held_to_5x": 0,
+          "pnl_sol": 0.12261828899999994,
+          "trades": 15,
+          "window": "v5_s02d_14h"
+        }
+      ]
+    },
+    {
+      "summary": {
+        "costs_sol": 0.017500000000000012,
+        "expectancy_excl_top1pct_sol": 0.002046363714285711,
+        "expectancy_sol": 0.004025503733333329,
+        "max_drawdown_pct_worst": 7.547508165487127,
+        "mean_return_pct": 6.8638154867781465,
+        "median_return_pct": 6.8638154867781465,
+        "moonshot_capture": 0.0,
+        "positive_windows": 1,
+        "profit_factor": 1.9883127228877775,
+        "runners_10x": 140,
+        "runners_captured_5x": 0,
+        "total_pnl_sol": 0.060382555999999935,
+        "trades": 15,
+        "win_rate": 0.5333333333333333,
+        "windows": 1
+      },
+      "variant": "exit_adaptive_trail",
+      "windows": [
+        {
+          "final_exits": {
+            "AdaptiveTrail": 7,
+            "DataEnd": 8
+          },
+          "held_to_5x": 0,
+          "pnl_sol": 0.05788255600000003,
+          "trades": 15,
+          "window": "v5_s02d_14h"
+        }
+      ]
+    },
+    {
+      "summary": {
+        "costs_sol": 0.01650000000000001,
+        "expectancy_excl_top1pct_sol": 0.0032454958333333304,
+        "expectancy_sol": 0.0054368779999999966,
+        "max_drawdown_pct_worst": 4.444411657138437,
+        "mean_return_pct": 8.084835052768913,
+        "median_return_pct": 8.084835052768913,
+        "moonshot_capture": 0.0,
+        "positive_windows": 1,
+        "profit_factor": 3.370203981754372,
+        "runners_10x": 140,
+        "runners_captured_5x": 0,
+        "total_pnl_sol": 0.07067941399999995,
+        "trades": 13,
+        "win_rate": 0.6153846153846154,
+        "windows": 1
+      },
+      "variant": "exit_ladder",
+      "windows": [
+        {
+          "final_exits": {
+            "DataEnd": 10,
+            "DevSell": 1,
+            "Stop": 1,
+            "Trail": 1
+          },
+          "held_to_5x": 0,
+          "pnl_sol": 0.06817941400000016,
+          "trades": 13,
+          "window": "v5_s02d_14h"
+        }
+      ]
+    },
+    {
+      "summary": {
+        "costs_sol": 0.019000000000000013,
+        "expectancy_excl_top1pct_sol": -0.006145965000000004,
+        "expectancy_sol": -0.004362546058823532,
+        "max_drawdown_pct_worst": 17.85289455398803,
+        "mean_return_pct": -9.031576307363952,
+        "median_return_pct": -9.031576307363952,
+        "moonshot_capture": 0.0,
+        "positive_windows": 0,
+        "profit_factor": 0.47819826854909125,
+        "runners_10x": 140,
+        "runners_captured_5x": 0,
+        "total_pnl_sol": -0.07416328300000005,
+        "trades": 17,
+        "win_rate": 0.29411764705882354,
+        "windows": 1
+      },
+      "variant": "no_price_guard",
+      "windows": [
+        {
+          "final_exits": {
+            "DataEnd": 7,
+            "DevSell": 4,
+            "LpDrop": 1,
+            "Trail": 5
+          },
+          "held_to_5x": 0,
+          "pnl_sol": -0.07616328300000019,
+          "trades": 17,
+          "window": "v5_s02d_14h"
+        }
+      ]
+    },
+    {
+      "summary": {
+        "costs_sol": 0.019500000000000014,
+        "expectancy_excl_top1pct_sol": -0.007326372937500002,
+        "expectancy_sol": -0.0056487915882352975,
+        "max_drawdown_pct_worst": 14.25449913979715,
+        "mean_return_pct": -11.565214870152985,
+        "median_return_pct": -11.565214870152985,
+        "moonshot_capture": 0.010101010101010102,
+        "positive_windows": 0,
+        "profit_factor": 0.28758010067544937,
+        "runners_10x": 99,
+        "runners_captured_5x": 1,
+        "total_pnl_sol": -0.09602945700000005,
+        "trades": 17,
+        "win_rate": 0.23529411764705882,
+        "windows": 1
+      },
+      "variant": "promote_rows_only",
+      "windows": [
+        {
+          "final_exits": {
+            "DataEnd": 8,
+            "DevSell": 4,
+            "LpDrop": 2,
+            "Trail": 3
+          },
+          "held_to_5x": 1,
+          "pnl_sol": -0.09752945700000015,
+          "trades": 17,
+          "window": "v5_s02d_14h"
+        }
+      ]
+    },
+    {
+      "summary": {
+        "costs_sol": 0.018500000000000013,
+        "expectancy_excl_top1pct_sol": -0.012787638230769236,
+        "expectancy_sol": -0.010118968928571432,
+        "max_drawdown_pct_worst": 28.19890092963353,
+        "mean_return_pct": -17.273279378631567,
+        "median_return_pct": -17.273279378631567,
+        "moonshot_capture": 0.0,
+        "positive_windows": 0,
+        "profit_factor": 0.3541910121453362,
+        "runners_10x": 140,
+        "runners_captured_5x": 0,
+        "total_pnl_sol": -0.14166556500000005,
+        "trades": 14,
+        "win_rate": 0.35714285714285715,
+        "windows": 1
+      },
+      "variant": "tick_per_slot",
+      "windows": [
+        {
+          "final_exits": {
+            "DataEnd": 6,
+            "DevSell": 2,
+            "LpDrop": 1,
+            "Trail": 5
+          },
+          "held_to_5x": 0,
+          "pnl_sol": -0.14566556500000005,
+          "trades": 14,
+          "window": "v5_s02d_14h"
+        }
+      ]
+    },
+    {
+      "summary": {
+        "costs_sol": 0.017500000000000012,
+        "expectancy_excl_top1pct_sol": 0.006670344642857142,
+        "expectancy_sol": 0.008341219266666665,
+        "max_drawdown_pct_worst": 7.2940816349490785,
+        "mean_return_pct": 14.540292778370677,
+        "median_return_pct": 14.540292778370677,
+        "moonshot_capture": 0.0,
+        "positive_windows": 1,
+        "profit_factor": 6.025042177476291,
+        "runners_10x": 140,
+        "runners_captured_5x": 0,
+        "total_pnl_sol": 0.12511828899999997,
+        "trades": 15,
+        "win_rate": 0.6,
+        "windows": 1
+      },
+      "variant": "no_time_stop",
+      "windows": [
+        {
+          "final_exits": {
+            "DataEnd": 10,
+            "DevSell": 1,
+            "Trail": 4
+          },
+          "held_to_5x": 0,
+          "pnl_sol": 0.12261828899999994,
+          "trades": 15,
+          "window": "v5_s02d_14h"
+        }
+      ]
+    },
+    {
+      "summary": {
+        "costs_sol": 0.09650000000000007,
+        "expectancy_excl_top1pct_sol": -0.002591109070588237,
+        "expectancy_sol": -0.002191986127906978,
+        "max_drawdown_pct_worst": 30.612938539352662,
+        "mean_return_pct": -23.361888651725728,
+        "median_return_pct": -23.361888651725728,
+        "moonshot_capture": 0.0,
+        "positive_windows": 0,
+        "profit_factor": 0.40540142439357074,
+        "runners_10x": 140,
+        "runners_captured_5x": 0,
+        "total_pnl_sol": -0.1885108070000001,
+        "trades": 86,
+        "win_rate": 0.09302325581395349,
+        "windows": 1
+      },
+      "variant": "time_stop_classic",
+      "windows": [
+        {
+          "final_exits": {
+            "DataEnd": 3,
+            "DevSell": 1,
+            "LpDrop": 2,
+            "TimeStop": 71,
+            "Trail": 9
+          },
+          "held_to_5x": 0,
+          "pnl_sol": -0.19701080700000306,
+          "trades": 86,
+          "window": "v5_s02d_14h"
+        }
+      ]
+    },
+    {
+      "summary": {
+        "costs_sol": 0.021000000000000015,
+        "expectancy_excl_top1pct_sol": 0.006696841470588233,
+        "expectancy_sol": 0.00820623872222222,
+        "max_drawdown_pct_worst": 7.2940816349490785,
+        "mean_return_pct": 17.160239179414184,
+        "median_return_pct": 17.160239179414184,
+        "moonshot_capture": 0.0,
+        "positive_windows": 1,
+        "profit_factor": 5.123169417729657,
+        "runners_10x": 140,
+        "runners_captured_5x": 0,
+        "total_pnl_sol": 0.14771229699999996,
+        "trades": 18,
+        "win_rate": 0.5,
+        "windows": 1
+      },
+      "variant": "time_stop_flow_le1",
+      "windows": [
+        {
+          "final_exits": {
+            "DataEnd": 6,
+            "DevSell": 1,
+            "TimeStop": 7,
+            "Trail": 4
+          },
+          "held_to_5x": 0,
+          "pnl_sol": 0.14471229699999988,
+          "trades": 18,
+          "window": "v5_s02d_14h"
+        }
+      ]
+    },
+    {
+      "summary": {
+        "costs_sol": 0.04300000000000003,
+        "expectancy_excl_top1pct_sol": 0.0005648430810810797,
+        "expectancy_sol": 0.005354541421052634,
+        "max_drawdown_pct_worst": 9.104285368559262,
+        "mean_return_pct": 23.7131002015889,
+        "median_return_pct": 23.7131002015889,
+        "moonshot_capture": 0.007142857142857143,
+        "positive_windows": 1,
+        "profit_factor": 2.547001566156754,
+        "runners_10x": 140,
+        "runners_captured_5x": 1,
+        "total_pnl_sol": 0.20347257400000007,
+        "trades": 38,
+        "win_rate": 0.2631578947368421,
+        "windows": 1
+      },
+      "variant": "time_stop_flow_le3",
+      "windows": [
+        {
+          "final_exits": {
+            "DataEnd": 7,
+            "DevSell": 2,
+            "TimeStop": 24,
+            "Trail": 5
+          },
+          "held_to_5x": 1,
+          "pnl_sol": 0.19997257399999924,
+          "trades": 38,
+          "window": "v5_s02d_14h"
+        }
+      ]
+    },
+    {
+      "summary": {
+        "costs_sol": 0.022500000000000017,
+        "expectancy_excl_top1pct_sol": -0.003501439050000004,
+        "expectancy_sol": -0.0020059696666666705,
+        "max_drawdown_pct_worst": 11.969439345428711,
+        "mean_return_pct": -5.1731724178821885,
+        "median_return_pct": -5.1731724178821885,
+        "moonshot_capture": 0.0,
+        "positive_windows": 0,
+        "profit_factor": 0.7203372139173099,
+        "runners_10x": 140,
+        "runners_captured_5x": 0,
+        "total_pnl_sol": -0.04212536300000008,
+        "trades": 21,
+        "win_rate": 0.38095238095238093,
+        "windows": 1
+      },
+      "variant": "no_entries_per_min_cap",
+      "windows": [
+        {
+          "final_exits": {
+            "DataEnd": 6,
+            "DevSell": 2,
+            "Trail": 13
+          },
+          "held_to_5x": 0,
+          "pnl_sol": -0.04362536300000053,
+          "trades": 21,
+          "window": "v5_s02d_14h"
+        }
+      ]
+    },
+    {
+      "summary": {
+        "costs_sol": 0.017500000000000012,
+        "expectancy_excl_top1pct_sol": 0.006670344642857142,
+        "expectancy_sol": 0.008341219266666665,
+        "max_drawdown_pct_worst": 7.2940816349490785,
+        "mean_return_pct": 14.540292778370677,
+        "median_return_pct": 14.540292778370677,
+        "moonshot_capture": 0.0,
+        "positive_windows": 1,
+        "profit_factor": 6.025042177476291,
+        "runners_10x": 140,
+        "runners_captured_5x": 0,
+        "total_pnl_sol": 0.12511828899999997,
+        "trades": 15,
+        "win_rate": 0.6,
+        "windows": 1
+      },
+      "variant": "no_reentry_cooldown",
+      "windows": [
+        {
+          "final_exits": {
+            "DataEnd": 10,
+            "DevSell": 1,
+            "Trail": 4
+          },
+          "held_to_5x": 0,
+          "pnl_sol": 0.12261828899999994,
+          "trades": 15,
+          "window": "v5_s02d_14h"
+        }
+      ]
+    },
+    {
+      "summary": {
+        "costs_sol": 0.017500000000000012,
+        "expectancy_excl_top1pct_sol": 0.006670344642857142,
+        "expectancy_sol": 0.008341219266666665,
+        "max_drawdown_pct_worst": 7.2940816349490785,
+        "mean_return_pct": 14.540292778370677,
+        "median_return_pct": 14.540292778370677,
+        "moonshot_capture": 0.0,
+        "positive_windows": 1,
+        "profit_factor": 6.025042177476291,
+        "runners_10x": 140,
+        "runners_captured_5x": 0,
+        "total_pnl_sol": 0.12511828899999997,
+        "trades": 15,
+        "win_rate": 0.6,
+        "windows": 1
+      },
+      "variant": "no_mint_gate",
+      "windows": [
+        {
+          "final_exits": {
+            "DataEnd": 10,
+            "DevSell": 1,
+            "Trail": 4
+          },
+          "held_to_5x": 0,
+          "pnl_sol": 0.12261828899999994,
+          "trades": 15,
+          "window": "v5_s02d_14h"
+        }
+      ]
+    },
+    {
+      "summary": {
+        "costs_sol": 0.017500000000000012,
+        "expectancy_excl_top1pct_sol": 0.006670344642857142,
+        "expectancy_sol": 0.008341219266666665,
+        "max_drawdown_pct_worst": 7.2940816349490785,
+        "mean_return_pct": 14.540292778370677,
+        "median_return_pct": 14.540292778370677,
+        "moonshot_capture": 0.0,
+        "positive_windows": 1,
+        "profit_factor": 6.025042177476291,
+        "runners_10x": 140,
+        "runners_captured_5x": 0,
+        "total_pnl_sol": 0.12511828899999997,
+        "trades": 15,
+        "win_rate": 0.6,
+        "windows": 1
+      },
+      "variant": "risk_loss_limit_30pct",
+      "windows": [
+        {
+          "final_exits": {
+            "DataEnd": 10,
+            "DevSell": 1,
+            "Trail": 4
+          },
+          "held_to_5x": 0,
+          "pnl_sol": 0.12261828899999994,
+          "trades": 15,
+          "window": "v5_s02d_14h"
+        }
+      ]
+    },
+    {
+      "summary": {
+        "costs_sol": 0.017500000000000012,
+        "expectancy_excl_top1pct_sol": 0.006670344642857142,
+        "expectancy_sol": 0.008341219266666665,
+        "max_drawdown_pct_worst": 7.2940816349490785,
+        "mean_return_pct": 14.540292778370677,
+        "median_return_pct": 14.540292778370677,
+        "moonshot_capture": 0.0,
+        "positive_windows": 1,
+        "profit_factor": 6.025042177476291,
+        "runners_10x": 140,
+        "runners_captured_5x": 0,
+        "total_pnl_sol": 0.12511828899999997,
+        "trades": 15,
+        "win_rate": 0.6,
+        "windows": 1
+      },
+      "variant": "risk_loss_streak_5",
+      "windows": [
+        {
+          "final_exits": {
+            "DataEnd": 10,
+            "DevSell": 1,
+            "Trail": 4
+          },
+          "held_to_5x": 0,
+          "pnl_sol": 0.12261828899999994,
+          "trades": 15,
+          "window": "v5_s02d_14h"
+        }
+      ]
+    },
+    {
+      "summary": {
+        "costs_sol": 0.019500000000000014,
+        "expectancy_excl_top1pct_sol": -0.007941991533333337,
+        "expectancy_sol": -0.005701653437500004,
+        "max_drawdown_pct_worst": 20.05094767702178,
+        "mean_return_pct": -11.05495731056565,
+        "median_return_pct": -11.05495731056565,
+        "moonshot_capture": 0.0,
+        "positive_windows": 0,
+        "profit_factor": 0.47393220681559023,
+        "runners_10x": 163,
+        "runners_captured_5x": 0,
+        "total_pnl_sol": -0.09122645500000007,
+        "trades": 16,
+        "win_rate": 0.375,
+        "windows": 1
+      },
+      "variant": "entry_on_watch",
+      "windows": [
+        {
+          "final_exits": {
+            "DataEnd": 6,
+            "DevSell": 1,
+            "LpDrop": 4,
+            "Trail": 5
+          },
+          "held_to_5x": 0,
+          "pnl_sol": -0.09322645500000015,
+          "trades": 16,
+          "window": "v5_s02d_14h"
+        }
+      ]
+    },
+    {
+      "summary": {
+        "costs_sol": 0.017500000000000012,
+        "expectancy_excl_top1pct_sol": -0.009251168400000006,
+        "expectancy_sol": -0.007348438500000004,
+        "max_drawdown_pct_worst": 20.05533882922874,
+        "mean_return_pct": -14.06083434127835,
+        "median_return_pct": -14.06083434127835,
+        "moonshot_capture": 0.0,
+        "positive_windows": 0,
+        "profit_factor": 0.2635769229297323,
+        "runners_10x": 128,
+        "runners_captured_5x": 0,
+        "total_pnl_sol": -0.11757501600000006,
+        "trades": 16,
+        "win_rate": 0.1875,
+        "windows": 1
+      },
+      "variant": "legacy_v4_radar",
+      "windows": [
+        {
+          "final_exits": {
+            "DataEnd": 8,
+            "DevSell": 3,
+            "Trail": 5
+          },
+          "held_to_5x": 0,
+          "pnl_sol": -0.11857501600000031,
+          "trades": 16,
+          "window": "v5_s02d_14h"
+        }
+      ]
+    }
+  ],
+  "windows": [
+    "v5_s02d_14h"
+  ]
+}

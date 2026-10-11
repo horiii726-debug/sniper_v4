@@ -113,6 +113,8 @@ pub struct StratV5 {
     /// E9 account risk: after this many consecutive losing trades, no new entries for `loss_streak_pause_s` (0 = off).
     pub loss_streak: u32,
     pub loss_streak_pause_s: i64,
+    /// M1 meta-labeling: also evaluate entries at WATCH decision rows (radar = high recall, the model takes / skips).
+    pub entry_on_watch: bool,
 }
 
 impl Default for StratV5 {
@@ -141,6 +143,7 @@ impl Default for StratV5 {
             max_loss_frac: None,
             loss_streak: 0,
             loss_streak_pause_s: 900,
+            entry_on_watch: false,
             d_min: 0.15,
             d_max: 0.60,
             trail_fixed: 0.30,
@@ -970,7 +973,8 @@ pub fn simulate(w: &WindowData, rp: RadarParams, scorer: &mut dyn Scorer, st: &S
             continue;
         }
         // 4) Entry: radar decision rows of HOT coins (or Promote rows only) inside the decision window.
-        let entry_row = if st.decision_rows { step.decision && step.radar_state == radar::RadarState::Hot } else { step.signal };
+        let state_ok = step.radar_state == radar::RadarState::Hot || (st.entry_on_watch && step.radar_state == radar::RadarState::Watch);
+        let entry_row = if st.decision_rows { step.decision && state_ok } else { step.signal };
         if !entry_row || e.time > ev.window.1 {
             continue;
         }
