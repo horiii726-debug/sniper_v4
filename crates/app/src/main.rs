@@ -6,6 +6,7 @@ mod diagnose;
 mod follow;
 mod label_diag;
 mod leg_audit;
+mod mint_safety;
 mod pump_check;
 mod radar_eval;
 mod radar_feed;
@@ -389,6 +390,14 @@ enum Cmd {
         #[arg(long, default_value = "reports/v6/LEG_AUDIT.json")]
         out: PathBuf,
     },
+    /// Mint safety flags (freeze / mint authority, Token-2022 sell-blocking extensions) for every mint of the
+    /// recordings, cached in data/mint_safety.csv.
+    MintSafety {
+        #[arg(long, default_value = "mainnet")]
+        cluster: String,
+        #[arg(long, required = true)]
+        rec: Vec<PathBuf>,
+    },
     /// G0.H1 check on a backfill recording: every slot fetched or confirmed skipped.
     VerifyBackfill {
         #[arg(long)]
@@ -466,6 +475,27 @@ fn main() -> Result<()> {
             rt.block_on(backfill(settings, cluster, venues.program_ids(), out, end_slot, slots, concurrency, skipped_spot_checks))
         }
         Cmd::VerifyBackfill { rec } => verify_backfill(&rec),
+        Cmd::MintSafety { cluster, rec } => {
+            let settings = Settings::load(&cli.env, cluster.parse()?)?;
+            logging::init(Redactor::new(settings.secrets()), None)?;
+            let mut mints = Vec::new();
+            for r in &rec {
+                mints.extend(backtest::load(r)?.mints);
+            }
+            let m = rt.block_on(mint_safety::fetch(settings.rpc_url.clone(), mints.clone(), std::path::Path::new(mint_safety::CACHE)))?;
+            let mut c: std::collections::BTreeMap<&str, usize> = Default::default();
+            for k in mints.iter().collect::<std::collections::BTreeSet<_>>() {
+                let Some(s) = m.get(k) else { continue };
+                *c.entry("mints").or_default() += 1;
+                for (n, f) in [("missing", !s.exists), ("token2022", s.token2022), ("mint_auth", s.mint_auth), ("freeze_auth", s.freeze_auth),
+                    ("transfer_fee", s.transfer_fee_bps > 0), ("transfer_hook", s.transfer_hook), ("permanent_delegate", s.permanent_delegate),
+                    ("default_frozen", s.default_frozen), ("honeypot_risk", s.honeypot_risk())] {
+                    *c.entry(n).or_default() += f as usize;
+                }
+            }
+            println!("{}", serde_json::to_string_pretty(&c)?);
+            Ok(())
+        }
         Cmd::LegAudit { cluster, slots, out } => {
             let settings = Settings::load(&cli.env, cluster.parse()?)?;
             logging::init(Redactor::new(settings.secrets()), None)?;

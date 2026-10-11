@@ -1,0 +1,161 @@
+{
+ "label": "EXPLORATORY observed outcomes vs mint safety flags (coins with >= 10 non-creator buyers)",
+ "coins": 7859,
+ "coins_active": 1202,
+ "by_flag": {
+  "mint_auth": {
+   "flag_on": {
+    "n": 63,
+    "honeypot_rate": 0.0,
+    "lp_rug_rate": 0.19047619047619047,
+    "dev_dump_rate": 0.0,
+    "honeypots": 0
+   },
+   "flag_off": {
+    "n": 1139,
+    "honeypot_rate": 0.0026338893766461808,
+    "lp_rug_rate": 0.14486391571553994,
+    "dev_dump_rate": 0.06760316066725197,
+    "honeypots": 3
+   }
+  },
+  "freeze_auth": {
+   "flag_on": {
+    "n": 3,
+    "honeypot_rate": 0.0,
+    "lp_rug_rate": 0.6666666666666666,
+    "dev_dump_rate": 0.0,
+    "honeypots": 0
+   },
+   "flag_off": {
+    "n": 1199,
+    "honeypot_rate": 0.0025020850708924102,
+    "lp_rug_rate": 0.14595496246872394,
+    "dev_dump_rate": 0.06422018348623854,
+    "honeypots": 3
+   }
+  },
+  "transfer_fee_bps": {
+   "flag_on": {
+    "n": 4,
+    "honeypot_rate": 0.25,
+    "lp_rug_rate": 0.5,
+    "dev_dump_rate": 0.0,
+    "honeypots": 1
+   },
+   "flag_off": {
+    "n": 1198,
+    "honeypot_rate": 0.001669449081803005,
+    "lp_rug_rate": 0.14607679465776294,
+    "dev_dump_rate": 0.0642737896494157,
+    "honeypots": 2
+   }
+  },
+  "transfer_hook": {
+   "flag_on": {
+    "n": 24,
+    "honeypot_rate": 0.0,
+    "lp_rug_rate": 0.20833333333333334,
+    "dev_dump_rate": 0.0,
+    "honeypots": 0
+   },
+   "flag_off": {
+    "n": 1178,
+    "honeypot_rate": 0.0025466893039049238,
+    "lp_rug_rate": 0.1460101867572156,
+    "dev_dump_rate": 0.06536502546689305,
+    "honeypots": 3
+   }
+  },
+  "permanent_delegate": {
+   "flag_on": {
+    "n": 0,
+    "honeypot_rate": null,
+    "lp_rug_rate": null,
+    "dev_dump_rate": null,
+    "honeypots": 0
+   },
+   "flag_off": {
+    "n": 1202,
+    "honeypot_rate": 0.0024958402662229617,
+    "lp_rug_rate": 0.14725457570715475,
+    "dev_dump_rate": 0.06405990016638935,
+    "honeypots": 3
+   }
+  },
+  "default_frozen": {
+   "flag_on": {
+    "n": 0,
+    "honeypot_rate": null,
+    "lp_rug_rate": null,
+    "dev_dump_rate": null,
+    "honeypots": 0
+   },
+   "flag_off": {
+    "n": 1202,
+    "honeypot_rate": 0.0024958402662229617,
+    "lp_rug_rate": 0.14725457570715475,
+    "dev_dump_rate": 0.06405990016638935,
+    "honeypots": 3
+   }
+  },
+  "non_transferable": {
+   "flag_on": {
+    "n": 0,
+    "honeypot_rate": null,
+    "lp_rug_rate": null,
+    "dev_dump_rate": null,
+    "honeypots": 0
+   },
+   "flag_off": {
+    "n": 1202,
+    "honeypot_rate": 0.0024958402662229617,
+    "lp_rug_rate": 0.14725457570715475,
+    "dev_dump_rate": 0.06405990016638935,
+    "honeypots": 3
+   }
+  },
+  "pausable": {
+   "flag_on": {
+    "n": 0,
+    "honeypot_rate": null,
+    "lp_rug_rate": null,
+    "dev_dump_rate": null,
+    "honeypots": 0
+   },
+   "flag_off": {
+    "n": 1202,
+    "honeypot_rate": 0.0024958402662229617,
+    "lp_rug_rate": 0.14725457570715475,
+    "dev_dump_rate": 0.06405990016638935,
+    "honeypots": 3
+   }
+  },
+  "honeypot_risk": {
+   "flag_on": {
+    "n": 27,
+    "honeypot_rate": 0.0,
+    "lp_rug_rate": 0.25925925925925924,
+    "dev_dump_rate": 0.0,
+    "honeypots": 0
+   },
+   "flag_off": {
+    "n": 1175,
+    "honeypot_rate": 0.002553191489361702,
+    "lp_rug_rate": 0.14468085106382977,
+    "dev_dump_rate": 0.06553191489361702,
+    "honeypots": 3
+   }
+  }
+ },
+ "totals": {
+  "honeypot_observed": 3,
+  "lp_rug_observed": 177,
+  "dev_dump_observed": 77
+ },
+ "honeypots_by_venue": {
+  "raydium_cpmm": 1,
+  "meteora_dlmm,orca_whirlpool,raydium_clmm": 1,
+  "pumpswap": 1
+ }
+}

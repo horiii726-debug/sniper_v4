@@ -549,6 +549,7 @@ pub fn ablate(recs: &[PathBuf], rp: RadarParams, st: &StratV5, out: &Path) -> Re
         ("no_time_stop".into(), rp, StratV5 { time_stop_s: 0, ..*st }),
         ("no_entries_per_min_cap".into(), rp, StratV5 { max_entries_per_min: 1_000_000, ..*st }),
         ("no_reentry_cooldown".into(), rp, StratV5 { reentry_cooldown_s: 0, ..*st }),
+        ("no_mint_gate".into(), rp, StratV5 { mint_gate: false, ..*st }),
         ("legacy_v4_radar".into(), legacy, *st),
     ];
     let strat_rows: Vec<serde_json::Value> = strat_variants

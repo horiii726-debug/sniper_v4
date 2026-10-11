@@ -250,6 +250,8 @@ pub struct Context {
     /// D2: user id -> cluster id (wallet_scores.csv `cluster_id`; representatives outside the window get synthetic
     /// ids >= users.len()). None = no lookup (cluster = wallet).
     pub clusters: Option<std::sync::Arc<[u32]>>,
+    /// Per coin: the mint has a honeypot-risk flag (`data/mint_safety.csv`, see mint_safety.rs). None = not checked.
+    pub mint_unsafe: Option<std::sync::Arc<[bool]>>,
 }
 
 /// Live, causal per-wallet activity across all coins (trader speed).
@@ -333,6 +335,11 @@ impl Engine {
         self.clusters_known = ctx.clusters.is_some();
         self.ctx = ctx;
         self
+    }
+
+    /// The coin's mint carries a honeypot-risk flag (false when unchecked).
+    pub fn mint_unsafe(&self, coin: u32) -> bool {
+        self.ctx.mint_unsafe.as_ref().is_some_and(|m| m.get(coin as usize).copied().unwrap_or(false))
     }
 
     pub fn radar(&self) -> &radar::Radar {
@@ -1564,6 +1571,11 @@ pub fn load_context(rec: &std::path::Path, ev: &Events) -> anyhow::Result<Contex
         }
     }
     ctx.sol_usd = crate::units::read_sol_usd_series(rec)?;
+    let ms = std::path::Path::new(crate::mint_safety::CACHE);
+    if ms.exists() {
+        let m = crate::mint_safety::read_cache(ms)?;
+        ctx.mint_unsafe = Some(ev.mints.iter().map(|x| m.get(x).is_some_and(|s| s.honeypot_risk())).collect::<Vec<bool>>().into());
+    }
     let fp = rec.join("dev_family.csv");
     if fp.exists() {
         ctx.dev_family = Some(parse_dev_family(&std::fs::read_to_string(&fp)?, &ids)?);

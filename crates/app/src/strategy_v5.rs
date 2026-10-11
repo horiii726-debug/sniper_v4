@@ -100,6 +100,8 @@ pub struct StratV5 {
     pub trail_fixed: f64,
     /// Optional wide disaster stop for non-ladder modes (value <= (1 - this) x cost after stop_grace_s).
     pub disaster_stop: Option<f64>,
+    /// Block entries into mints with a honeypot-risk flag (freeze authority, transfer hook, ...; mint_safety.rs).
+    pub mint_gate: bool,
 }
 
 impl Default for StratV5 {
@@ -123,6 +125,7 @@ impl Default for StratV5 {
             idle_s: 120,
             time_stop_s: 300,
             time_stop_gain: 0.10,
+            mint_gate: true,
             d_min: 0.15,
             d_max: 0.60,
             trail_fixed: 0.30,
@@ -923,6 +926,10 @@ pub fn simulate(w: &WindowData, rp: RadarParams, scorer: &mut dyn Scorer, st: &S
         }
         if let Some(r) = eng.untradable(e.coin, MIN_EXIT_LIQ_SOL) {
             block(r);
+            continue;
+        }
+        if st.mint_gate && eng.mint_unsafe(e.coin) {
+            block("mint_unsafe");
             continue;
         }
         let Some(pr) = pred else {
