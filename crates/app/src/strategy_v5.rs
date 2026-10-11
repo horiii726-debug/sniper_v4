@@ -146,12 +146,23 @@ pub struct CostsV5 {
     pub fail_seed: u64,
     /// Starting capital, SOL.
     pub start_sol: f64,
+    /// Wallet execution: a buy carries min tokens out = quote at decision x (1 - this); a fill below it fails (fee paid).
+    pub buy_slippage: f64,
+    /// Wallet execution: a sell carries min SOL out = value at decision x (1 - this); below it the tx fails (fee paid)
+    /// and is retried after `latency_slots`; the last try (`sell_max_tries`) has no limit.
+    pub sell_slippage: f64,
+    /// Wallet execution: probability a sell tx fails for other reasons (congestion, expired blockhash); retried.
+    pub sell_fail_prob: f64,
+    pub sell_max_tries: u8,
+    /// Token account rent locked per open position (refunded when the account is closed with the final sell).
+    pub ata_rent_lamports: u64,
 }
 
 impl Default for CostsV5 {
     fn default() -> Self {
         // 500,000 lamports per transaction in total, as in V4 (base 5,000 + priority 195,000 + tip 300,000).
-        Self { latency_slots: 2, tx_base_lamports: 5_000, priority_lamports: 195_000, tip_lamports: 300_000, buy_fail_prob: 0.15, default_fee_bps: 125, fail_seed: 0, start_sol: crate::units::start_sol() }
+        Self { latency_slots: 2, tx_base_lamports: 5_000, priority_lamports: 195_000, tip_lamports: 300_000, buy_fail_prob: 0.15, default_fee_bps: 125, fail_seed: 0, start_sol: crate::units::start_sol(),
+            buy_slippage: 0.20, sell_slippage: 0.30, sell_fail_prob: 0.05, sell_max_tries: 3, ata_rent_lamports: 2_074_080 }
     }
 }
 
@@ -353,6 +364,10 @@ pub struct ReportV5 {
     pub max_drawdown_pct: f64,
     pub costs_sol: f64,
     pub failed_buys: usize,
+    /// Buys that failed on the slippage limit (subset of failed_buys).
+    pub slippage_failed_buys: usize,
+    /// Sell transactions that failed (slippage limit or random) and were retried.
+    pub sell_retries: usize,
     pub exits_by_reason: std::collections::BTreeMap<&'static str, usize>,
     pub final_reasons: std::collections::BTreeMap<&'static str, usize>,
     pub runners_10x: usize,
@@ -544,8 +559,8 @@ pub(crate) fn allocate(cands: &[Cand], held: &[Held], mut cap: Capacity, st: &St
 }
 
 enum Order {
-    Buy { coin: u32, lamports: u64, ev: f64, label: Option<Labels> },
-    Sell { coin: u32, tokens: u64, reason: &'static str, close: bool },
+    Buy { coin: u32, lamports: u64, ev: f64, label: Option<Labels>, min_tokens: u128 },
+    Sell { coin: u32, tokens: u64, reason: &'static str, close: bool, min_sol: f64, tries: u8 },
 }
 
 /// Per-window inputs that do not depend on the strategy (precompute once, reuse across a grid).
@@ -596,6 +611,7 @@ pub fn simulate(w: &WindowData, rp: RadarParams, scorer: &mut dyn Scorer, st: &S
     let mut entries: VecDeque<i64> = VecDeque::new();
     let mut trades: Vec<TradeV5> = Vec::new();
     let (mut failed, mut costs) = (0usize, 0.0);
+    let (mut slippage_failed, mut sell_retries) = (0usize, 0usize);
     let (mut peak_eq, mut max_dd) = (start, 0.0f64);
     let mut last_sec = i64::MIN;
     let mut exits: std::collections::BTreeMap<&'static str, usize> = Default::default();
@@ -668,7 +684,8 @@ pub fn simulate(w: &WindowData, rp: RadarParams, scorer: &mut dyn Scorer, st: &S
                     if let Some(wc) = victim {
                         busy.insert(wc);
                         let t = pos[&wc].tokens;
-                        pending.push((last_slot + c.latency_slots, Order::Sell { coin: wc, tokens: t, reason: "Replaced", close: true }));
+                        let min_sol = eng.pool_value(wc, t, c.default_fee_bps) * (1.0 - c.sell_slippage);
+                        pending.push((last_slot + c.latency_slots, Order::Sell { coin: wc, tokens: t, reason: "Replaced", close: true, min_sol, tries: 1 }));
                         replacements += 1;
                     }
                     let cd = live[ci];
@@ -678,7 +695,9 @@ pub fn simulate(w: &WindowData, rp: RadarParams, scorer: &mut dyn Scorer, st: &S
                     if !oracle {
                         entries.push_back(last_t);
                     }
-                    pending.push((last_slot + c.latency_slots, Order::Buy { coin: cd.coin, lamports: (st.bet_sol * 1e9) as u64, ev: cd.ev, label: cd.label }));
+                    let lamports = (st.bet_sol * 1e9) as u64;
+                    let min_tokens = (eng.fill_buy(cd.coin, lamports, c.default_fee_bps) as f64 * (1.0 - c.buy_slippage)) as u128;
+                    pending.push((last_slot + c.latency_slots, Order::Buy { coin: cd.coin, lamports, ev: cd.ev, label: cd.label, min_tokens }));
                 }
             }
         }
@@ -695,10 +714,22 @@ pub fn simulate(w: &WindowData, rp: RadarParams, scorer: &mut dyn Scorer, st: &S
         due.sort_by_key(|o| matches!(o, Order::Buy { .. }));
         for o in due {
             match o {
-                Order::Sell { coin, tokens, reason, close } => {
+                Order::Sell { coin, tokens, reason, close, min_sol, tries } => {
                     let Some(p) = pos.get_mut(&coin) else { continue };
                     let n = tokens.min(p.tokens);
                     let got = eng.pool_value(coin, n, c.default_fee_bps);
+                    let random_fail = hash01(coin as u64 ^ 0x5e11_5e11, cur_slot, c.fail_seed) < c.sell_fail_prob;
+                    if tries < c.sell_max_tries && (random_fail || got < min_sol) {
+                        // failed sell tx: fee paid, retried; the last try has no limit
+                        cash -= txc;
+                        costs += txc;
+                        p.tx_paid += txc;
+                        sell_retries += 1;
+                        let next = tries + 1;
+                        let min_sol = if next >= c.sell_max_tries { 0.0 } else { got * (1.0 - c.sell_slippage) };
+                        pending.push((cur_slot + c.latency_slots, Order::Sell { coin, tokens, reason, close, min_sol, tries: next }));
+                        continue;
+                    }
                     cash += got - txc;
                     costs += txc;
                     p.tx_paid += txc;
@@ -709,6 +740,8 @@ pub fn simulate(w: &WindowData, rp: RadarParams, scorer: &mut dyn Scorer, st: &S
                     if close || p.tokens == 0 {
                         busy.remove(&coin);
                         last_exit.insert(coin, cur_t);
+                        // token account closed with the final sell: rent back
+                        cash += c.ata_rent_lamports as f64 / 1e9;
                         let p = pos.remove(&coin).expect("present");
                         if reason == "DevSell" || reason == "RugModel" {
                             blacklist.insert(coin);
@@ -724,18 +757,24 @@ pub fn simulate(w: &WindowData, rp: RadarParams, scorer: &mut dyn Scorer, st: &S
                         busy.remove(&coin);
                     }
                 }
-                Order::Buy { coin, lamports, ev: e_ev, label } => {
+                Order::Buy { coin, lamports, ev: e_ev, label, min_tokens } => {
                     busy.remove(&coin);
                     let size = lamports as f64 / 1e9;
                     pending_buy_cost -= size;
                     cash -= txc;
                     costs += txc;
                     let toks = eng.fill_buy(coin, lamports, c.default_fee_bps);
-                    if hash01(coin as u64, cur_slot, c.fail_seed) < c.buy_fail_prob || toks == 0 || (!oracle && cash < size) {
+                    let rent = c.ata_rent_lamports as f64 / 1e9;
+                    if hash01(coin as u64, cur_slot, c.fail_seed) < c.buy_fail_prob || toks == 0 || (!oracle && cash < size + rent) {
                         failed += 1;
                         continue;
                     }
-                    cash -= size;
+                    if toks < min_tokens {
+                        failed += 1;
+                        slippage_failed += 1;
+                        continue;
+                    }
+                    cash -= size + rent;
                     let px = eng.price(coin);
                     pos.insert(coin, Pos {
                         tokens0: toks as u64, tokens: toks as u64, cost: size, entry_t: cur_t, entry_px: lamports as f64 / toks as f64, peak_px: px, max_mult: 1.0,
@@ -754,7 +793,7 @@ pub fn simulate(w: &WindowData, rp: RadarParams, scorer: &mut dyn Scorer, st: &S
             for coin in open {
                 busy.insert(coin);
                 let t = pos[&coin].tokens;
-                pending.push((0, Order::Sell { coin, tokens: t, reason: "DataEnd", close: true }));
+                pending.push((0, Order::Sell { coin, tokens: t, reason: "DataEnd", close: true, min_sol: 0.0, tries: c.sell_max_tries }));
             }
             continue;
         }
@@ -782,7 +821,8 @@ pub fn simulate(w: &WindowData, rp: RadarParams, scorer: &mut dyn Scorer, st: &S
                 };
                 if let Some(r) = reason {
                     busy.insert(coin);
-                    pending.push((e.slot + c.latency_slots, Order::Sell { coin, tokens: p.tokens, reason: r, close: true }));
+                    let min_sol = eng.pool_value(coin, p.tokens, c.default_fee_bps) * (1.0 - c.sell_slippage);
+                    pending.push((e.slot + c.latency_slots, Order::Sell { coin, tokens: p.tokens, reason: r, close: true, min_sol, tries: 1 }));
                 }
             }
             let eq = cash + pos.iter().map(|(cid, p)| eng.pool_value(*cid, p.tokens, c.default_fee_bps)).sum::<f64>();
@@ -890,7 +930,8 @@ pub fn simulate(w: &WindowData, rp: RadarParams, scorer: &mut dyn Scorer, st: &S
                 if n > 0 {
                     busy.insert(e.coin);
                     let lat = if r == "DevSell" { 1 } else { c.latency_slots };
-                    pending.push((e.slot + lat, Order::Sell { coin: e.coin, tokens: n, reason: r, close }));
+                    let min_sol = eng.pool_value(e.coin, n, c.default_fee_bps) * (1.0 - c.sell_slippage);
+                    pending.push((e.slot + lat, Order::Sell { coin: e.coin, tokens: n, reason: r, close, min_sol, tries: 1 }));
                 }
             }
             continue;
@@ -990,6 +1031,8 @@ pub fn simulate(w: &WindowData, rp: RadarParams, scorer: &mut dyn Scorer, st: &S
         max_drawdown_pct: max_dd * 100.0,
         costs_sol: costs,
         failed_buys: failed,
+        slippage_failed_buys: slippage_failed,
+        sell_retries,
         exits_by_reason: exits,
         final_reasons,
         runners_10x: runner.len(),
@@ -1101,6 +1144,38 @@ mod tests {
         assert!(t.pnl_sol > 0.0 && t.max_mult >= 5.0);
         assert!((t.tx_sol - 4.0 * c.tx_sol()).abs() < 1e-12, "1 buy + 3 sell legs pay their own tx");
         assert!((r.final_sol - (r.start_sol + t.pnl_sol)).abs() < 1e-9, "cash accounting");
+    }
+
+    /// Wallet execution: a zero buy-slippage limit fails on a rising price (fee paid, no position); failing sells are
+    /// retried (each try pays its fee) and the last try has no limit; ATA rent is locked and refunded.
+    #[test]
+    fn wallet_execution_slippage_retries_and_rent() {
+        let mut ev = Events::new(runner_events(), vec!["M".into()], (0, 120), vec![]);
+        ev.cover_end = vec![100_000];
+        let rp = RadarParams { min_buyers: 5, min_buy_sol: 1.0, max_median_buy_sol: 1.0, ..RadarParams::default() };
+        let w = WindowData::new("t".into(), &ev, Context::default(), 200.0);
+        let pr = Pred { bin: [0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0], tp1: 0.9, rug: 0.0, hold: 0.0, dead: 0.0 };
+        let rk = [0.0, 0.0, 0.0, 0.0, 0.0, 3.0, 0.0];
+        let st = StratV5 { max_ret_60s_entry: 10.0, max_top10_share: 1.0, max_bundle_share: 1.0, exit_mode: ExitMode::Ladder, max_entry_ret: None, ..Default::default() };
+        // 1) no slippage allowed: the price rises during the 2-slot latency -> every buy fails on the limit
+        let c = CostsV5 { buy_fail_prob: 0.0, buy_slippage: 0.0, sell_fail_prob: 0.0, ..Default::default() };
+        let r = simulate(&w, rp, &mut Fixed(pr), &st, &c, &rk, None, false);
+        assert_eq!(r.trades, 0, "{r:?}");
+        assert!(r.slippage_failed_buys >= 1 && r.slippage_failed_buys == r.failed_buys, "{r:?}");
+        assert!((r.final_sol - (r.start_sol - r.failed_buys as f64 * c.tx_sol())).abs() < 1e-9, "failed buys pay only the fee");
+        // 2) every sell try fails at random until the last (no-limit) try: 3 tries per sell leg
+        let c = CostsV5 { buy_fail_prob: 0.0, sell_fail_prob: 1.0, sell_max_tries: 3, ..Default::default() };
+        let r = simulate(&w, rp, &mut Fixed(pr), &st, &c, &rk, None, false);
+        assert_eq!(r.trades, 1, "{:?}", r.blocked);
+        let t = &r.trades_list[0];
+        // DataEnd closes at the end of the data in one (no-limit) try
+        let legs = t.legs.iter().filter(|l| l.reason != "DataEnd").count();
+        let end_legs = t.legs.len() - legs;
+        assert!(legs >= 1);
+        assert_eq!(r.sell_retries, 2 * legs, "{r:?}");
+        assert!((t.tx_sol - (1 + 3 * legs + end_legs) as f64 * c.tx_sol()).abs() < 1e-12);
+        // rent locked at the buy is refunded at the close: cash accounting closes on pnl alone
+        assert!((r.final_sol - (r.start_sol + t.pnl_sol)).abs() < 1e-9, "cash accounting with rent");
     }
 
     /// Runner stream of `ladder_on_a_runner` (steady buying 0-40 s, then +1.2%/s until 400 s).
