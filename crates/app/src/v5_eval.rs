@@ -518,6 +518,7 @@ pub fn ablate(recs: &[PathBuf], rp: RadarParams, st: &StratV5, out: &Path) -> Re
     let all = load_windows(recs)?;
     let data: Vec<WindowData> = all.iter().map(wd).collect::<Result<_>>()?;
     let legacy = crate::radar_feed::load_params(Path::new("config/radar_params_v4_legacy.json"))?;
+    let start = crate::units::start_sol();
     let radar_variants: Vec<(String, RadarParams)> = vec![
         ("base".into(), rp),
         ("legacy_v4_radar".into(), legacy),
@@ -566,6 +567,10 @@ pub fn ablate(recs: &[PathBuf], rp: RadarParams, st: &StratV5, out: &Path) -> Re
         ("risk_loss_limit_30pct".into(), rp, StratV5 { max_loss_frac: Some(0.30), ..*st }),
         ("risk_loss_streak_5".into(), rp, StratV5 { loss_streak: 5, ..*st }),
         ("entry_on_watch".into(), rp, StratV5 { entry_on_watch: true, ..*st }),
+        // user variant: only a position-count limit; each position = start capital / max_positions (no Kelly, no all-in)
+        ("only_position_limit_10".into(), rp, StratV5 { max_positions: 10, bet_sol: start / 10.0, max_total_exposure: 1.0, max_entries_per_min: 1_000_000, ..*st }),
+        ("only_position_limit_18".into(), rp, StratV5 { max_positions: 18, bet_sol: start / 18.0, max_total_exposure: 1.0, max_entries_per_min: 1_000_000, ..*st }),
+        ("only_position_limit_30".into(), rp, StratV5 { max_positions: 30, bet_sol: start / 30.0, max_total_exposure: 1.0, max_entries_per_min: 1_000_000, ..*st }),
         ("legacy_v4_radar".into(), legacy, *st),
     ];
     let strat_rows: Vec<serde_json::Value> = strat_variants

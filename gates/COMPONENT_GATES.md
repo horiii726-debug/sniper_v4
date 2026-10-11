@@ -30,3 +30,7 @@ only; the 3 `final_holdout` windows are evaluated once, at the end. n < 30 event
 | C14 | Execution simulation | unit tests (slippage limit, retries, rent) + sensitivity | tests pass; latency 1/2/4 slots, fail 0.15/0.30, tip x2 reported |
 | C15 | Live swap execution, latency | needs mainnet shadow / tx | cannot measure on history -> OUT (live disabled) |
 | C16 | End-to-end (radar -> ML -> entry -> exit -> sim) | `v5-backtest` walk-forward, fixed strategy, 100 USD | existing acceptance: PF > 1.3, positive windows >= 60 %, expectancy excl. top 1 % > 0, positive at latency 4 + fail 0.30, moonshot capture >= 20 %; then the holdout windows once |
+| C17 | Online learning (update every 10 coins with known outcomes) | `python/ml/online_learn.py`: online vs walk-forward model, same rows, labels known only at t + horizon | online PR-AUC > walk-forward PR-AUC on >= 60 % of scored windows, with >= 1 update per scored window |
+| C18 | Fill accuracy per venue (opens non-pump venues for entries) | `python/research/fill_check.py`: each real trade <= 0.2 SOL predicted from the pool state of the previous trade (<= 5 s before) with the simulator's CPMM math and default fee | abs(median pred/actual - 1) <= 0.03, >= 80 % within +-10 %, optimistic by > 5 % in <= 20 % of trades, >= 300 trades |
+
+(C17, C18 added 2026-10-11 before measuring.)
