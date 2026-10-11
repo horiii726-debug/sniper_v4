@@ -629,6 +629,7 @@ name = "feed"
 version = "0.4.0"
 dependencies = [
  "anyhow",
+ "decoder",
  "events",
  "futures",
  "helius-laserstream",
