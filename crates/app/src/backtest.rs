@@ -52,22 +52,47 @@ pub const MIN_PRICE_POOL_LAMPORTS: u128 = 1_000_000_000;
 pub const MIN_PRICE_TRADE_LAMPORTS: u64 = 10_000_000;
 pub const MIN_PRICE_TRADE_TOKENS: u64 = 10_000;
 
-/// Execution-priced events (orders in `exec`) too small to carry a price take the last informative price of the same
-/// pool (reserves rescaled); without one their token reserve is 0 and they never set a price (`ActivePool::accept`).
-/// Events must be in order. Returns the number of events repaired.
-pub fn repair_exec_prices(evs: &mut [Ev], exec: &FxHashSet<u64>) -> u64 {
-    let mut last: FxHashMap<u32, f64> = FxHashMap::default();
-    let mut n = 0;
+/// A swap of an execution-priced pool whose price is more than this factor away from the pool's accepted price is held
+/// until the next informative swap confirms the new level (within `EXEC_PRICE_CONFIRM` of it). Seen: vault deltas of
+/// 17.9 SOL against 0.33 ORCA (liquidity added in the same tx as a small swap) printed a 2,000x price and fake 50x labels.
+pub const EXEC_PRICE_JUMP: f64 = 3.0;
+pub const EXEC_PRICE_CONFIRM: f64 = 1.5;
+
+/// Execution-priced events (orders in `exec`) that cannot carry a price take the pool's accepted price (reserves
+/// rescaled): dust swaps (< `MIN_PRICE_TRADE_*`) and unconfirmed jumps (> `EXEC_PRICE_JUMP` x the accepted price, kept
+/// until the next informative swap of the pool lands within `EXEC_PRICE_CONFIRM` of the jump). Without an accepted
+/// price their token reserve is 0 and they never set a price (`ActivePool::accept`). Events must be in order.
+/// Returns (dust events repaired, jump events held).
+pub fn repair_exec_prices(evs: &mut [Ev], exec: &FxHashSet<u64>) -> (u64, u64) {
+    // pool -> (accepted price, pending jump price)
+    let mut st: FxHashMap<u32, (f64, Option<f64>)> = FxHashMap::default();
+    let near = |a: f64, b: f64, k: f64| a <= b * k && b <= a * k;
+    let (mut dust, mut held) = (0, 0);
     for e in evs.iter_mut().filter(|e| exec.contains(&e.order)) {
+        let accepted = st.get(&e.pool).map(|x| x.0);
         if e.sol >= MIN_PRICE_TRADE_LAMPORTS && e.tokens >= MIN_PRICE_TRADE_TOKENS {
-            last.insert(e.pool, e.sol as f64 / e.tokens as f64);
-            continue;
+            let p = e.sol as f64 / e.tokens as f64;
+            match st.get_mut(&e.pool) {
+                None => {
+                    st.insert(e.pool, (p, None));
+                    continue;
+                }
+                Some(x) if near(p, x.0, EXEC_PRICE_JUMP) || x.1.is_some_and(|q| near(p, q, EXEC_PRICE_CONFIRM)) => {
+                    *x = (p, None);
+                    continue;
+                }
+                Some(x) => {
+                    x.1 = Some(p);
+                    held += 1;
+                }
+            }
+        } else {
+            dust += 1;
         }
-        n += 1;
-        e.token_res = last.get(&e.pool).map_or(0, |px| (e.quote_res as f64 / px) as u128);
+        e.token_res = accepted.map_or(0, |px| (e.quote_res as f64 / px) as u128);
         e.real_token = e.token_res.min(u64::MAX as u128) as u64;
     }
-    n
+    (dust, held)
 }
 
 /// Event layout of the V6 v3 caches (`pump_events_v3.bin`): venue, no pool id.
@@ -594,7 +619,9 @@ fn load_window_events(rec: &Path) -> Result<Events> {
     }
     evs.sort_by_key(|e| e.order);
     leg_stats.insert("exec_priced_events".into(), exec_priced.len() as u64);
-    leg_stats.insert("exec_price_repaired_dust".into(), repair_exec_prices(&mut evs, &exec_priced));
+    let (dust, held) = repair_exec_prices(&mut evs, &exec_priced);
+    leg_stats.insert("exec_price_repaired_dust".into(), dust);
+    leg_stats.insert("exec_price_jump_held".into(), held);
     let mut names = vec![String::new(); mints.len()];
     for (m, i) in mints {
         names[i as usize] = m;
@@ -1285,7 +1312,7 @@ mod tests {
         // dust first (no price yet), a real swap at 0.002 lamports per raw token, dust 3 lamports for 3 raw, 0.03 SOL for 1 raw
         let mut evs = vec![e(1, 5, 5), e(2, 20_000_000, 10_000_000_000), e(3, 3, 3), e(4, 30_000_000, 1)];
         let exec: FxHashSet<u64> = [1, 2, 3, 4].into_iter().collect();
-        assert_eq!(repair_exec_prices(&mut evs, &exec), 3);
+        assert_eq!(repair_exec_prices(&mut evs, &exec), (3, 0));
         assert_eq!(evs[0].token_res, 0, "no price before the first informative trade");
         assert!(!ActivePool::default().accept(&evs[0]));
         let px = |e: &Ev| e.quote_res as f64 / e.token_res as f64;
@@ -1293,8 +1320,17 @@ mod tests {
         assert!((px(&evs[2]) - 0.002).abs() < 1e-9 && (px(&evs[3]) - 0.002).abs() < 1e-9, "dust keeps the last price");
         // events outside `exec` (pump, CPMM vault reserves) are untouched
         let mut v = vec![e(9, 3, 3)];
-        assert_eq!(repair_exec_prices(&mut v, &exec), 0);
+        assert_eq!(repair_exec_prices(&mut v, &exec), (0, 0));
         assert_eq!(v[0].token_res, 1_000_000_000_000);
+        // a single 2,000x print is held at the accepted price; a real level shift is accepted once a second swap confirms it
+        let mut j = vec![e(1, 20_000_000, 10_000_000_000), e(2, 17_884_441_493, 326_438), e(3, 21_000_000, 10_000_000_000),
+                         e(4, 100_000_000, 10_000_000_000), e(5, 110_000_000, 10_000_000_000)];
+        let exec: FxHashSet<u64> = (1..=5).collect();
+        assert_eq!(repair_exec_prices(&mut j, &exec), (0, 2));
+        assert!((px(&j[1]) - 0.002).abs() < 1e-9, "garbage print held");
+        assert!((px(&j[2]) - 0.0021).abs() < 1e-9);
+        assert!((px(&j[3]) - 0.0021).abs() < 1e-9, "5x jump held until confirmed");
+        assert!((px(&j[4]) - 0.011).abs() < 1e-9, "confirmed: new level");
     }
 
     /// Active pool: curve until an AMM trade; among AMM venues the deeper pool takes over; same venue always updates.
