@@ -328,6 +328,10 @@ enum Cmd {
         latency_slots: u64,
         #[arg(long, default_value_t = 0.15)]
         buy_fail_prob: f64,
+        /// Component sweep: JSON object {"name": {partial StratV5}, ...}; each entry is merged onto --strategy and run
+        /// walk-forward (data loaded once, variants in parallel); no grid / sensitivity / Monte Carlo.
+        #[arg(long)]
+        variants: Option<PathBuf>,
     },
     /// EXPLORATORY: V4 rule strategy vs V5 corrections without ML on the same windows, plus a per-runner table.
     V5Compare {
@@ -582,12 +586,15 @@ fn main() -> Result<()> {
             let v4: backtest::Strategy = serde_json::from_str(&std::fs::read_to_string(&v4_strategy)?)?;
             v5_eval::compare(&rec, rp, &v4, &st, &out)
         }
-        Cmd::V5Backtest { rec, models, radar_params, strategy, out, grid, mc_runs, mc_resamples, latency_slots, buy_fail_prob } => {
+        Cmd::V5Backtest { rec, models, radar_params, strategy, out, grid, mc_runs, mc_resamples, latency_slots, buy_fail_prob, variants } => {
             let rp = radar_feed::load_params(&radar_params)?;
             let st: strategy_v5::StratV5 = match strategy { Some(p) => serde_json::from_str(&std::fs::read_to_string(p)?)?, None => Default::default() };
             let costs = strategy_v5::CostsV5 { latency_slots, buy_fail_prob, ..Default::default() };
             let o = v5_eval::EvalOpts { models, out, grid, mc_runs, mc_resamples, costs, strategy: st };
-            v5_eval::run(&rec, rp, &o)
+            match variants {
+                Some(v) => v5_eval::run_variants(&rec, rp, &o, &v5_eval::load_variants(&v, &st)?),
+                None => v5_eval::run(&rec, rp, &o),
+            }
         }
         Cmd::Follow { rec, hours, radar_params, rps, coin_concurrency, tx_batch, max_range_pages, max_history_pages, limit, min_state } => {
             let settings = Settings::load(&cli.env, Cluster::Mainnet)?;

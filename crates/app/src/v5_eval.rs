@@ -318,6 +318,60 @@ pub struct EvalOpts {
     pub strategy: StratV5,
 }
 
+/// Variants {"name": {partial StratV5}} merged onto `base` (keys of the partial object override the base).
+pub fn load_variants(path: &Path, base: &StratV5) -> Result<Vec<(String, StratV5)>> {
+    let v: serde_json::Map<String, serde_json::Value> = serde_json::from_str(&std::fs::read_to_string(path)?)?;
+    let b = serde_json::to_value(base)?;
+    v.into_iter().map(|(name, over)| {
+        let mut m = b.clone();
+        if let (Some(mo), Some(oo)) = (m.as_object_mut(), over.as_object()) {
+            for (k, x) in oo {
+                if !mo.contains_key(k) {
+                    return Err(anyhow!("variant {name}: unknown strategy field {k}"));
+                }
+                mo.insert(k.clone(), x.clone());
+            }
+        }
+        Ok((name, serde_json::from_value(m)?))
+    }).collect()
+}
+
+/// Component sweep: each variant walk-forward on the same loaded windows (in parallel), with per-window reports and the
+/// entry funnel. No grid, sensitivity or Monte Carlo (use `run` for the full evaluation of a chosen strategy).
+pub fn run_variants(recs: &[PathBuf], rp: RadarParams, o: &EvalOpts, variants: &[(String, StratV5)]) -> Result<()> {
+    let t0 = std::time::Instant::now();
+    let all = load_windows(recs)?;
+    let data: Vec<WindowData> = all.iter().map(wd).collect::<Result<_>>()?;
+    let tests: Vec<usize> = (0..all.len()).filter(|&i| o.models.join(format!("fold_{}", all[i].name)).join(format!("scores_{}.csv.zst", all[i].name)).exists()).collect();
+    if tests.is_empty() {
+        return Err(anyhow!("no fold score files under {}", o.models.display()));
+    }
+    let rows: Vec<serde_json::Value> = variants.par_iter().map(|(name, st)| -> Result<serde_json::Value> {
+        let r = run_walk_forward(&all, &data, &tests, &o.models, rp, st, &o.costs)?;
+        let s = summarize(&r);
+        Ok(serde_json::json!({ "variant": name, "strategy": st, "summary": s,
+            "windows": r.iter().map(|w| serde_json::json!({ "window": w.window, "rk": w.rk, "rk_trades": w.rk_trades,
+                "return_pct": w.report.return_pct, "final_sol": w.report.final_sol, "trades": w.report.trades, "win_rate": w.report.win_rate,
+                "profit_factor": w.report.profit_factor, "max_drawdown_pct": w.report.max_drawdown_pct, "costs_sol": w.report.costs_sol,
+                "failed_buys": w.report.failed_buys, "slippage_failed_buys": w.report.slippage_failed_buys, "sell_retries": w.report.sell_retries,
+                "runners_10x": w.report.runners_10x, "captured_5x": w.report.runners_10x_captured_5x, "window_s": w.report.window_s,
+                "exits_by_reason": w.report.exits_by_reason, "blocked": w.report.blocked, "funnel": w.report.funnel,
+                "trades_list": w.report.trades_list })).collect::<Vec<_>>() }))
+    }).collect::<Result<_>>()?;
+    let rep = serde_json::json!({ "label": "EXPLORATORY component sweep (walk-forward, paper only)", "costs": o.costs,
+        "test_windows": tests.iter().map(|i| &all[*i].name).collect::<Vec<_>>(), "variants": rows, "elapsed_s": t0.elapsed().as_secs_f64() });
+    if let Some(d) = o.out.parent() {
+        std::fs::create_dir_all(d)?;
+    }
+    std::fs::write(&o.out, serde_json::to_string_pretty(&rep)?)?;
+    for v in rep["variants"].as_array().into_iter().flatten() {
+        let s = &v["summary"];
+        println!("{:28} median return {:>8.2}%  trades {:>5}  win {:.2}  PF {:.2}", v["variant"].as_str().unwrap_or(""),
+            s["median_return_pct"].as_f64().unwrap_or(0.0), s["trades"], s["win_rate"].as_f64().unwrap_or(0.0), s["profit_factor"].as_f64().unwrap_or(0.0));
+    }
+    Ok(())
+}
+
 /// Full Phase 7–8 run on the walk-forward (dev) windows. Holdout windows are evaluated separately, once.
 pub fn run(recs: &[PathBuf], rp: RadarParams, o: &EvalOpts) -> Result<()> {
     let t0 = std::time::Instant::now();
@@ -353,7 +407,7 @@ pub fn run(recs: &[PathBuf], rp: RadarParams, o: &EvalOpts) -> Result<()> {
     let acc = acceptance(&base_sum, &stress);
     let mc = if o.mc_runs > 0 { Some(monte_carlo(&all, &data, &tests, &o.models, rp, &chosen, &o.costs, &base, o.mc_runs, o.mc_resamples)?) } else { None };
     let rep = serde_json::json!({
-        "label": "EXPLORATORY V5 walk-forward backtest (pre-gate, user-approved); pump.fun curve + PumpSwap; paper only",
+        "label": "EXPLORATORY V5 walk-forward backtest (pre-gate, user-approved); venues per strategy.c18_venues; paper only",
         "strategy": chosen, "costs": o.costs, "test_windows": tests.iter().map(|i| &all[*i].name).collect::<Vec<_>>(),
         "summary": base_sum, "acceptance": acc, "sensitivity": sens.iter().map(|(n, s)| serde_json::json!({"variant": n, "summary": s})).collect::<Vec<_>>(),
         "monte_carlo": mc, "grid_sorted_by_median_return": grid_rows,
@@ -362,7 +416,8 @@ pub fn run(recs: &[PathBuf], rp: RadarParams, o: &EvalOpts) -> Result<()> {
                 "expectancy_sol": w.report.expectancy_sol, "expectancy_excl_top1pct_sol": w.report.expectancy_excl_top1pct_sol, "max_drawdown_pct": w.report.max_drawdown_pct,
                 "costs_sol": w.report.costs_sol, "failed_buys": w.report.failed_buys, "exits_by_reason": w.report.exits_by_reason, "final_reasons": w.report.final_reasons,
                 "runners_10x": w.report.runners_10x, "captured_5x": w.report.runners_10x_captured_5x, "signals": w.report.signals_in_window, "blocked": w.report.blocked,
-                "sol_usd": w.report.sol_usd, "data_s": w.report.data_s } })).collect::<Vec<_>>(),
+                "sol_usd": w.report.sol_usd, "data_s": w.report.data_s, "window_s": w.report.window_s, "slippage_failed_buys": w.report.slippage_failed_buys,
+                "sell_retries": w.report.sell_retries, "funnel": w.report.funnel } })).collect::<Vec<_>>(),
         "trades": base.iter().flat_map(|w| w.report.trades_list.iter().map(move |t| serde_json::json!({"window": w.window, "trade": t}))).collect::<Vec<_>>(),
         "elapsed_s": t0.elapsed().as_secs_f64(),
     });
@@ -466,7 +521,7 @@ pub fn compare(recs: &[PathBuf], rp: RadarParams, v4: &crate::backtest::Strategy
             let t4: Vec<_> = r4.trades_list.iter().filter(|x| &x.mint == mint).map(|x| serde_json::json!({"ret": x.ret, "max_mult": x.max_mult_held, "exit": x.reason})).collect();
             let t5: Vec<_> = r5.trades_list.iter().filter(|x| &x.mint == mint).map(|x| serde_json::json!({"ret": x.ret, "max_mult": x.max_mult, "exit": x.final_reason, "legs": x.legs.iter().map(|g| g.reason).collect::<Vec<_>>()})).collect();
             let mut b5: std::collections::BTreeMap<&str, usize> = Default::default();
-            for (c, r) in &r5.signal_outcomes {
+            for (c, r, _) in &r5.signal_outcomes {
                 if *c == coin {
                     *b5.entry(r).or_default() += 1;
                 }

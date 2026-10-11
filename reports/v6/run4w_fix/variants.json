@@ -1,0 +1,19 @@
+{
+ "base": {},
+ "rug_veto_0.7": {"rug_veto": 0.7},
+ "rug_veto_off": {"rug_veto": 1.01},
+ "price_guard_off": {"max_entry_ret": null},
+ "rug_off_guard_off": {"rug_veto": 1.01, "max_entry_ret": null},
+ "entry_on_watch": {"entry_on_watch": true},
+ "watch_rug_off_guard_off": {"entry_on_watch": true, "rug_veto": 1.01, "max_entry_ret": null},
+ "ev_min_-0.05": {"ev_min": -0.05},
+ "ev_min_0.05": {"ev_min": 0.05},
+ "exit_trail30": {"exit_mode": "trail", "trail_fixed": 0.30},
+ "exit_momentum_fade": {"exit_mode": "momentum_fade"},
+ "no_time_stop": {"time_stop_s": 1000000000},
+ "kelly25": {"kelly_frac": 0.25},
+ "kelly25_rug_off_guard_off": {"kelly_frac": 0.25, "rug_veto": 1.01, "max_entry_ret": null},
+ "positions_30": {"max_positions": 30, "bet_sol": 0.02811},
+ "positions_10": {"max_positions": 10, "bet_sol": 0.08433},
+ "c18_off_pump_only": {"c18_venues": false}
+}

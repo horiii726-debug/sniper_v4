@@ -414,9 +414,78 @@ pub struct ReportV5 {
     /// V5-1: signal rows merged into a later row of the same coin in the same decision tick.
     pub merged_in_tick: usize,
     pub trades_list: Vec<TradeV5>,
-    /// Per signal row: (coin, first blocking reason or "entered").
+    /// Per signal row: (coin, first blocking reason or "entered", label class 0 | 1 >= 2x | 2 >= 10x before -65 %).
     #[serde(skip)]
-    pub signal_outcomes: Vec<(u32, &'static str)>,
+    pub signal_outcomes: Vec<(u32, &'static str, u8)>,
+    /// Why coins were (not) entered: rows per reason and each coin's last barrier (see `Funnel`).
+    pub funnel: Funnel,
+}
+
+/// Entry funnel of one run. A coin's "last barrier" is the furthest pipeline stage any of its decision rows reached
+/// (entered > capital / slots > model gates > account risk > mint safety > tradability > order state), so it names
+/// what finally stopped the coin. Classes come from the row labels (peak before the -65 % barrier, `Labels::bin`).
+#[derive(Debug, Clone, Default, Serialize)]
+pub struct Funnel {
+    /// reason -> [rows, rows labelled >= 2x, rows labelled >= 10x]
+    pub rows_by_reason: std::collections::BTreeMap<&'static str, [usize; 3]>,
+    pub coins_by_last_barrier: std::collections::BTreeMap<&'static str, usize>,
+    /// coins with at least one decision row labelled >= 2x / >= 10x
+    pub coins_2x_by_last_barrier: std::collections::BTreeMap<&'static str, usize>,
+    pub coins_10x_by_last_barrier: std::collections::BTreeMap<&'static str, usize>,
+    /// (mint, last barrier) of every >= 10x coin
+    pub coins_10x: Vec<(String, &'static str)>,
+}
+
+/// Pipeline stage of an outcome (higher = further), for `Funnel`.
+fn stage(r: &str) -> u8 {
+    match r {
+        "entered" => 9,
+        "no_cash" | "slots_full" | "exposure_cap" | "max_entries_per_min" | "kelly_bet_too_small" | "kelly_no_edge" => 8,
+        "ev_below_min" | "rug_veto" | "price_guard" | "ret_60s_too_high" | "top10_share_too_high" | "bundle_share_too_high" => 7,
+        "risk_loss_limit" | "risk_loss_streak" | "no_score" => 6,
+        "mint_unsafe" => 5,
+        "pool_unknown" | "venue_unvalidated" | "low_liquidity" | "migrating_curve_complete" => 4,
+        "merged_in_tick" => 0,
+        _ => 1,
+    }
+}
+
+pub fn funnel(outcomes: &[(u32, &'static str, u8)], mints: &[String]) -> Funnel {
+    let mut f = Funnel::default();
+    let mut coin: FxHashMap<u32, (&'static str, u8)> = FxHashMap::default();
+    for &(c, r, cls) in outcomes {
+        let e = f.rows_by_reason.entry(r).or_default();
+        e[0] += 1;
+        e[1] += (cls >= 1) as usize;
+        e[2] += (cls >= 2) as usize;
+        let x = coin.entry(c).or_insert((r, cls));
+        if stage(r) > stage(x.0) {
+            x.0 = r;
+        }
+        x.1 = x.1.max(cls);
+    }
+    let mut c10: Vec<(String, &'static str)> = Vec::new();
+    for (c, (r, cls)) in coin {
+        *f.coins_by_last_barrier.entry(r).or_default() += 1;
+        if cls >= 1 {
+            *f.coins_2x_by_last_barrier.entry(r).or_default() += 1;
+        }
+        if cls >= 2 {
+            *f.coins_10x_by_last_barrier.entry(r).or_default() += 1;
+            c10.push((mints.get(c as usize).cloned().unwrap_or_default(), r));
+        }
+    }
+    c10.sort();
+    f.coins_10x = c10;
+    f
+}
+
+fn cls_of(l: &Option<Labels>) -> u8 {
+    match l {
+        Some(l) if l.bin >= 5 => 2,
+        Some(l) if l.bin >= 3 => 1,
+        _ => 0,
+    }
 }
 
 fn hash01(a: u64, b: u64, seed: u64) -> f64 {
@@ -711,7 +780,7 @@ pub fn simulate_k(w: &WindowData, rp: RadarParams, scorer: &mut dyn Scorer, st: 
     let mut exits: std::collections::BTreeMap<&'static str, usize> = Default::default();
     let mut blocked: std::collections::BTreeMap<&'static str, usize> = Default::default();
     let mut signals = 0usize;
-    let mut outcomes: Vec<(u32, &'static str)> = Vec::new();
+    let mut outcomes: Vec<(u32, &'static str, u8)> = Vec::new();
     // Runners for moonshot capture: coins with an in-window signal whose label says >= 10x within H.
     let mut runner: FxHashSet<u32> = FxHashSet::default();
     let mut captured: FxHashSet<u32> = FxHashSet::default();
@@ -732,14 +801,14 @@ pub fn simulate_k(w: &WindowData, rp: RadarParams, scorer: &mut dyn Scorer, st: 
             if i >= evs.len() {
                 for cd in &tick {
                     *blocked.entry("data_end").or_default() += 1;
-                    outcomes.push((cd.coin, "data_end"));
+                    outcomes.push((cd.coin, "data_end", cls_of(&cd.label)));
                 }
             } else {
                 let mut live = Vec::with_capacity(tick.len());
                 for cd in tick {
                     if let Some(r) = eng.untradable(cd.coin, MIN_EXIT_LIQ_SOL) {
                         *blocked.entry(r).or_default() += 1;
-                        outcomes.push((cd.coin, r));
+                        outcomes.push((cd.coin, r, cls_of(&cd.label)));
                     } else {
                         live.push(cd);
                     }
@@ -767,12 +836,12 @@ pub fn simulate_k(w: &WindowData, rp: RadarParams, scorer: &mut dyn Scorer, st: 
                     let (ci, victim) = match d {
                         Decision::Merged(k) => {
                             merged_in_tick += 1;
-                            outcomes.push((live[k].coin, "merged_in_tick"));
+                            outcomes.push((live[k].coin, "merged_in_tick", cls_of(&live[k].label)));
                             continue;
                         }
                         Decision::Block(k, r) => {
                             *blocked.entry(r).or_default() += 1;
-                            outcomes.push((live[k].coin, r));
+                            outcomes.push((live[k].coin, r, cls_of(&live[k].label)));
                             continue;
                         }
                         Decision::Enter(k) => (k, None),
@@ -786,7 +855,7 @@ pub fn simulate_k(w: &WindowData, rp: RadarParams, scorer: &mut dyn Scorer, st: 
                         replacements += 1;
                     }
                     let cd = live[ci];
-                    outcomes.push((cd.coin, "entered"));
+                    outcomes.push((cd.coin, "entered", cls_of(&cd.label)));
                     busy.insert(cd.coin);
                     let bet = if oracle { st.bet_sol } else { cand_bet(st, &cd, equity) };
                     pending_buy_cost += bet;
@@ -1061,9 +1130,10 @@ pub fn simulate_k(w: &WindowData, rp: RadarParams, scorer: &mut dyn Scorer, st: 
             runner.insert(e.coin);
         }
         let coin_id = e.coin;
+        let row_cls = cls_of(&label);
         let mut block = |r: &'static str| {
             *blocked.entry(r).or_default() += 1;
-            outcomes.push((coin_id, r));
+            outcomes.push((coin_id, r, row_cls));
         };
         if busy.contains(&e.coin) {
             block("order_pending");
@@ -1164,7 +1234,32 @@ pub fn simulate_k(w: &WindowData, rp: RadarParams, scorer: &mut dyn Scorer, st: 
         replacements,
         merged_in_tick,
         trades_list: trades,
+        funnel: funnel(&outcomes, &ev.mints),
         signal_outcomes: outcomes,
+    }
+}
+
+/// Upside bins (k >= 2: peak >= 1x before the -65 % barrier) cannot return less than a lower upside bin: pool adjacent
+/// violators (weights = trades + prior 5). Rare top bins are shrunk toward the (negative) pooled mean and could fall
+/// below the 10-50x bin (seen: R_6 = +0.45 from 1 trade vs R_5 = +3.08), which made the EV under-rate moonshot rows.
+pub fn monotone_upside(rk: &mut [f64; 7], cnt: &[usize; 7]) {
+    let mut blocks: Vec<(f64, f64, usize)> = Vec::new(); // (weighted mean, weight, bins)
+    for k in 2..7 {
+        blocks.push((rk[k], cnt[k] as f64 + 5.0, 1));
+        while blocks.len() >= 2 && blocks[blocks.len() - 2].0 > blocks[blocks.len() - 1].0 {
+            let b = blocks.pop().unwrap();
+            let a = blocks.last_mut().unwrap();
+            a.0 = (a.0 * a.1 + b.0 * b.1) / (a.1 + b.1);
+            a.1 += b.1;
+            a.2 += b.2;
+        }
+    }
+    let mut k = 2;
+    for (m, _, n) in blocks {
+        for _ in 0..n {
+            rk[k] = m;
+            k += 1;
+        }
     }
 }
 
@@ -1201,6 +1296,7 @@ pub fn estimate_rk_kelly(train: &[(&WindowData, Option<&FileScores>)], rp: Radar
     for k in 0..7 {
         rk[k] = (sum[k] + 5.0 * prior) / (cnt[k] as f64 + 5.0);
     }
+    monotone_upside(&mut rk, &cnt);
     let obs: Vec<(u8, f64, f64)> = reps.iter().flat_map(|r| r.trades_list.iter().flat_map(|t| t.hold_obs.iter().copied())).collect();
     let rets: Vec<(u8, f64)> = reps.iter().flat_map(|r| r.trades_list.iter().filter_map(|t| t.true_bin.map(|b| (b, t.ret)))).collect();
     (rk, cnt, HoldTable::fit(&obs), KellyTable::fit(&rets))
@@ -1276,6 +1372,15 @@ mod tests {
 
     /// Wallet execution: a zero buy-slippage limit fails on a rising price (fee paid, no position); failing sells are
     /// retried (each try pays its fee) and the last try has no limit; ATA rent is locked and refunded.
+    #[test]
+    fn upside_bins_are_monotone() {
+        let mut rk = [-0.12, -0.43, -0.17, 0.10, 0.96, 3.08, 0.45];
+        monotone_upside(&mut rk, &[0, 327, 1240, 140, 31, 18, 1]);
+        assert_eq!(&rk[..5], &[-0.12, -0.43, -0.17, 0.10, 0.96], "downside bins and ordered bins untouched");
+        let pooled = (3.08 * 23.0 + 0.45 * 6.0) / 29.0;
+        assert!((rk[5] - pooled).abs() < 1e-12 && (rk[6] - pooled).abs() < 1e-12);
+    }
+
     /// Kelly: no edge -> 0; a bin with sure +100 % and one with -100 % at 50/50 -> f* = 0 (log growth <= 0);
     /// 60 % +100 % / 40 % -50 % -> f* = p/b_loss - q/b_win = 0.6/0.5 - 0.4/1 = 0.8; quarter Kelly sizes on equity.
     #[test]
@@ -1520,6 +1625,7 @@ mod tests {
             let r = simulate(&w, rp, &mut ByPool, &st, &c, &rk, None, false);
             // first decided outcome per coin (several decision rows of one coin in a tick are merged)
             let get = |coin: u32| r.signal_outcomes.iter().find(|x| x.0 == coin && x.1 != "merged_in_tick").map(|x| x.1);
+            assert_eq!(r.funnel.rows_by_reason.values().map(|v| v[0]).sum::<usize>(), r.signal_outcomes.len());
             (get(0), get(1))
         };
         assert_eq!(outcome(10), (Some("entered"), Some("exposure_cap")));
