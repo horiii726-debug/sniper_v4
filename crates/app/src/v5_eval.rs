@@ -32,7 +32,9 @@ pub fn load_windows(recs: &[PathBuf]) -> Result<Vec<Loaded>> {
 }
 
 pub fn dir_name(p: &Path) -> String {
-    p.file_name().and_then(|x| x.to_str()).unwrap_or("").to_string()
+    // same window name as python/ml/v5_common.py (the "v5_" directory prefix is dropped)
+    let b = p.file_name().and_then(|x| x.to_str()).unwrap_or("");
+    b.strip_prefix("v5_").unwrap_or(b).to_string()
 }
 
 fn wd(l: &Loaded) -> Result<WindowData<'_>> {

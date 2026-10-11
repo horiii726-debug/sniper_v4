@@ -92,6 +92,7 @@ def main():
         # `every`-th coin with newly known labels appears; rows are scored by the model state at their own time.
         p_on = p_wf.astype(np.float32).copy()
         model, n_upd = wf, 0
+        seg_start = 0                      # rows [seg_start, next update time) are scored by the current model, once
         known_t = w["t"] + a.delay
         order_known = np.argsort(known_t, kind="stable")
         buf, coins = [], set()
@@ -110,10 +111,16 @@ def main():
             yu = np.concatenate([w["y"][rows], yh[rep]])
             if not 0 < yu.sum() < len(yu):
                 continue
+            seg_end = int(np.searchsorted(w["t"], tk, side="left"))   # rows before the update time keep the old model
+            if seg_end > seg_start:
+                p_on[seg_start:seg_end] = model.predict_proba(w["X"][seg_start:seg_end])[:, 1]
+            seg_start = max(seg_start, seg_end)
             model = cb(a.update_iters).fit(Xu, yu, init_model=model)
             n_upd += 1
-            later = w["t"] >= tk           # rows at or after the update time use the updated model
-            p_on[later] = model.predict_proba(w["X"][later])[:, 1]
+            if n_upd % 100 == 0:
+                print(f"  {w['name']}: {n_upd} updates, {time.time() - t0:.0f} s", flush=True)
+        if seg_start < len(w["y"]):
+            p_on[seg_start:] = model.predict_proba(w["X"][seg_start:])[:, 1]
         d = w["dec"]
         r = {"window": w["name"], "decision_rows": int(d.sum()), "online_updates": n_upd,
              "static": metrics(w["y"][d], p_static[d]), "walk_forward": metrics(w["y"][d], p_wf[d]), "online": metrics(w["y"][d], p_on[d]),

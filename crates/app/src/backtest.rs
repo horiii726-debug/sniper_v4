@@ -46,6 +46,29 @@ pub struct Ev {
 pub const NO_POOL: u32 = u32::MAX;
 /// Minimum SOL in an AMM pool for it to become a coin's price source (see `ActivePool::accept`).
 pub const MIN_PRICE_POOL_LAMPORTS: u128 = 1_000_000_000;
+/// Trades of execution-priced pools (concentrated / virtual liquidity: CLMM, DLMM, DAMM v2, DBC, Whirlpool, unknown
+/// programs) set the price only if at least this large: rounding of dust swaps (3 lamports for 3 raw tokens, 0.03 SOL
+/// for 1 raw token) gave prices off by up to 1e15 and fake 50x labels.
+pub const MIN_PRICE_TRADE_LAMPORTS: u64 = 10_000_000;
+pub const MIN_PRICE_TRADE_TOKENS: u64 = 10_000;
+
+/// Execution-priced events (orders in `exec`) too small to carry a price take the last informative price of the same
+/// pool (reserves rescaled); without one their token reserve is 0 and they never set a price (`ActivePool::accept`).
+/// Events must be in order. Returns the number of events repaired.
+pub fn repair_exec_prices(evs: &mut [Ev], exec: &FxHashSet<u64>) -> u64 {
+    let mut last: FxHashMap<u32, f64> = FxHashMap::default();
+    let mut n = 0;
+    for e in evs.iter_mut().filter(|e| exec.contains(&e.order)) {
+        if e.sol >= MIN_PRICE_TRADE_LAMPORTS && e.tokens >= MIN_PRICE_TRADE_TOKENS {
+            last.insert(e.pool, e.sol as f64 / e.tokens as f64);
+            continue;
+        }
+        n += 1;
+        e.token_res = last.get(&e.pool).map_or(0, |px| (e.quote_res as f64 / px) as u128);
+        e.real_token = e.token_res.min(u64::MAX as u128) as u64;
+    }
+    n
+}
 
 /// Event layout of the V6 v3 caches (`pump_events_v3.bin`): venue, no pool id.
 #[derive(Deserialize)]
@@ -126,6 +149,9 @@ impl ActivePool {
     /// to an AMM, or when it is at least as deep (quote reserve). A thin second pool of the same venue with a stale or
     /// absurd price never sets the price.
     pub fn accept(&mut self, e: &Ev) -> bool {
+        if e.token_res == 0 {
+            return false; // no price (see `repair_exec_prices`)
+        }
         let same = if e.pool != NO_POOL && self.pool != NO_POOL { e.pool == self.pool } else { e.venue == self.venue };
         // An AMM pool with < 1 SOL never BECOMES the price source (empty / dust pools carry absurd prices: a 0-SOL
         // DAMM v2 pool showed a fake 58x); the active pool itself keeps updating when it is drained (rugs stay visible).
@@ -364,6 +390,7 @@ fn load_window_events(rec: &Path) -> Result<Events> {
         *pools.entry(k.to_string()).or_insert(n)
     };
     let mut leg_stats: std::collections::BTreeMap<String, u64> = Default::default();
+    let mut exec_priced: FxHashSet<u64> = Default::default();
     // on-chain SOL/USD from SOL-stable price legs: last price (stable-quote conversion), per-minute medians (file)
     let mut sol_usd_last = 0.0f64;
     let mut sol_usd_min: std::collections::BTreeMap<i64, Vec<f64>> = Default::default();
@@ -484,6 +511,7 @@ fn load_window_events(rec: &Path) -> Result<Events> {
                     let token_res = if code::cpmm_vaults(venue) && l.kind == LegKind::Vault {
                         l.token_post
                     } else {
+                        exec_priced.insert((slot << 24) | ((i as u64) << 8) | (0x80 + j as u64));
                         (qres as f64 * l.token_amt as f64 / sol as f64) as u128
                     };
                     let n = mints.len() as u32;
@@ -532,6 +560,9 @@ fn load_window_events(rec: &Path) -> Result<Events> {
                 }
             }
             if let Some(p) = decoded {
+                if !decoder::venue_pool::code::cpmm_vaults(p.venue) {
+                    exec_priced.insert((slot << 24) | ((i as u64) << 8) | 0xFF);
+                }
                 let n = mints.len() as u32;
                 let coin = *mints.entry(p.trade.mint.clone()).or_insert(n);
                 let n = users.len() as u32;
@@ -562,6 +593,8 @@ fn load_window_events(rec: &Path) -> Result<Events> {
         }
     }
     evs.sort_by_key(|e| e.order);
+    leg_stats.insert("exec_priced_events".into(), exec_priced.len() as u64);
+    leg_stats.insert("exec_price_repaired_dust".into(), repair_exec_prices(&mut evs, &exec_priced));
     let mut names = vec![String::new(); mints.len()];
     for (m, i) in mints {
         names[i as usize] = m;
@@ -1241,6 +1274,27 @@ mod tests {
         let ev = load_window(&d).unwrap();
         assert!(!ev.creations_scanned && ev.created == vec![None, None]);
         std::fs::remove_dir_all(&d).unwrap();
+    }
+
+    /// Dust swaps of execution-priced pools keep the pool's last informative price; before one they carry no price.
+    #[test]
+    fn dust_exec_trades_do_not_set_price() {
+        let e = |order: u64, sol: u64, tokens: u64| Ev { slot: 1, order, time: 1, coin: 0, amm: true, buy: true, sol, tokens, user: 0, creator: 0,
+            quote_res: 1_000_000_000_000, token_res: (1_000_000_000_000f64 * tokens as f64 / sol as f64) as u128, real_quote: 0, real_token: 0,
+            fee_bps: 0, complete: false, venue: decoder::venue_pool::code::METEORA_DLMM, pool: 7 };
+        // dust first (no price yet), a real swap at 0.002 lamports per raw token, dust 3 lamports for 3 raw, 0.03 SOL for 1 raw
+        let mut evs = vec![e(1, 5, 5), e(2, 20_000_000, 10_000_000_000), e(3, 3, 3), e(4, 30_000_000, 1)];
+        let exec: FxHashSet<u64> = [1, 2, 3, 4].into_iter().collect();
+        assert_eq!(repair_exec_prices(&mut evs, &exec), 3);
+        assert_eq!(evs[0].token_res, 0, "no price before the first informative trade");
+        assert!(!ActivePool::default().accept(&evs[0]));
+        let px = |e: &Ev| e.quote_res as f64 / e.token_res as f64;
+        assert!((px(&evs[1]) - 0.002).abs() < 1e-9);
+        assert!((px(&evs[2]) - 0.002).abs() < 1e-9 && (px(&evs[3]) - 0.002).abs() < 1e-9, "dust keeps the last price");
+        // events outside `exec` (pump, CPMM vault reserves) are untouched
+        let mut v = vec![e(9, 3, 3)];
+        assert_eq!(repair_exec_prices(&mut v, &exec), 0);
+        assert_eq!(v[0].token_res, 1_000_000_000_000);
     }
 
     /// Active pool: curve until an AMM trade; among AMM venues the deeper pool takes over; same venue always updates.
