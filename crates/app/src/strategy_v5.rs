@@ -125,6 +125,9 @@ pub struct StratV5 {
     pub kelly_frac: Option<f64>,
     /// Kelly bets below this are skipped: fixed tx costs (~0.001 SOL per round trip) would dominate.
     pub kelly_min_bet_sol: f64,
+    /// Sell a held position when P(rug) >= this (None = `rug_veto`, the entry threshold). Separate so the sweep can
+    /// tell the entry veto and the exit apart (the rug model rates moonshot launches 0.5-0.7).
+    pub rug_exit: Option<f32>,
 }
 
 impl Default for StratV5 {
@@ -158,6 +161,7 @@ impl Default for StratV5 {
             bet_equity_frac: None,
             kelly_frac: None,
             kelly_min_bet_sol: 0.02,
+            rug_exit: None,
             d_min: 0.15,
             d_max: 0.60,
             trail_fixed: 0.30,
@@ -1056,7 +1060,7 @@ pub fn simulate_k(w: &WindowData, rp: RadarParams, scorer: &mut dyn Scorer, st: 
             let mut sell: Option<(u64, &'static str, bool)> = None;
             if step.dev_family_sell && step.dev_cum_sell_frac >= st.dev_kill_min_frac {
                 sell = Some((p.tokens, "DevSell", true));
-            } else if pred.is_some_and(|q| q.rug >= st.rug_veto) {
+            } else if pred.is_some_and(|q| q.rug >= st.rug_exit.unwrap_or(st.rug_veto)) {
                 sell = Some((p.tokens, "RugModel", true));
             } else if pred.is_some_and(|q| q.dead >= st.dead_exit) {
                 sell = Some((p.tokens, "Hazard", true));

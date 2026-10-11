@@ -70,5 +70,20 @@
  "exit_trail20": {
   "exit_mode": "trail",
   "trail_fixed": 0.2
+ },
+ "rug_exit_off": {
+  "rug_exit": 1.01
+ },
+ "rug_exit_0.8": {
+  "rug_exit": 0.8
+ },
+ "rug_veto_off_exit_on": {
+  "rug_veto": 1.01,
+  "rug_exit": 0.5
+ },
+ "rug_veto_0.7_exit_off_guard_off": {
+  "rug_veto": 0.7,
+  "rug_exit": 1.01,
+  "max_entry_ret": null
  }
 }
