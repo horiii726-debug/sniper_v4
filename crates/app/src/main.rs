@@ -332,6 +332,9 @@ enum Cmd {
         /// walk-forward (data loaded once, variants in parallel); no grid / sensitivity / Monte Carlo.
         #[arg(long)]
         variants: Option<PathBuf>,
+        /// Swap fee per side (bps) on pools without a decoded fee (execution-priced venues); default = CostsV5 default.
+        #[arg(long)]
+        default_fee_bps: Option<u64>,
     },
     /// EXPLORATORY: V4 rule strategy vs V5 corrections without ML on the same windows, plus a per-runner table.
     V5Compare {
@@ -586,10 +589,11 @@ fn main() -> Result<()> {
             let v4: backtest::Strategy = serde_json::from_str(&std::fs::read_to_string(&v4_strategy)?)?;
             v5_eval::compare(&rec, rp, &v4, &st, &out)
         }
-        Cmd::V5Backtest { rec, models, radar_params, strategy, out, grid, mc_runs, mc_resamples, latency_slots, buy_fail_prob, variants } => {
+        Cmd::V5Backtest { rec, models, radar_params, strategy, out, grid, mc_runs, mc_resamples, latency_slots, buy_fail_prob, variants, default_fee_bps } => {
             let rp = radar_feed::load_params(&radar_params)?;
             let st: strategy_v5::StratV5 = match strategy { Some(p) => serde_json::from_str(&std::fs::read_to_string(p)?)?, None => Default::default() };
-            let costs = strategy_v5::CostsV5 { latency_slots, buy_fail_prob, ..Default::default() };
+            let d = strategy_v5::CostsV5::default();
+            let costs = strategy_v5::CostsV5 { latency_slots, buy_fail_prob, default_fee_bps: default_fee_bps.unwrap_or(d.default_fee_bps), ..d };
             let o = v5_eval::EvalOpts { models, out, grid, mc_runs, mc_resamples, costs, strategy: st };
             match variants {
                 Some(v) => v5_eval::run_variants(&rec, rp, &o, &v5_eval::load_variants(&v, &st)?),
