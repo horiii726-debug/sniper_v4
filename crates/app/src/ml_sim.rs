@@ -1341,6 +1341,7 @@ pub fn load_context(rec: &std::path::Path, ev: &Events) -> anyhow::Result<Contex
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[serde(default)]
 pub struct MlStrategy {
     pub entry_p2: f32,
     pub entry_p5: f32,
@@ -1380,6 +1381,21 @@ pub struct MlStrategy {
     pub kelly_win: f64,
     pub kelly_loss: f64,
     pub max_bet_frac: f64,
+    /// V4-12: Kelly sizing is allowed only once the probabilities passed calibration (reliability error < 0.05
+    /// per bin, V5 plan 7.6); until then the size is the fixed `size_frac`.
+    pub calibrated: bool,
+}
+
+/// Fraction of equity to bet: fixed `size_frac` unless Kelly is enabled AND the model is calibrated
+/// (V4-12). None = negative Kelly edge (no trade).
+pub fn bet_fraction(st: &MlStrategy, p2: f32) -> Option<f64> {
+    if st.kelly_fraction > 0.0 && st.calibrated {
+        let p = p2 as f64;
+        let f = st.kelly_fraction * (p / st.kelly_loss - (1.0 - p) / st.kelly_win);
+        (f > 0.0).then(|| f.min(st.max_bet_frac))
+    } else {
+        Some(st.size_frac)
+    }
 }
 
 impl Default for MlStrategy {
@@ -1412,6 +1428,7 @@ impl Default for MlStrategy {
             kelly_win: 1.0,
             kelly_loss: 0.5,
             max_bet_frac: 0.10,
+            calibrated: false,
         }
     }
 }
@@ -1698,16 +1715,9 @@ pub fn simulate(ev: &Events, rp: RadarParams, sc: &Scores, st: &MlStrategy, c: &
             continue;
         }
         let eq = cash + pos.iter().map(|(cid, p)| eng.pool_value(*cid, p.tokens, c.default_fee_bps)).sum::<f64>();
-        let frac = if st.kelly_fraction > 0.0 {
-            let p = s[0] as f64;
-            let f = st.kelly_fraction * (p / st.kelly_loss - (1.0 - p) / st.kelly_win);
-            if f <= 0.0 {
-                *dg.blocked.entry("kelly_negative_edge").or_default() += 1;
-                continue;
-            }
-            f.min(st.max_bet_frac)
-        } else {
-            st.size_frac
+        let Some(frac) = bet_fraction(st, s[0]) else {
+            *dg.blocked.entry("kelly_negative_edge").or_default() += 1;
+            continue;
         };
         let size = (frac * eq).min(st.max_impact * eng.quote_res_sol(e.coin) / 2.0);
         if size < 0.005 || cash < size + 3.0 * txc {
@@ -1764,31 +1774,35 @@ pub fn simulate(ev: &Events, rp: RadarParams, sc: &Scores, st: &MlStrategy, c: &
     }
 }
 
-/// Grid over decision thresholds on development windows (scores must be out-of-sample for those
-/// windows). Selection: maximize the worst development-window return.
-pub fn tune(dev: &[(&Events, &Scores, f64)], rp: RadarParams, c: &Costs) -> (MlStrategy, Vec<(MlStrategy, Vec<f64>)>) {
-    use rayon::prelude::*;
+/// Grid (96 points) of the V4 ML simulator: fixed-size bets (V4-12: no Kelly on uncalibrated scores; the former
+/// kelly_loss dimension is gone).
+pub fn tune_grid() -> Vec<MlStrategy> {
     let mut grid = Vec::new();
-    // Quarter-Kelly sizing with compounding (user decision); the grid tunes entry / exit / veto settings.
     for &entry_p2 in &[0.3f32, 0.4, 0.5] {
         for &(dump_exit_min_mult, giveback_arm, giveback) in &[(1.2, 1.5, 0.35), (2.0, 2.0, 0.5)] {
             for &dev_kill_min_frac in &[0.0, 0.5] {
                 for &devsell_veto in &[0.2f32, 1.0] {
                     for &exit_cont in &[0.15f32, 0.3] {
                         for &hold_if_p2_above in &[1.0f32, 0.5] {
-                            for &kelly_loss in &[0.4, 0.6] {
-                                grid.push(MlStrategy {
-                                    entry_p2, dump_exit: 0.5, dump_exit_min_mult, giveback_arm, giveback, dev_kill_min_frac, devsell_veto,
-                                    exit_cont, reentry_cooldown_s: 60, hold_if_p2_above, min_quote_res_sol: 1.0, max_positions: 15,
-                                    kelly_fraction: 0.25, kelly_win: 1.0, kelly_loss, max_bet_frac: 0.10, ..Default::default()
-                                });
-                            }
+                            grid.push(MlStrategy {
+                                entry_p2, dump_exit: 0.5, dump_exit_min_mult, giveback_arm, giveback, dev_kill_min_frac, devsell_veto,
+                                exit_cont, reentry_cooldown_s: 60, hold_if_p2_above, min_quote_res_sol: 1.0, max_positions: 15,
+                                kelly_fraction: 0.0, ..Default::default()
+                            });
                         }
                     }
                 }
             }
         }
     }
+    grid
+}
+
+/// Grid over decision thresholds on development windows (scores must be out-of-sample for those
+/// windows). Selection: maximize the worst development-window return.
+pub fn tune(dev: &[(&Events, &Scores, f64)], rp: RadarParams, c: &Costs) -> (MlStrategy, Vec<(MlStrategy, Vec<f64>)>) {
+    use rayon::prelude::*;
+    let grid = tune_grid();
     // CPU-parallel over all cores (CatBoost training runs on the GPU separately).
     let all: Vec<(MlStrategy, Vec<f64>)> = grid
         .into_par_iter()
@@ -1939,6 +1953,29 @@ mod tests {
         let mut e = mk(slot, slot as i64, 0, user, buy, 50_000_000, 100_000_000_000, 1_000_000_000_000);
         e.tokens = tokens;
         e
+    }
+
+    #[test]
+    fn bet_fraction_fixed_until_calibrated() {
+        let st = MlStrategy { kelly_fraction: 0.25, calibrated: false, size_frac: 0.15, ..Default::default() };
+        assert_eq!(bet_fraction(&st, 0.9), Some(0.15));
+        let cal = MlStrategy { calibrated: true, ..st };
+        assert_eq!(bet_fraction(&cal, 0.9), Some(0.10), "capped by max_bet_frac");
+        assert_eq!(bet_fraction(&cal, 0.1), None, "negative edge");
+    }
+
+    #[test]
+    fn tune_grid_is_fixed_size() {
+        let g = tune_grid();
+        assert_eq!(g.len(), 96);
+        assert!(g.iter().all(|s| s.kelly_fraction == 0.0));
+    }
+
+    #[test]
+    fn ml_strategy_loads_with_missing_fields() {
+        let s: MlStrategy = serde_json::from_str(r#"{"entry_p2": 0.35}"#).unwrap();
+        assert_eq!(s.entry_p2, 0.35);
+        assert_eq!(s.max_bet_frac, MlStrategy::default().max_bet_frac);
     }
 
     /// V5-8: repeated 49% creator sells accumulate (0.49, then 0.739) although each single sell is < 50%.
