@@ -10,7 +10,8 @@
 
 use crate::backtest::{Costs, Events};
 use decoder::pump::{buy_tokens_out, sell_quote_out};
-use radar::{Params as RadarParams, Radar, Signal, Trade};
+use crate::radar_feed::RadarFeed;
+use radar::{Params as RadarParams, RadarState, Signal};
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde::{Deserialize, Serialize};
 use std::collections::VecDeque;
@@ -40,10 +41,9 @@ const HK_FAST: f64 = 0.1;
 const HK_SLOW: f64 = 0.01;
 /// pump.fun total token supply (raw, 6 decimals): 1B tokens.
 const TOTAL_SUPPLY_RAW: f64 = 1_000_000_000_000_000.0;
-/// pump.fun initial real token reserves (raw, 6 decimals): 793.1M tokens.
-const CURVE_INITIAL_REAL_TOKEN: f64 = 793_100_000_000_000.0;
+use decoder::pump::CURVE_INITIAL_REAL_TOKEN;
 
-pub const FEATURES: [&str; 107] = [
+pub const FEATURES: [&str; 130] = [
     "age_s", "newborn", "on_amm", "quote_res_sol", "curve_progress", "fee_bps",
     "n_trades_15s", "n_trades_60s", "n_trades_300s", "buyers_15s", "buyers_60s", "sellers_60s",
     "buy_sol_15s", "buy_sol_60s", "sell_sol_15s", "sell_sol_60s", "net_flow_15s", "net_flow_60s", "flow_imb_60s",
@@ -90,6 +90,12 @@ pub const FEATURES: [&str; 107] = [
     "fast_wallet_share_60s", "wallet_rate_med_60s", "early20_delay_med_s",
     // concentration vs TOTAL supply (f2_top10_holder_share is vs observed holdings, ~1 at the first signal)
     "top10_supply_share",
+    // ---- V6 radar block (D2; appended, indices above unchanged): state, CUSUM, clusters, real liquidity, dust ----
+    "rd_state", "rd_kind_new", "rd_birth_src", "rd_secs_in_state", "rd_decisions_in_state",
+    "rd_cusum_uc", "rd_cusum_bsol", "rd_cusum_nfl", "rd_cusum_alarm_age_s", "rd_cusum_alarms", "rd_cusum_pop",
+    "rd_clusters_60s", "rd_cluster_growth", "rd_cluster_accel", "rd_nfl_60s", "rd_liq_real_sol",
+    "rd_dust_n_60s", "rd_dust_sol_60s", "rd_dust_sol_share_60s", "rd_dust_top_cluster_share_60s",
+    "rd_split_max_sol_liq_300s", "rd_split_max_n_300s", "rd_clusters_known",
 ];
 
 #[derive(Default, Clone, Copy)]
@@ -122,6 +128,8 @@ impl Pool {
 
 #[derive(Default)]
 struct Coin {
+    /// The coin had an event (block time 0 is a valid time, not a sentinel; E6).
+    seen: bool,
     first_time: i64,
     first_price: f64,
     /// (time, user, buy, sol) of every event within 300 s.
@@ -134,6 +142,8 @@ struct Coin {
     slow: (f64, f64),
     last_real_buy: i64,
     hot_time: Option<i64>,
+    /// First radar Watch or Promote (snapshot cadence starts here).
+    track_time: Option<i64>,
     last_event: i64,
     last_snap: i64,
     creator_sell_sol: f64,
@@ -226,6 +236,9 @@ pub struct Context {
     /// V5-8: (creator id, linked wallet id) -> unix time the link became known (optional `<rec>/dev_family.csv`,
     /// built from SOL transfers; must be causal). None = creator only.
     pub dev_family: Option<FxHashMap<(u32, u32), i64>>,
+    /// D2: user id -> cluster id (wallet_scores.csv `cluster_id`; representatives outside the window get synthetic
+    /// ids >= users.len()). None = no lookup (cluster = wallet).
+    pub clusters: Option<std::sync::Arc<[u32]>>,
 }
 
 /// Live, causal per-wallet activity across all coins (trader speed).
@@ -241,13 +254,14 @@ struct WalletLive {
 pub struct Engine {
     pools: Vec<Pool>,
     coins: Vec<Coin>,
-    radar: Radar,
+    feed: RadarFeed,
     first_seen: FxHashMap<u32, i64>,
     window_start: i64,
     window_end: i64,
-    last_sweep: i64,
     sig: Vec<(u32, Signal)>,
     created: Vec<Option<(i64, Option<f64>)>>,
+    creations_scanned: bool,
+    clusters_known: bool,
     ctx: Context,
     live: FxHashMap<u32, WalletLive>,
     /// All-coin (time, SOL) within 300 s / 600 s and running sums.
@@ -255,15 +269,19 @@ pub struct Engine {
     mkt5_sum: f64,
     mkt10: VecDeque<(i64, f64)>,
     mkt10_sum: f64,
-    /// First-seen times of newborn-proxy coins within 60 s.
+    /// Birth times of radar newborns within 60 s.
     new_coins: VecDeque<i64>,
 }
 
 /// What the engine tells the caller after applying one event.
 pub struct Step {
     pub snapshot: Option<Vec<f32>>,
-    /// The radar promoted the coin on this event (decision row, V5 §3.3).
+    /// The radar promoted the coin on this event.
     pub signal: bool,
+    /// Decision row (V5 §3.3): radar Promote, Watch or Decide on this event.
+    pub decision: bool,
+    /// Radar state of the coin after this event.
+    pub radar_state: RadarState,
     pub dev_sell: bool,
     /// Fraction of the creator's token balance sold in this event (0 if not a creator sell).
     pub dev_sell_frac: f64,
@@ -279,13 +297,14 @@ impl Engine {
         Self {
             pools: vec![Pool::default(); n],
             coins: (0..n).map(|_| Coin::default()).collect(),
-            radar: Radar::new(rp).with_newborn_after(ev.window.0 + 60),
+            feed: RadarFeed::new(ev, rp),
             first_seen: FxHashMap::default(),
             window_start: ev.window.0,
             window_end: ev.window.1,
-            last_sweep: i64::MIN,
             sig: Vec::new(),
             created: ev.created.clone(),
+            creations_scanned: ev.creations_scanned,
+            clusters_known: false,
             ctx: Context::default(),
             live: FxHashMap::default(),
             mkt5: VecDeque::new(),
@@ -297,8 +316,26 @@ impl Engine {
     }
 
     pub fn with_ctx(mut self, ctx: Context) -> Self {
+        self.feed.set_clusters(ctx.clusters.clone());
+        self.clusters_known = ctx.clusters.is_some();
         self.ctx = ctx;
         self
+    }
+
+    pub fn radar(&self) -> &radar::Radar {
+        self.feed.radar()
+    }
+
+    /// The radar promoted this coin at least once so far.
+    pub fn ever_hot(&self, coin: u32) -> bool {
+        self.coins[coin as usize].hot_time.is_some()
+    }
+
+    /// Creation (time, price) usable by features at this point: from the unselected window scan, or from follow-up
+    /// data only once the coin was HOT (follow-up data exists only for HOT coins: earlier use would leak HOT status).
+    fn created_for_features(&self, ci: usize) -> Option<(i64, Option<f64>)> {
+        let cr = self.created.get(ci).copied().flatten()?;
+        ((self.creations_scanned && cr.0 >= self.window_start) || self.coins[ci].hot_time.is_some()).then_some(cr)
     }
 
     fn wallet(&self, u: u32) -> Option<&WalletInfo> {
@@ -336,12 +373,11 @@ impl Engine {
     }
 
     pub fn apply(&mut self, e: &crate::backtest::Ev) -> Step {
-        if e.time > self.last_sweep {
-            self.last_sweep = e.time;
-            self.radar.sweep(e.time, &mut self.sig);
-            self.sig.clear();
-        }
         let ci = e.coin as usize;
+        let first_event = !self.coins[ci].seen;
+        if first_event && e.time <= self.window_end && self.feed.births().birth(e.coin, e).is_new() {
+            self.new_coins.push_back(e.time);
+        }
         let p = &mut self.pools[ci];
         if e.amm || !p.amm {
             *p = Pool {
@@ -404,12 +440,10 @@ impl Engine {
             }
         }
         let dev_cum_sell_frac = cum_sell_frac(c);
-        if c.first_time == 0 {
+        if !c.seen {
+            c.seen = true;
             c.first_time = e.time;
             c.first_price = pool.price();
-            if e.time >= self.window_start + 60 && e.time <= self.window_end {
-                self.new_coins.push_back(e.time);
-            }
         }
         c.on_amm |= e.amm;
         c.last_event = e.time;
@@ -553,20 +587,26 @@ impl Engine {
                 c.dev_sell_time = Some(e.time);
             }
         }
-        let price = if e.tokens > 0 { solf / e.tokens as f64 } else { 0.0 };
-        let tr = Trade { time: e.time, order: e.order, coin: e.coin, trader: e.user, buy: e.buy, sol: solf, price };
-        let signal = self.radar.on_trade(&tr) == Some(Signal::Promote);
+        self.sig.clear();
+        let rs = self.feed.step(e, &mut self.sig);
+        let c = &mut self.coins[ci];
+        let signal = rs == Some(Signal::Promote);
+        let decision = matches!(rs, Some(Signal::Promote | Signal::Watch | Signal::Decide));
         if signal {
             c.hot_time.get_or_insert(e.time);
         }
-        let due = signal || (real && c.hot_time.is_some_and(|h| e.time - c.last_snap >= snap_every(e.time - h)));
+        if decision {
+            c.track_time.get_or_insert(e.time);
+        }
+        let due = decision || (real && c.track_time.is_some_and(|h| e.time - c.last_snap >= snap_every(e.time - h)));
         let snapshot = if due {
             c.last_snap = e.time;
             Some(self.features(ci, e.time))
         } else {
             None
         };
-        Step { snapshot, signal, dev_sell, dev_sell_frac, dev_family_sell, dev_cum_sell_frac }
+        let radar_state = self.feed.radar().state(e.coin);
+        Step { snapshot, signal, decision, radar_state, dev_sell, dev_sell_frac, dev_family_sell, dev_cum_sell_frac }
     }
 
     pub fn pool_value(&self, coin: u32, tokens: u64, default_fee: u64) -> f64 {
@@ -715,14 +755,12 @@ impl Engine {
         let fast = ewma_at(&c.fast, t as f64, TAU_FAST);
         let slow = ewma_at(&c.slow, t as f64, TAU_SLOW);
         let progress = if p.amm { 1.0 } else { 1.0 - p.real_token as f64 / CURVE_INITIAL_REAL_TOKEN };
-        // V5 fix: age / newborn / multiple from the real creation (follow-up), else from first observation.
-        let created = self.created.get(ci).copied().flatten();
+        // Age / multiple from the real creation when usable without a selection leak, else from first observation;
+        // newborn = radar birth (on-chain creation or labelled proxy, V4-1).
+        let created = self.created_for_features(ci);
         let born = created.map(|x| x.0).unwrap_or(c.first_time);
         let first_px = created.and_then(|x| x.1).filter(|x| *x > 0.0).unwrap_or(c.first_price);
-        let newborn = match created {
-            Some((ct, _)) => ct >= self.window_start,
-            None => c.first_time > self.window_start + 60,
-        };
+        let newborn = self.feed.radar().birth(ci as u32).is_some_and(|b| b.is_new());
         let mut v = vec![
             (t - born) as f32,
             newborn as u8 as f32,
@@ -854,8 +892,44 @@ impl Engine {
             win(15).filter(|x| !x.2).map(|x| x.3).fold(0.0, f64::max) as f32,
         ];
         v.extend(self.features_v5(ci, t, born));
+        v.extend(self.features_rd(ci, t));
         debug_assert_eq!(v.len(), FEATURES.len());
         v
+    }
+
+    /// D2 radar block: the radar's own state / CUSUM / cluster / liquidity / dust metrics (same values as its rules).
+    fn features_rd(&self, ci: usize, t: i64) -> Vec<f32> {
+        let Some(v) = self.feed.radar().view(ci as u32, t) else { return vec![f32::NAN; 23] };
+        let m = &v.metrics;
+        let opt = |x: Option<f64>| x.map_or(-1.0, |y| y as f32);
+        let cold = v.state == RadarState::Cold;
+        let liq_floor = self.feed.radar().params().liq_floor_sol;
+        let win = self.feed.radar().params().win_s.max(1) as f32;
+        vec![
+            match v.state { RadarState::Cold => 0.0, RadarState::Watch => 1.0, RadarState::Hot => 2.0 },
+            (v.kind == radar::CoinKind::New) as u8 as f32,
+            v.birth.code() as f32,
+            if cold { -1.0 } else { (t - v.state_since) as f32 },
+            if cold { 0.0 } else { v.decisions_in_state as f32 },
+            opt(v.cusum_s[0]),
+            opt(v.cusum_s[1]),
+            opt(v.cusum_s[2]),
+            v.last_alarm.map_or(-1.0, |(a, _)| (t - a) as f32),
+            v.n_alarms as f32,
+            v.cusum_pop[0].map_or(-1.0, |b| b as u8 as f32),
+            m.clusters_win as f32,
+            m.growth as f32,
+            (m.clusters_win as f32 - m.clusters_prev_win as f32) / win,
+            m.nfl_win.map_or(f32::NAN, |x| x as f32),
+            m.liq_sol.map_or(f32::NAN, |x| x as f32),
+            m.dust_n_win as f32,
+            m.dust_sol_win as f32,
+            if m.dust_sol_win + m.buy_sol_win > 0.0 { (m.dust_sol_win / (m.dust_sol_win + m.buy_sol_win)) as f32 } else { 0.0 },
+            opt(m.dust_top_cluster_share_win),
+            m.liq_sol.map_or(-1.0, |l| (m.split_max_sol_300 / l.max(liq_floor)) as f32),
+            m.split_max_n_300 as f32,
+            self.clusters_known as u8 as f32,
+        ]
     }
 
     /// V5 §4 features (appended after the V4 block). All causal: state up to and including the current event.
@@ -1040,7 +1114,7 @@ impl Engine {
         };
         let mut early_delay: Vec<f64> = c.early_first.iter().map(|x| (x - born) as f64).collect();
         vec![
-            self.created.get(ci).copied().flatten().is_some() as u8 as f32,
+            self.created_for_features(ci).is_some() as u8 as f32,
             q.ln() as f32,
             (smart60 / q) as f32,
             share(smart60),
@@ -1283,6 +1357,13 @@ pub struct SnapStats {
     pub dropped_no_p0: usize,
     pub coins: usize,
     pub coins_followed: usize,
+    /// Decision rows that were radar Promotes / taken while the coin was in WATCH.
+    pub promote_rows: usize,
+    pub watch_rows: usize,
+    pub newborn_coins: usize,
+    pub birth_source: &'static str,
+    pub creations_scanned: bool,
+    pub clusters_known: bool,
 }
 
 pub const LABEL_COLS: [&str; 9] = ["y_tp1", "y_bin", "y_peak_barrier", "y_hold", "y_dead_10m", "y_logmax", "y_end_h", "y_rugdead", "y_t2x"];
@@ -1302,7 +1383,13 @@ pub fn write_snapshots(ev: &Events, rp: RadarParams, ctx: Context, out: &std::pa
         write!(f, ",{n}")?;
     }
     writeln!(f)?;
-    let mut st = SnapStats { coins_followed: ev.followed.iter().filter(|x| **x).count(), ..Default::default() };
+    let mut st = SnapStats {
+        coins_followed: ev.followed.iter().filter(|x| **x).count(),
+        birth_source: eng.feed.birth_source().as_str(),
+        creations_scanned: ev.creations_scanned,
+        clusters_known: eng.clusters_known,
+        ..Default::default()
+    };
     let mut seen = vec![false; ev.mints.len()];
     for e in &ev.evs {
         let step = eng.apply(e);
@@ -1310,7 +1397,7 @@ pub fn write_snapshots(ev: &Events, rp: RadarParams, ctx: Context, out: &std::pa
         let ci = e.coin as usize;
         if !label_covered(e.time, &deaths[ci], ev.cover_end[ci]) {
             st.dropped_censored += 1;
-            st.dropped_censored_signal += step.signal as usize;
+            st.dropped_censored_signal += step.decision as usize;
             continue;
         }
         let Some(y) = labels(&pth[ci], e.time, &deaths[ci], ev.cover_end[ci]) else {
@@ -1318,20 +1405,23 @@ pub fn write_snapshots(ev: &Events, rp: RadarParams, ctx: Context, out: &std::pa
             continue;
         };
         let in_win = e.time <= ev.window.1;
-        write!(f, "{},{},{},{},{}", e.coin, e.order, e.time - ev.window.0, step.signal as u8, in_win as u8)?;
+        write!(f, "{},{},{},{},{}", e.coin, e.order, e.time - ev.window.0, step.decision as u8, in_win as u8)?;
         for v in &x {
             write!(f, ",{v}")?;
         }
         writeln!(f, ",{},{},{},{},{},{},{},{},{}", y.tp1, y.bin, y.peak_barrier, y.hold, y.dead_10m, y.logmax, y.end_h, y.rugdead, y.t_2x)?;
         st.rows += 1;
-        st.signal_rows += step.signal as usize;
-        st.signal_rows_in_window += (step.signal && in_win) as usize;
+        st.signal_rows += step.decision as usize;
+        st.signal_rows_in_window += (step.decision && in_win) as usize;
+        st.promote_rows += step.signal as usize;
+        st.watch_rows += (step.decision && step.radar_state == RadarState::Watch) as usize;
         if !seen[ci] {
             seen[ci] = true;
             st.coins += 1;
         }
     }
     f.flush()?;
+    st.newborn_coins = (0..ev.mints.len() as u32).filter(|c| eng.radar().birth(*c).is_some_and(|b| b.is_new())).count();
     Ok(st)
 }
 
@@ -1365,6 +1455,22 @@ pub fn load_context(rec: &std::path::Path, ev: &Events) -> anyhow::Result<Contex
         let hdr: Vec<&str> = lines.next().unwrap_or("").split(',').collect();
         let col = |n: &str| hdr.iter().position(|h| *h == n).ok_or_else(|| anyhow::anyhow!("wallet_scores.csv: no column {n}"));
         let (iw, isc, inc, ib, ifl, isn, icl) = (col("wallet")?, col("score")?, col("n_closed")?, col("is_bot")?, col("is_flipper")?, col("sniper_coins")?, col("cluster_size")?);
+        let icid = hdr.iter().position(|h| *h == "cluster_id");
+        let mut cl: Vec<u32> = (0..ev.users.len() as u32).collect();
+        let mut synth: FxHashMap<String, u32> = FxHashMap::default();
+        let mut any_cluster = false;
+        for l in text.lines().skip(1) {
+            let v: Vec<&str> = l.split(',').collect();
+            let (Some(&id), Some(rep)) = (v.get(iw).and_then(|w| ids.get(w)), icid.and_then(|i| v.get(i)).filter(|r| !r.is_empty())) else { continue };
+            let n_users = ev.users.len() as u32;
+            let next = n_users + synth.len() as u32;
+            let rid = ids.get(rep).copied().unwrap_or_else(|| *synth.entry(rep.to_string()).or_insert(next));
+            cl[id as usize] = rid;
+            any_cluster = true;
+        }
+        if any_cluster {
+            ctx.clusters = Some(std::sync::Arc::from(cl));
+        }
         for l in lines {
             let v: Vec<&str> = l.split(',').collect();
             let Some(&id) = v.get(iw).and_then(|w| ids.get(w)) else { continue };
@@ -1752,7 +1858,10 @@ pub fn simulate(ev: &Events, rp: RadarParams, sc: &Scores, st: &MlStrategy, c: &
             }
             continue;
         }
-        // Entry at snapshots.
+        // Entry at snapshots of coins the radar promoted (WATCH-only snapshots are training rows, not V4 entries).
+        if !eng.ever_hot(e.coin) {
+            continue;
+        }
         let (Some(_x), Some(s)) = (&step.snapshot, sc.get(&e.order)) else { continue };
         let dg = &mut diag[e.coin as usize];
         dg.snapshots += 1;
@@ -2025,8 +2134,11 @@ mod tests {
         let users: Vec<String> = (0..1000).map(|i| format!("w{i}")).collect();
         let full = Events::new(evs.clone(), vec!["a".into(), "b".into(), "c".into()], (0, 1000), users.clone());
         let rp = RadarParams { min_buyers: 3, min_buy_sol: 0.5, ..RadarParams::default() };
+        // every 4th wallet shares a cluster with the next one: cluster, dust, CUSUM, WATCH and Decide code is covered
+        let clusters: std::sync::Arc<[u32]> = std::sync::Arc::from((0..1000u32).map(|u| if u % 4 == 0 { u + 1 } else { u }).collect::<Vec<_>>());
         let snaps = |ev: &Events| -> Vec<(u64, Vec<f32>)> {
-            let mut eng = Engine::new(ev, rp).with_ctx(Context { wallets: vec![Some(WalletInfo { score: 0.5, n_closed: 3, ..Default::default() }); 1000], ..Default::default() });
+            let ctx = Context { wallets: vec![Some(WalletInfo { score: 0.5, n_closed: 3, ..Default::default() }); 1000], clusters: Some(clusters.clone()), ..Default::default() };
+            let mut eng = Engine::new(ev, rp).with_ctx(ctx);
             ev.evs.iter().filter_map(|e| eng.apply(e).snapshot.map(|s| (e.order, s))).collect()
         };
         let all = snaps(&full);
@@ -2043,6 +2155,88 @@ mod tests {
             }
         }
         assert_eq!(all[0].1.len(), FEATURES.len());
+        // same with a creation scan marking coin 1 as born in the window (new-coin path covered)
+        let with_cr = |n: usize| {
+            let mut e = Events::new(evs[..n].to_vec(), full.mints.clone(), (0, 1000), (0..1000).map(|i| format!("w{i}")).collect());
+            e.creations_scanned = true;
+            e.created[1] = Some((5, Some(0.03)));
+            e
+        };
+        let (a, b) = (snaps(&with_cr(evs.len())), snaps(&with_cr(cut)));
+        assert!(b.len() > 10);
+        for (x, y) in b.iter().zip(a.iter()) {
+            assert_eq!(x.0, y.0);
+            for (i, (u, v)) in x.1.iter().zip(&y.1).enumerate() {
+                assert!(u == v || (u.is_nan() && v.is_nan()), "creations: feature {} differs: {u} vs {v}", FEATURES[i]);
+            }
+        }
+    }
+
+    /// V5-2: after one Promote, decision rows keep coming (rate-limited); with Decide rows off, decision == signal.
+    #[test]
+    fn decision_rows_repeat_after_hot() {
+        let mut evs = Vec::new();
+        for s in 0..120u64 {
+            evs.push(mk(100 + s, s as i64, 0, s as u32, true, 300_000_000, 50_000_000_000, 1_000_000_000_000));
+        }
+        let ev = Events::new(evs, vec!["m".into()], (0, 1000), vec![]);
+        let run = |rp: RadarParams| {
+            let mut eng = Engine::new(&ev, rp);
+            let steps: Vec<(i64, bool, bool)> = ev.evs.iter().map(|e| { let s = eng.apply(e); (e.time, s.signal, s.decision) }).collect();
+            steps
+        };
+        let rp = RadarParams { min_buyers: 5, min_buy_sol: 1.0, max_median_buy_sol: 1.0, ..RadarParams::default() };
+        let s = run(rp);
+        assert_eq!(s.iter().filter(|x| x.1).count(), 1);
+        let dec: Vec<i64> = s.iter().filter(|x| x.2 && !x.1).map(|x| x.0).collect();
+        assert!(dec.len() >= 3 && dec.windows(2).all(|w| w[1] - w[0] >= rp.decide_every_s), "{dec:?}");
+        let s = run(RadarParams { decide_every_s: 0, watch: false, ..rp });
+        assert!(s.iter().all(|x| x.1 == x.2));
+    }
+
+    /// D2-N1: follow-up creation data (selected by HOT status) must not reach features of pre-HOT rows.
+    #[test]
+    fn watch_rows_do_not_leak_follow_creation() {
+        let mut evs = Vec::new();
+        // flat price, 1 buyer per 5 s (WATCH via cluster growth is not reached) then many buyers -> HOT
+        for s in 0..20u64 {
+            evs.push(mk(100 + s, (s * 5) as i64, 0, (s % 2) as u32, true, 50_000_000, 50_000_000_000, 1_000_000_000_000));
+        }
+        for s in 0..30u64 {
+            evs.push(mk(200 + s, 100 + s as i64, 0, 100 + s as u32, true, 300_000_000, 50_000_000_000, 1_000_000_000_000));
+        }
+        let mut ev = Events::new(evs, vec!["m".into()], (0, 1000), vec![]);
+        ev.created[0] = Some((-5000, Some(0.01)));
+        let rp = RadarParams { min_buyers: 5, min_buy_sol: 1.0, max_median_buy_sol: 1.0, ..RadarParams::default() };
+        let mut eng = Engine::new(&ev, rp);
+        let (ick, iage) = (FEATURES.iter().position(|n| *n == "created_known").unwrap(), FEATURES.iter().position(|n| *n == "age_s").unwrap());
+        let (mut pre, mut post) = (0, 0);
+        for e in &ev.evs {
+            let s = eng.apply(e);
+            let Some(x) = s.snapshot else { continue };
+            if eng.ever_hot(0) {
+                assert_eq!(x[ick], 1.0);
+                post += 1;
+            } else {
+                assert_eq!(x[ick], 0.0, "pre-HOT row sees the follow-up creation");
+                assert_eq!(x[iage], e.time as f32, "age from the first trade (t = 0)");
+                pre += 1;
+            }
+        }
+        assert!(pre > 0 && post > 0, "pre {pre} post {post}");
+    }
+
+    #[test]
+    fn feature_block_appended() {
+        assert_eq!((FEATURES[0], FEATURES[72], FEATURES[106]), ("age_s", "created_known", "top10_supply_share"));
+        let rd: Vec<&str> = FEATURES[107..].to_vec();
+        assert_eq!(rd.len(), 23);
+        assert!(rd.iter().all(|n| n.starts_with("rd_")));
+        assert_eq!((rd[0], rd[22]), ("rd_state", "rd_clusters_known"));
+        let mut u = FEATURES.to_vec();
+        u.sort_unstable();
+        u.dedup();
+        assert_eq!(u.len(), FEATURES.len(), "unique names");
     }
 
     fn dev_ev(slot: u64, user: u32, buy: bool, tokens: u64) -> Ev {

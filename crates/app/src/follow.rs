@@ -14,7 +14,8 @@ use decoder::pump::Venue;
 use decoder::txview::TxView;
 use feed::follow::{FollowCounters, Limiter, SigEntry};
 use feed::rpc::Rpc;
-use radar::{Params as RadarParams, Radar, Signal, Trade};
+use crate::radar_feed::RadarFeed;
+use radar::{Params as RadarParams, RadarState, Signal};
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
@@ -121,7 +122,8 @@ pub fn merge(ev: &mut Events, f: &FollowFile) -> Result<()> {
         });
         let ci = coin as usize;
         ev.cover_end[ci] = c.cover_end.max(ev.window.1);
-        ev.created[ci] = c.created;
+        // keep the window-scan creation (unselected, authoritative); follow only fills unknown ones
+        ev.created[ci] = ev.created[ci].or(c.created);
         ev.dead_at[ci] = c.dead_at;
         ev.followed[ci] = true;
         add.extend(c.evs.iter().filter(|e| e.slot > f.window_last_slot).map(|e| (coin, e)));
@@ -163,21 +165,20 @@ pub fn merge(ev: &mut Events, f: &FollowFile) -> Result<()> {
     Ok(())
 }
 
-/// First radar Promote per coin inside the window, with the same radar setup as `ml_sim::Engine`.
-pub fn hot_coins(ev: &Events, rp: RadarParams) -> Vec<(u32, i64)> {
-    let mut radar = Radar::new(rp).with_newborn_after(ev.window.0 + 60);
+/// First radar Promote (or, with `min_state` Watch, first Watch / Promote) per coin inside the window, with the
+/// same radar input as `ml_sim::Engine` (no cluster lookup: follow runs before wallet_scores.py).
+pub fn hot_coins(ev: &Events, rp: RadarParams, min_state: RadarState) -> Vec<(u32, i64)> {
+    let mut feed = RadarFeed::new(ev, rp);
     let mut first: FxHashMap<u32, i64> = FxHashMap::default();
-    let (mut last_sweep, mut sig) = (i64::MIN, Vec::new());
+    let mut swept = Vec::new();
     for e in &ev.evs {
-        if e.time > last_sweep {
-            last_sweep = e.time;
-            radar.sweep(e.time, &mut sig);
-            sig.clear();
-        }
-        let solf = e.sol as f64 / 1e9;
-        let price = if e.tokens > 0 { solf / e.tokens as f64 } else { 0.0 };
-        let tr = Trade { time: e.time, order: e.order, coin: e.coin, trader: e.user, buy: e.buy, sol: solf, price };
-        if radar.on_trade(&tr) == Some(Signal::Promote) {
+        swept.clear();
+        let s = feed.step(e, &mut swept);
+        let hit = match min_state {
+            RadarState::Watch => matches!(s, Some(Signal::Promote | Signal::Watch)),
+            _ => s == Some(Signal::Promote),
+        };
+        if hit && e.time <= ev.window.1 {
             first.entry(e.coin).or_insert(e.time);
         }
     }
@@ -222,6 +223,8 @@ pub struct Opts {
     pub max_history_pages: u32,
     /// Follow at most this many HOT coins (0 = all), in coin-id order; for cost measurement runs.
     pub limit: usize,
+    /// Hot (default) or Watch (also follow WATCH coins: uncensored labels for pre-HOT rows, more RPC credits).
+    pub min_state: RadarState,
 }
 
 /// Users seen in follow-up transactions, shared across coin tasks.
@@ -256,7 +259,8 @@ pub async fn run(rpc_url: String, rec: &Path, rp: RadarParams, o: Opts) -> Resul
     use futures::StreamExt;
     let ev = crate::backtest::load_window(rec)?;
     let window_last_slot = ev.evs.iter().map(|e| e.slot).max().ok_or_else(|| anyhow!("empty window"))?;
-    let mut hot = hot_coins(&ev, rp);
+    let birth_source = RadarFeed::new(&ev, rp).birth_source().as_str();
+    let mut hot = hot_coins(&ev, rp, o.min_state);
     let n_hot = hot.len();
     if o.limit > 0 {
         hot.truncate(o.limit);
@@ -301,6 +305,7 @@ pub async fn run(rpc_url: String, rec: &Path, rp: RadarParams, o: Opts) -> Resul
     let summary = serde_json::json!({
         "window": file.window, "window_last_slot": window_last_slot, "hours": file.hours,
         "hot_coins_in_window": n_hot, "followed": file.coins.len(), "status": status,
+        "birth_source": birth_source, "creations_scanned": ev.creations_scanned, "min_state": format!("{:?}", ctx.o.min_state),
         "created_known": file.coins.iter().filter(|c| c.created.is_some()).count(),
         "created_price_known": file.coins.iter().filter(|c| c.created.is_some_and(|x| x.1.is_some())).count(),
         "dead": file.coins.iter().filter(|c| c.dead_at.is_some()).count(),
@@ -340,7 +345,7 @@ async fn follow_coin(ctx: &Ctx, mint: String, hot_t: i64, mut life: Life) -> Fol
         if let Some(first) = &scan.oldest {
             let mut created = (first.time, None);
             if let Ok(Some(v)) = feed::follow::get_transaction(&ctx.rpc, &ctx.lim, &ctx.c, &first.sig).await {
-                if let Some(cr) = TxView::parse(&v).and_then(|tx| dec.decode_creations(&tx).into_iter().find(|c| c.mint == mint)) {
+                if let Some(cr) = TxView::parse(&v).and_then(|tx| dec.decode_creations(&tx).into_iter().find(|c| c.mint == mint && !c.migration)) {
                     created = (if cr.time > 0 { cr.time } else { first.time }, Some(cr.price));
                 }
             }
@@ -457,6 +462,20 @@ mod tests {
         assert_eq!(ev.dead_at[1], Some(800));
         assert!(ev.followed[0] && ev.followed[1]);
         assert_eq!(ev.data_end(), 5000);
+    }
+
+    /// D2-N2: a window-scan creation is never overwritten by follow-up data; follow fills unknown creations only.
+    #[test]
+    fn merge_keeps_window_scan_creation() {
+        let mut ev = Events::new(vec![wev(10, 0, 0, 100), wev(11, 0, 1, 101)], vec!["A".into(), "B".into()], (100, 101), vec!["u0".into(), "dev".into()]);
+        ev.created[0] = Some((100, Some(1.0)));
+        let coin = |m: &str, created| FollowCoin { mint: m.into(), hot_time: 100, created, cover_end: 500, dead_at: None, status: "complete".into(),
+            sigs_in_range: 0, txs_fetched: 0, evs: vec![] };
+        let f = FollowFile { version: FORMAT_VERSION, window: (100, 101), window_last_slot: 11, hours: 1.0, users: vec![],
+            coins: vec![coin("A", None), coin("B", Some((40, Some(3.0))))] };
+        merge(&mut ev, &f).unwrap();
+        assert_eq!(ev.created[0], Some((100, Some(1.0))));
+        assert_eq!(ev.created[1], Some((40, Some(3.0))));
     }
 
     #[test]

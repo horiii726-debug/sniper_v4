@@ -18,7 +18,7 @@ fn path_stats(p: &[(i64, f64)]) -> Option<(f64, i64, i64, f64, i64)> {
 }
 
 pub fn run(recs: &[PathBuf], radar_params: &PathBuf) -> Result<()> {
-    let rp: radar::Params = serde_json::from_value(serde_json::from_str::<serde_json::Value>(&std::fs::read_to_string(radar_params)?)?["params"].clone())?;
+    let rp = crate::radar_feed::load_params(radar_params)?;
     let st: Strategy = serde_json::from_str(&std::fs::read_to_string("config/strategy_params.json")?)?;
     let costs = Costs::default();
     let mut all = Vec::new();

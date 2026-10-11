@@ -11,7 +11,8 @@
 use anyhow::{anyhow, Result};
 use decoder::pump::{buy_tokens_out, sell_quote_out, Venue};
 use decoder::txview::TxView;
-use radar::{Params as RadarParams, Radar, Signal, Trade};
+use crate::radar_feed::RadarFeed;
+use radar::{Params as RadarParams, Signal};
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde::{Deserialize, Serialize};
 use std::collections::VecDeque;
@@ -46,8 +47,11 @@ pub struct Events {
     pub users: Vec<String>,
     /// Per coin: trade data is complete up to this block time (window end unless followed).
     pub cover_end: Vec<i64>,
-    /// Per coin: real creation time and creation price (quote/token reserves) when known (`follow`).
+    /// Per coin: real creation (time, price = quote/token reserves): in-window creations from the window-wide scan
+    /// (`creations.bin.zst`), or the mint's first signature from `follow`.
     pub created: Vec<Option<(i64, Option<f64>)>>,
+    /// The whole window was scanned for creation events (authoritative newborns possible).
+    pub creations_scanned: bool,
     /// Per coin: time the coin was found dead by `follow` (V5 §3.2), if any.
     pub dead_at: Vec<Option<i64>>,
     pub followed: Vec<bool>,
@@ -56,7 +60,7 @@ pub struct Events {
 impl Events {
     pub fn new(evs: Vec<Ev>, mints: Vec<String>, window: (i64, i64), users: Vec<String>) -> Self {
         let n = mints.len();
-        Self { evs, mints, window, users, cover_end: vec![window.1; n], created: vec![None; n], dead_at: vec![None; n], followed: vec![false; n] }
+        Self { evs, mints, window, users, cover_end: vec![window.1; n], created: vec![None; n], creations_scanned: false, dead_at: vec![None; n], followed: vec![false; n] }
     }
 
     /// Last block time covered by any coin's data.
@@ -92,8 +96,80 @@ pub fn load(rec: &Path) -> Result<Events> {
     Ok(ev)
 }
 
-/// Decode a recording into pump/PumpSwap events (window only), cached as `<rec>/pump_events_v2.bin`.
+/// Creation events of a whole window (`<rec>/creations.bin.zst`, bincode + zstd), written by the raw decode.
+pub const CREATIONS_FILE: &str = "creations.bin.zst";
+const CREATIONS_VERSION: u32 = 1;
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct CreationRec {
+    pub mint: String,
+    pub slot: u64,
+    pub order: u64,
+    pub time: i64,
+    pub amm: bool,
+    pub migration: bool,
+    pub price: f64,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct CreationsFile {
+    pub version: u32,
+    pub window: (i64, i64),
+    pub first_slot: u64,
+    pub last_slot: u64,
+    /// Every slot of the window was scanned.
+    pub complete: bool,
+    pub items: Vec<CreationRec>,
+}
+
+pub fn read_creations(path: &Path) -> Result<CreationsFile> {
+    let f: CreationsFile = bincode::deserialize(&zstd::decode_all(std::fs::File::open(path)?)?)?;
+    if f.version != CREATIONS_VERSION {
+        return Err(anyhow!("{}: creations version {} != {CREATIONS_VERSION}", path.display(), f.version));
+    }
+    Ok(f)
+}
+
+fn write_creations(path: &Path, f: &CreationsFile) -> Result<u64> {
+    let bytes = zstd::encode_all(&bincode::serialize(f)?[..], 3)?;
+    let tmp = path.with_extension("tmp");
+    std::fs::write(&tmp, &bytes)?;
+    std::fs::rename(&tmp, path)?;
+    Ok(bytes.len() as u64)
+}
+
+/// Mark in-window, non-migration creations of the window's coins (no-op without a matching sidecar).
+fn attach_creations(ev: &mut Events, rec: &Path) -> Result<()> {
+    let p = rec.join(CREATIONS_FILE);
+    if !p.exists() {
+        return Ok(());
+    }
+    let f = read_creations(&p)?;
+    if f.window != ev.window {
+        tracing::warn!("{}: window {:?} != events window {:?}; ignored", p.display(), f.window, ev.window);
+        return Ok(());
+    }
+    let idx: FxHashMap<&str, usize> = ev.mints.iter().enumerate().map(|(i, m)| (m.as_str(), i)).collect();
+    for it in f.items.iter().filter(|x| !x.migration) {
+        if let Some(&c) = idx.get(it.mint.as_str()) {
+            if ev.created[c].is_none_or(|x| it.time < x.0) {
+                ev.created[c] = Some((it.time, Some(it.price)));
+            }
+        }
+    }
+    ev.creations_scanned = f.complete;
+    Ok(())
+}
+
+/// Decode a recording into pump/PumpSwap events (window only), cached as `<rec>/pump_events_v2.bin`; the raw
+/// decode also writes the window's creation events (`creations.bin.zst`).
 pub fn load_window(rec: &Path) -> Result<Events> {
+    let mut ev = load_window_events(rec)?;
+    attach_creations(&mut ev, rec)?;
+    Ok(ev)
+}
+
+fn load_window_events(rec: &Path) -> Result<Events> {
     let cache = rec.join("pump_events_v2.bin");
     if cache.exists() {
         let c: WindowCache = bincode::deserialize(&std::fs::read(&cache)?)?;
@@ -108,6 +184,8 @@ pub fn load_window(rec: &Path) -> Result<Events> {
         return Ok(Events::new(c.evs, c.mints, c.window, users));
     }
     let mut dec = crate::pump_check::load_decoder()?;
+    let mut creations: Vec<CreationRec> = Vec::new();
+    let (mut s0, mut s1) = (u64::MAX, 0u64);
     let mut mints: FxHashMap<String, u32> = FxHashMap::default();
     let mut users: FxHashMap<String, u32> = FxHashMap::default();
     let mut evs = Vec::new();
@@ -126,8 +204,16 @@ pub fn load_window(rec: &Path) -> Result<Events> {
         let time = r["blockTime"].as_i64().unwrap_or(0);
         t0 = t0.min(time);
         t1 = t1.max(time);
+        s0 = s0.min(slot);
+        s1 = s1.max(slot);
         for (i, t) in r["transactions"].as_array().map(|a| a.as_slice()).unwrap_or(&[]).iter().enumerate() {
             let Some(tx) = TxView::parse(t) else { continue };
+            for cr in dec.decode_creations(&tx) {
+                creations.push(CreationRec {
+                    mint: cr.mint, slot, order: (slot << 24) | ((i as u64) << 8), time: if cr.time > 0 { cr.time } else { time },
+                    amm: cr.venue == Venue::Amm, migration: cr.migration, price: cr.price,
+                });
+            }
             for (k, e) in dec.decode(&tx).into_iter().enumerate() {
                 let n = mints.len() as u32;
                 let coin = *mints.entry(e.mint).or_insert(n);
@@ -166,8 +252,49 @@ pub fn load_window(rec: &Path) -> Result<Events> {
         unames[i as usize] = u;
     }
     let out = WindowCache { evs, mints: names, window: (t0, t1), users: unames };
+    creations.sort_by_key(|c| c.order);
+    write_creations(&rec.join(CREATIONS_FILE), &CreationsFile { version: CREATIONS_VERSION, window: (t0, t1), first_slot: s0, last_slot: s1, complete: true, items: creations })?;
     std::fs::write(&cache, bincode::serialize(&out)?)?;
     Ok(Events::new(out.evs, out.mints, out.window, out.users))
+}
+
+/// Creation scan of a raw recording that was already decoded (writes `creations.bin.zst`). Needs the raw segments.
+pub fn scan_creations(rec: &Path) -> Result<CreationsFile> {
+    let mut dec = crate::pump_check::load_decoder()?;
+    let (mut t0, mut t1, mut s0, mut s1) = (i64::MAX, i64::MIN, u64::MAX, 0u64);
+    let mut items = Vec::new();
+    let mut n_blocks = 0u64;
+    for m in recorder::Reader::open(rec)? {
+        let m = m?;
+        if m.source != events::Source::Rpc {
+            continue;
+        }
+        let v: serde_json::Value = serde_json::from_slice(&m.payload)?;
+        let r = &v["result"];
+        if r.is_null() {
+            continue;
+        }
+        n_blocks += 1;
+        let slot = v["params"]["slot"].as_u64().ok_or_else(|| anyhow!("no slot"))?;
+        let time = r["blockTime"].as_i64().unwrap_or(0);
+        (t0, t1, s0, s1) = (t0.min(time), t1.max(time), s0.min(slot), s1.max(slot));
+        for (i, t) in r["transactions"].as_array().map(|a| a.as_slice()).unwrap_or(&[]).iter().enumerate() {
+            let Some(tx) = TxView::parse(t) else { continue };
+            for cr in dec.decode_creations(&tx) {
+                items.push(CreationRec {
+                    mint: cr.mint, slot, order: (slot << 24) | ((i as u64) << 8), time: if cr.time > 0 { cr.time } else { time },
+                    amm: cr.venue == Venue::Amm, migration: cr.migration, price: cr.price,
+                });
+            }
+        }
+    }
+    if n_blocks == 0 {
+        return Err(anyhow!("{}: no raw blocks (raw segments deleted?): the window stays in proxy newborn mode", rec.display()));
+    }
+    items.sort_by_key(|c| c.order);
+    let f = CreationsFile { version: CREATIONS_VERSION, window: (t0, t1), first_slot: s0, last_slot: s1, complete: true, items };
+    write_creations(&rec.join(CREATIONS_FILE), &f)?;
+    Ok(f)
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -280,7 +407,7 @@ struct CoinState {
     flow30: VecDeque<(i64, f64)>,
     fast: (f64, f64),
     slow: (f64, f64),
-    first_time: i64,
+    first_time: Option<i64>,
     last_real_buy: i64,
     dev_sell_time: Option<i64>,
     blacklisted: bool,
@@ -364,7 +491,8 @@ pub fn simulate(ev: &Events, st: &Strategy, c: &Costs, radar_p: RadarParams, sta
     let nc = ev.mints.len();
     let mut pools: Vec<Pool> = vec![Pool::default(); nc];
     let mut cs: Vec<CoinState> = (0..nc).map(|_| CoinState::default()).collect();
-    let mut radar = Radar::new(radar_p).with_newborn_after(ev.window.0 + 60);
+    let mut feed = RadarFeed::new(ev, radar_p);
+    let mut swept = Vec::new();
     let mut hot: FxHashSet<u32> = FxHashSet::default();
     let mut cash = start_sol;
     let mut pos: FxHashMap<u32, Pos> = FxHashMap::default();
@@ -375,7 +503,6 @@ pub fn simulate(ev: &Events, st: &Strategy, c: &Costs, radar_p: RadarParams, sta
     let mut peak_eq = start_sol;
     let mut max_dd = 0.0f64;
     let mut last_sweep = i64::MIN;
-    let mut sig = Vec::new();
     let mut diag: Vec<CoinDiag> = vec![CoinDiag::default(); nc];
     let txc = c.tx_cost_lamports as f64 / 1e9;
     let fee_of = |p: &Pool| if p.fee_bps > 0 { p.fee_bps } else { c.default_fee_bps };
@@ -468,12 +595,6 @@ pub fn simulate(ev: &Events, st: &Strategy, c: &Costs, radar_p: RadarParams, sta
         // 2) Time-based checks (inactivity, scout) once per second.
         if e.time > last_sweep {
             last_sweep = e.time;
-            radar.sweep(e.time, &mut sig);
-            for (cid, s) in sig.drain(..) {
-                if s == Signal::Demote {
-                    hot.remove(&cid);
-                }
-            }
             let ids: Vec<u32> = pos.keys().copied().collect();
             for coin in ids {
                 let c_s = &cs[coin as usize];
@@ -514,11 +635,8 @@ pub fn simulate(ev: &Events, st: &Strategy, c: &Costs, radar_p: RadarParams, sta
             };
         }
         let solf = e.sol as f64 / 1e9;
-        let price = if e.tokens > 0 { solf / e.tokens as f64 } else { 0.0 };
         let cstate = &mut cs[e.coin as usize];
-        if cstate.first_time == 0 {
-            cstate.first_time = e.time;
-        }
+        cstate.first_time.get_or_insert(e.time);
         let real = solf >= REAL_MIN_SOL;
         if real {
             cstate.win.push_back((e.time, e.user, e.buy, solf));
@@ -539,8 +657,14 @@ pub fn simulate(ev: &Events, st: &Strategy, c: &Costs, radar_p: RadarParams, sta
         if dev_sell {
             cstate.dev_sell_time = Some(e.time);
         }
-        let tr = Trade { time: e.time, order: e.order, coin: e.coin, trader: e.user, buy: e.buy, sol: solf, price };
-        if radar.on_trade(&tr) == Some(Signal::Promote) {
+        swept.clear();
+        let rs = feed.step(e, &mut swept);
+        for (cid, s) in swept.drain(..) {
+            if s == Signal::Demote {
+                hot.remove(&cid);
+            }
+        }
+        if rs == Some(Signal::Promote) {
             hot.insert(e.coin);
             diag[e.coin as usize].first_hot_time.get_or_insert(e.time - ev.window.0);
         }
@@ -645,7 +769,7 @@ pub fn simulate(ev: &Events, st: &Strategy, c: &Costs, radar_p: RadarParams, sta
             block("median_buy_too_big");
             continue;
         }
-        let young = (e.time - cst.first_time) < TAU_SLOW as i64;
+        let young = (e.time - cst.first_time.unwrap_or(e.time)) < TAU_SLOW as i64;
         let accel = ewma_at(&cst.fast, e.time as f64, TAU_FAST) / (ewma_at(&cst.slow, e.time as f64, TAU_SLOW) + 1e-9);
         if !young && accel < st.entry_min_accel {
             block("accel_too_low");
@@ -754,6 +878,31 @@ pub fn tune(dev: &[(&Events, f64)], costs: &Costs, rp: RadarParams) -> (Strategy
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// D2: the creations sidecar round-trips; attach marks in-window, non-migration creations of the window's coins
+    /// and sets creations_scanned; a sidecar of another window is ignored.
+    #[test]
+    fn creations_sidecar_roundtrip_and_attach() {
+        let d = std::env::temp_dir().join(format!("creations_test_{}", std::process::id()));
+        std::fs::create_dir_all(&d).unwrap();
+        let ev0 = |coin: u32, time: i64| Ev { slot: 1, order: 1 << 24, time, coin, amm: false, buy: true, sol: 1, tokens: 1, user: 0, creator: 0,
+            quote_res: 1, token_res: 1, real_quote: 0, real_token: 0, fee_bps: 0, complete: false };
+        let cache = WindowCache { evs: vec![ev0(0, 100), ev0(1, 150)], mints: vec!["A".into(), "B".into()], window: (100, 200), users: vec!["u".into()] };
+        std::fs::write(d.join("pump_events_v2.bin"), bincode::serialize(&cache).unwrap()).unwrap();
+        let rec = |mint: &str, time: i64, migration: bool| CreationRec { mint: mint.into(), slot: 1, order: 1, time, amm: migration, migration, price: 2.0 };
+        let f = CreationsFile { version: CREATIONS_VERSION, window: (100, 200), first_slot: 1, last_slot: 9, complete: true,
+            items: vec![rec("A", 120, false), rec("B", 130, true), rec("Z", 140, false)] };
+        write_creations(&d.join(CREATIONS_FILE), &f).unwrap();
+        assert_eq!(read_creations(&d.join(CREATIONS_FILE)).unwrap().items, f.items);
+        let ev = load_window(&d).unwrap();
+        assert!(ev.creations_scanned);
+        assert_eq!(ev.created, vec![Some((120, Some(2.0))), None], "migration ignored, unknown mint skipped");
+        let other = CreationsFile { window: (1, 2), ..f };
+        write_creations(&d.join(CREATIONS_FILE), &other).unwrap();
+        let ev = load_window(&d).unwrap();
+        assert!(!ev.creations_scanned && ev.created == vec![None, None]);
+        std::fs::remove_dir_all(&d).unwrap();
+    }
 
     /// V4-4: exit liquidity is the real quote reserve on the curve, the pool quote reserve on the AMM.
     #[test]

@@ -1,0 +1,11 @@
+{
+  "note": "V4 radar reproduction: V4-1 newborn proxy, auto-HOT newborns, wallet counts, no dust/cluster/CUSUM/WATCH. Comparison only.",
+  "params": {
+    "demote_idle_s": 300, "lift": 1.15, "lift_min_buyers": 2, "max_buy_sell_ratio": 4.0, "max_median_buy_sol": 1.0,
+    "min_accel": 2.0, "min_buy_sol": 1.0, "min_buyers": 4, "real_min_sol": 0.01, "slow_min_buy_sol": 2.0, "slow_min_buyers": 6,
+    "slow_win_s": 300, "tau_fast_s": 10.0, "tau_slow_s": 120.0, "win_s": 60,
+    "newborn_mode": "legacy_first_seen", "proxy_warmup_s": 60, "newborn_auto_hot": true, "new_max_age_s": null,
+    "exclude_creator": false, "count_clusters": false, "old_max_median_buy_sol": 1.0, "old_max_buy_sell_ratio": 4.0,
+    "old_flow_rule": false, "watch": false, "decide_every_s": 0, "cusum": { "enabled": false }
+  }
+}

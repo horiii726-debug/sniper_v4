@@ -7,6 +7,7 @@ mod follow;
 mod label_diag;
 mod pump_check;
 mod radar_eval;
+mod radar_feed;
 mod logging;
 mod ml_sim;
 mod strategy_v5;
@@ -125,13 +126,33 @@ enum Cmd {
         #[arg(long)]
         out: PathBuf,
     },
-    /// Tune radar params on a DEVELOPMENT recording only; writes the frozen params file.
+    /// Tune radar params on DEVELOPMENT recordings only (v6 16-point grid, median dev-window rule, ablation; or the
+    /// old V4 grid with --legacy); writes the frozen params file.
     RadarTune {
         /// Development recordings (repeatable). Never pass a final holdout here.
         #[arg(long, required = true)]
         rec: Vec<PathBuf>,
         #[arg(long, default_value = "config/radar_params.json")]
         params_out: PathBuf,
+        /// Params not in the grid come from this file.
+        #[arg(long, default_value = "config/radar_params.json")]
+        base_params: PathBuf,
+        /// auto | events | raw
+        #[arg(long, default_value = "auto")]
+        source: String,
+        #[arg(long)]
+        legacy: bool,
+        /// HOT budget: promotions per minute allowed on every dev window (fixed before results).
+        #[arg(long, default_value_t = 30.0)]
+        max_hot_per_min: f64,
+        /// Report path (grid + ablation).
+        #[arg(long, default_value = "reports/v6/RADAR_TUNE.json")]
+        report: PathBuf,
+    },
+    /// Write <rec>/creations.bin.zst (window-wide creation events) from the raw segments of a decoded recording.
+    ScanCreations {
+        #[arg(long)]
+        rec: PathBuf,
     },
     /// Evaluate frozen radar params on any recording (holdouts).
     RadarEval {
@@ -141,6 +162,9 @@ enum Cmd {
         params: PathBuf,
         #[arg(long)]
         out: Option<PathBuf>,
+        /// auto | events | raw
+        #[arg(long, default_value = "auto")]
+        source: String,
     },
     /// Verify pump.fun / PumpSwap decoding vs the reference decoder, and the pool math.
     PumpCheck {
@@ -269,6 +293,9 @@ enum Cmd {
         /// Follow only the first N HOT coins (0 = all); for cost measurement.
         #[arg(long, default_value_t = 0)]
         limit: usize,
+        /// hot (default) or watch (also follow WATCH coins; costs more credits).
+        #[arg(long, default_value = "hot")]
+        min_state: String,
     },
     /// V5 Phases 7-8 (EXPLORATORY): walk-forward backtest on fold scores (<models>/fold_<W>/scores_<W>.csv.zst),
     /// optional 24-point grid (median dev return), cost sensitivity, acceptance check, Monte Carlo.
@@ -396,33 +423,33 @@ fn main() -> Result<()> {
         }
         Cmd::VerifyBackfill { rec } => verify_backfill(&rec),
         Cmd::LabelDiag { rec, radar_params, out } => {
-            let rp: radar::Params = serde_json::from_value(serde_json::from_str::<serde_json::Value>(&std::fs::read_to_string(&radar_params)?)?["params"].clone())?;
+            let rp = radar_feed::load_params(&radar_params)?;
             label_diag::run(&rec, rp, &out)
         }
         Cmd::V5Compare { rec, radar_params, v4_strategy, out, v5_strategy } => {
             let st: strategy_v5::StratV5 = match v5_strategy { Some(p) => serde_json::from_str(&std::fs::read_to_string(p)?)?, None => Default::default() };
-            let rp: radar::Params = serde_json::from_value(serde_json::from_str::<serde_json::Value>(&std::fs::read_to_string(&radar_params)?)?["params"].clone())?;
+            let rp = radar_feed::load_params(&radar_params)?;
             let v4: backtest::Strategy = serde_json::from_str(&std::fs::read_to_string(&v4_strategy)?)?;
             v5_eval::compare(&rec, rp, &v4, &st, &out)
         }
         Cmd::V5Backtest { rec, models, radar_params, strategy, out, grid, mc_runs, mc_resamples, latency_slots, buy_fail_prob } => {
-            let rp: radar::Params = serde_json::from_value(serde_json::from_str::<serde_json::Value>(&std::fs::read_to_string(&radar_params)?)?["params"].clone())?;
+            let rp = radar_feed::load_params(&radar_params)?;
             let st: strategy_v5::StratV5 = match strategy { Some(p) => serde_json::from_str(&std::fs::read_to_string(p)?)?, None => Default::default() };
             let costs = strategy_v5::CostsV5 { latency_slots, buy_fail_prob, ..Default::default() };
             let o = v5_eval::EvalOpts { models, out, grid, mc_runs, mc_resamples, costs, strategy: st };
             v5_eval::run(&rec, rp, &o)
         }
-        Cmd::Follow { rec, hours, radar_params, rps, coin_concurrency, tx_batch, max_range_pages, max_history_pages, limit } => {
+        Cmd::Follow { rec, hours, radar_params, rps, coin_concurrency, tx_batch, max_range_pages, max_history_pages, limit, min_state } => {
             let settings = Settings::load(&cli.env, Cluster::Mainnet)?;
             logging::init(Redactor::new(settings.secrets()), Some(&rec.join("follow.log")))?;
-            let rp: radar::Params = serde_json::from_value(serde_json::from_str::<serde_json::Value>(&std::fs::read_to_string(&radar_params)?)?["params"].clone())?;
-            let o = follow::Opts { hours, rps, coin_concurrency, tx_batch, max_range_pages, max_history_pages, limit };
+            let rp = radar_feed::load_params(&radar_params)?;
+            let min_state = match min_state.as_str() { "hot" => radar::RadarState::Hot, "watch" => radar::RadarState::Watch, s => bail!("--min-state {s}: hot|watch") };
+            let o = follow::Opts { hours, rps, coin_concurrency, tx_batch, max_range_pages, max_history_pages, limit, min_state };
             rt.block_on(follow::run(settings.rpc_url.clone(), &rec, rp, o))
         }
         Cmd::Census { rec, out } => census::run(&rec, &out),
         Cmd::Backtest { dev, test, radar_params, out, latency_slots, tx_cost_lamports, buy_fail_prob } => {
-            let v: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(&radar_params)?)?;
-            let rp: radar::Params = serde_json::from_value(v["params"].clone())?;
+            let rp = radar_feed::load_params(&radar_params)?;
             let costs = backtest::Costs { latency_slots, tx_cost_lamports, buy_fail_prob, ..Default::default() };
             let load = |r: &PathBuf| -> Result<(String, backtest::Events, f64)> {
                 let e = backtest::load(r)?;
@@ -458,7 +485,7 @@ fn main() -> Result<()> {
         Cmd::Diagnose { rec, radar_params } => diagnose::run(&rec, &radar_params),
         Cmd::Snapshots { rec, radar_params } => {
             use rayon::prelude::*;
-            let rp: radar::Params = serde_json::from_value(serde_json::from_str::<serde_json::Value>(&std::fs::read_to_string(&radar_params)?)?["params"].clone())?;
+            let rp = radar_feed::load_params(&radar_params)?;
             rec.par_iter().map(|r| -> Result<()> {
                 let ev = backtest::load(r)?;
                 let ctx = ml_sim::load_context(r, &ev)?;
@@ -473,7 +500,7 @@ fn main() -> Result<()> {
             Ok(())
         }
         Cmd::BacktestMl { dev, test, radar_params, out, scores_suffix } => {
-            let rp: radar::Params = serde_json::from_value(serde_json::from_str::<serde_json::Value>(&std::fs::read_to_string(&radar_params)?)?["params"].clone())?;
+            let rp = radar_feed::load_params(&radar_params)?;
             let costs = backtest::Costs::default();
             let load = |r: &PathBuf, scores: &str| -> Result<(String, backtest::Events, ml_sim::Scores, f64)> {
                 let e = backtest::load(r)?;
@@ -501,7 +528,7 @@ fn main() -> Result<()> {
             Ok(())
         }
         Cmd::MlDiagnose { rec, scores, params, radar_params } => {
-            let rp: radar::Params = serde_json::from_value(serde_json::from_str::<serde_json::Value>(&std::fs::read_to_string(&radar_params)?)?["params"].clone())?;
+            let rp = radar_feed::load_params(&radar_params)?;
             let st: ml_sim::MlStrategy = serde_json::from_str(&std::fs::read_to_string(&params)?)?;
             let ev = backtest::load(&rec)?;
             let usd = units::sol_usd();
@@ -549,7 +576,7 @@ fn main() -> Result<()> {
             Ok(())
         }
         Cmd::MlSim { rec, scores, params, radar_params } => {
-            let rp: radar::Params = serde_json::from_value(serde_json::from_str::<serde_json::Value>(&std::fs::read_to_string(&radar_params)?)?["params"].clone())?;
+            let rp = radar_feed::load_params(&radar_params)?;
             let st: ml_sim::MlStrategy = serde_json::from_str(&std::fs::read_to_string(&params)?)?;
             for r in &rec {
                 let ev = backtest::load(r)?;
@@ -575,7 +602,7 @@ fn main() -> Result<()> {
         }
         Cmd::BacktestLowo { rec, radar_params, out, only, tag } => {
             let sfx = if tag.is_empty() { String::new() } else { format!("_{tag}") };
-            let rp: radar::Params = serde_json::from_value(serde_json::from_str::<serde_json::Value>(&std::fs::read_to_string(&radar_params)?)?["params"].clone())?;
+            let rp = radar_feed::load_params(&radar_params)?;
             let costs = backtest::Costs::default();
             let name = |r: &PathBuf| r.file_name().and_then(|x| x.to_str()).unwrap_or("").to_string();
             let evs: Vec<(String, backtest::Events, f64)> = rec.iter().map(|r| { let e = backtest::load(r)?; let u = units::sol_usd(); Ok((name(r), e, u)) }).collect::<Result<_>>()?;
@@ -614,23 +641,48 @@ fn main() -> Result<()> {
             Ok(())
         }
         Cmd::PumpCheck { rec, dump, max_blocks } => pump_check::run(&rec, dump.as_deref(), max_blocks),
-        Cmd::RadarTune { rec, params_out } => {
-            let dss: Vec<radar_eval::Dataset> = rec.iter().map(|r| radar_eval::load(r)).collect::<Result<_>>()?;
+        Cmd::RadarTune { rec, params_out, base_params, source, legacy, max_hot_per_min, report } => {
+            let base = radar_feed::load_params(&base_params)?;
+            let dss: Vec<radar_eval::Dataset> = rec.iter().map(|r| radar_eval::load_auto(r, &base, &source)).collect::<Result<_>>()?;
             let preps: Vec<radar_eval::Prepared> = dss.iter().map(radar_eval::prepare).collect();
             let sets: Vec<(&radar_eval::Dataset, &radar_eval::Prepared)> = dss.iter().zip(preps.iter()).collect();
-            let (best, all) = radar_eval::tune(&sets);
-            let chosen: Vec<_> = sets.iter().map(|(d, p)| radar_eval::evaluate(d, p, best)).collect();
-            std::fs::write(&params_out, serde_json::to_string_pretty(&serde_json::json!({
-                "frozen_from": rec, "params": best, "grid_size": all.len(),
-                "objective": "newborns HOT by rule; awakening rules maximize summed mean recall(2x,5x) on pre-existing coins s.t. precision_2x >= naive on every dev recording",
+            if legacy {
+                let (best, all) = radar_eval::tune(&sets, base);
+                let chosen: Vec<_> = sets.iter().map(|(d, p)| radar_eval::evaluate(d, p, best)).collect();
+                std::fs::write(&params_out, serde_json::to_string_pretty(&serde_json::json!({
+                    "frozen_from": rec, "params": best, "grid_size": all.len(),
+                    "objective": "legacy V4 grid: maximize summed mean recall(2x,5x) on pre-existing coins s.t. precision_2x >= naive on every dev recording",
+                }))?)?;
+                println!("{}", serde_json::to_string_pretty(&chosen)?);
+                return Ok(());
+            }
+            let (best, all, ablation) = radar_eval::tune_v6(&sets, base, max_hot_per_min);
+            if let Some(d) = report.parent() {
+                std::fs::create_dir_all(d)?;
+            }
+            std::fs::write(&report, serde_json::to_string_pretty(&serde_json::json!({
+                "dev_windows": rec, "max_hot_per_min": max_hot_per_min, "chosen": best,
+                "grid": all.iter().map(|(p, rs)| serde_json::json!({"params": p, "windows": rs})).collect::<Vec<_>>(),
+                "ablation": ablation.iter().map(|(n, rs)| serde_json::json!({"variant": n, "windows": rs})).collect::<Vec<_>>(),
             }))?)?;
-            println!("{}", serde_json::to_string_pretty(&chosen)?);
+            let Some(best) = best else {
+                bail!("no grid point satisfies hot_per_min <= {max_hot_per_min} and precision_2x >= naive on every dev window; params not written (report: {})", report.display());
+            };
+            std::fs::write(&params_out, serde_json::to_string_pretty(&serde_json::json!({
+                "frozen_from": rec, "params": best, "grid_size": all.len(), "max_hot_per_min": max_hot_per_min,
+                "objective": "v6: maximize the median over dev windows of mean(recall HOT before +10%, recall HOT at +30%) at tier 5x averaged over new/old coins, s.t. hot_per_min <= max and precision_2x >= naive on every dev window; ties -> fewer promoted coins",
+            }))?)?;
+            println!("chosen params written to {}; report {}", params_out.display(), report.display());
             Ok(())
         }
-        Cmd::RadarEval { rec, params, out } => {
-            let v: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(&params)?)?;
-            let p: radar::Params = serde_json::from_value(v["params"].clone())?;
-            let ds = radar_eval::load(&rec)?;
+        Cmd::ScanCreations { rec } => {
+            let f = backtest::scan_creations(&rec)?;
+            println!("{}: {} creations ({} migrations), window {:?}", rec.display(), f.items.len(), f.items.iter().filter(|x| x.migration).count(), f.window);
+            Ok(())
+        }
+        Cmd::RadarEval { rec, params, out, source } => {
+            let p = radar_feed::load_params(&params)?;
+            let ds = radar_eval::load_auto(&rec, &p, &source)?;
             let prep = radar_eval::prepare(&ds);
             let r = radar_eval::evaluate(&ds, &prep, p);
             let text = serde_json::to_string_pretty(&r)?;

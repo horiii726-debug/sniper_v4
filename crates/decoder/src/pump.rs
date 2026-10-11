@@ -9,6 +9,8 @@ use serde_json::Value;
 
 pub const PUMP: &str = "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P";
 pub const PUMP_AMM: &str = "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA";
+/// pump.fun initial real token reserves (raw, 6 decimals): 793.1M tokens (curve progress = 1 - real / this).
+pub const CURVE_INITIAL_REAL_TOKEN: f64 = 793_100_000_000_000.0;
 const WSOL: &str = "So11111111111111111111111111111111111111112";
 const DEFAULT_KEY: &str = "11111111111111111111111111111111";
 
@@ -193,6 +195,9 @@ pub struct Creation {
     pub mint: String,
     pub time: i64,
     pub price: f64,
+    /// A PumpSwap pool created by a curve migration (pump `CompletePumpAmmMigrationEvent` for the same mint in the
+    /// same transaction): NOT a coin birth.
+    pub migration: bool,
 }
 
 impl PumpDecoder {
@@ -201,6 +206,16 @@ impl PumpDecoder {
         let mut out = Vec::new();
         if tx.failed {
             return out;
+        }
+        let mut migrated: Vec<String> = Vec::new();
+        for e in &tx.exec {
+            if e.data.len() >= 16 && e.data[..8] == EVENT_IX_TAG && tx.program_id(e) == PUMP {
+                if let Some((name, v)) = self.pump.decode_event(&e.data[8..]) {
+                    if name == "CompletePumpAmmMigrationEvent" {
+                        migrated.push(s(&v, "mint"));
+                    }
+                }
+            }
         }
         for e in &tx.exec {
             if e.data.len() < 16 || e.data[..8] != EVENT_IX_TAG {
@@ -227,7 +242,8 @@ impl PumpDecoder {
             if !(quote.is_empty() || quote == DEFAULT_KEY || quote == WSOL) || t <= 0.0 {
                 continue;
             }
-            out.push(Creation { venue, mint, time: v["timestamp"].as_i64().unwrap_or(0), price: q / t });
+            let migration = venue == Venue::Amm && migrated.contains(&mint);
+            out.push(Creation { venue, mint, time: v["timestamp"].as_i64().unwrap_or(0), price: q / t, migration });
         }
         out
     }
@@ -247,4 +263,67 @@ pub fn buy_tokens_out(quote_res: u128, token_res: u128, paid: u64, fee_bps: u64)
 pub fn sell_quote_out(quote_res: u128, token_res: u128, tokens: u64, fee_bps: u64) -> u128 {
     let gross = quote_res * tokens as u128 / (token_res + tokens as u128);
     gross - (gross * fee_bps as u128).div_ceil(10_000)
+}
+
+#[cfg(test)]
+mod creation_tests {
+    use super::*;
+    use crate::txview::Exec;
+
+    /// Borsh-encode an IDL event (fields from `vals`, zero / empty defaults), prefixed by the emit_cpi tag.
+    fn encode(idl_json: &str, name: &str, vals: &[(&str, Value)]) -> Vec<u8> {
+        let idl: Value = serde_json::from_str(idl_json).unwrap();
+        let ev = idl["events"].as_array().unwrap().iter().find(|e| e["name"] == name).unwrap();
+        let mut out = EVENT_IX_TAG.to_vec();
+        out.extend(ev["discriminator"].as_array().unwrap().iter().map(|x| x.as_u64().unwrap() as u8));
+        let ty = idl["types"].as_array().unwrap().iter().find(|t| t["name"] == name).unwrap();
+        for f in ty["type"]["fields"].as_array().unwrap() {
+            let n = f["name"].as_str().unwrap();
+            let v = vals.iter().find(|x| x.0 == n).map(|x| x.1.clone()).unwrap_or(Value::Null);
+            match f["type"].as_str().unwrap() {
+                "pubkey" | "publicKey" => {
+                    let k = v.as_str().unwrap_or(DEFAULT_KEY);
+                    out.extend(bs58::decode(k).into_vec().unwrap());
+                }
+                "string" => {
+                    let s = v.as_str().unwrap_or("");
+                    out.extend((s.len() as u32).to_le_bytes());
+                    out.extend(s.as_bytes());
+                }
+                "u64" => out.extend(v.as_u64().unwrap_or(0).to_le_bytes()),
+                "i64" => out.extend(v.as_i64().unwrap_or(0).to_le_bytes()),
+                "u16" => out.extend((v.as_u64().unwrap_or(0) as u16).to_le_bytes()),
+                "u8" | "bool" => out.push(v.as_u64().unwrap_or(0) as u8),
+                t => panic!("type {t} not covered by the test encoder"),
+            }
+        }
+        out
+    }
+
+    const MINT: &str = "So11111111111111111111111111111111111111112";
+
+    fn tx(events: Vec<(usize, Vec<u8>)>) -> TxView {
+        let exec = events.into_iter().map(|(program, data)| Exec { program, accounts: vec![], data, stack: 2, top: 0 }).collect();
+        TxView { keys: vec![PUMP.to_string(), PUMP_AMM.to_string()], exec, failed: false, fee_payer: String::new() }
+    }
+
+    #[test]
+    fn creations_flag_pump_amm_migration() {
+        let (pi, ai) = (include_str!("../../../config/idl/pump.json"), include_str!("../../../config/idl/pump_amm.json"));
+        let mut d = PumpDecoder::new(pi, ai).unwrap();
+        let mint = "4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R";
+        let create = encode(pi, "CreateEvent", &[("mint", mint.into()), ("timestamp", 100.into()), ("virtual_sol_reserves", 30_000_000_000u64.into()),
+            ("virtual_token_reserves", 1_073_000_000_000_000u64.into())]);
+        let pool = encode(ai, "CreatePoolEvent", &[("base_mint", mint.into()), ("quote_mint", MINT.into()), ("timestamp", 200.into()),
+            ("pool_base_amount", 200_000_000_000_000u64.into()), ("pool_quote_amount", 85_000_000_000u64.into())]);
+        let migr = encode(pi, "CompletePumpAmmMigrationEvent", &[("mint", mint.into()), ("timestamp", 200.into())]);
+        let a = d.decode_creations(&tx(vec![(0, create)]));
+        assert_eq!(a.len(), 1);
+        assert!(a[0].venue == Venue::Curve && !a[0].migration && a[0].mint == mint && a[0].time == 100);
+        let b = d.decode_creations(&tx(vec![(0, migr), (1, pool.clone())]));
+        assert_eq!(b.len(), 1);
+        assert!(b[0].venue == Venue::Amm && b[0].migration, "{b:?}");
+        let c = d.decode_creations(&tx(vec![(1, pool)]));
+        assert!(c.len() == 1 && !c[0].migration, "pool launch without migration is a birth");
+    }
 }

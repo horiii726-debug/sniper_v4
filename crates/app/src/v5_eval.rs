@@ -392,7 +392,7 @@ pub fn compare(recs: &[PathBuf], rp: RadarParams, v4: &crate::backtest::Strategy
         // Runners: peak multiple after the coin's FIRST in-window signal (labels over the available data).
         let mut first_sig: rustc_hash::FxHashMap<u32, i64> = Default::default();
         {
-            let mut eng = crate::ml_sim::Engine::new(&l.ev, rp);
+            let mut eng = crate::ml_sim::Engine::new(&l.ev, rp).with_ctx(d.ctx.clone());
             for e in &l.ev.evs {
                 if eng.apply(e).signal && e.time <= l.ev.window.1 {
                     first_sig.entry(e.coin).or_insert(e.time);

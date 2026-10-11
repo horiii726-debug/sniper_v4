@@ -53,6 +53,10 @@ pub struct StratV5 {
     /// V5-1: entry candidates are collected per decision tick of this many seconds, ranked by EV, and only then
     /// checked against exposure / slots / cash (0 = batch per slot).
     pub decision_tick_s: i64,
+    /// V5-2: evaluate entries at every radar decision row while the coin is HOT (false = Promote rows only, V5).
+    pub decision_rows: bool,
+    /// No re-entry into a coin within this many seconds of closing a position on it.
+    pub reentry_cooldown_s: i64,
 }
 
 impl Default for StratV5 {
@@ -64,6 +68,8 @@ impl Default for StratV5 {
             pre_tp_stop: 0.35, stop_grace_s: 20, tp1_mult: 2.0, tp1_sell_frac: 0.5, tp2_mult: 5.0, tp2_sell_frac: 0.25,
             bag_trail: 0.55, trail_k: 3.0, hold_min: 0.4, dev_kill_min_frac: 0.5, lp_drop_frac: 0.6, dead_exit: 0.7, max_hold_s: 36_000,
             decision_tick_s: 2,
+            decision_rows: true,
+            reentry_cooldown_s: 300,
         }
     }
 }
@@ -476,6 +482,7 @@ pub fn simulate(w: &WindowData, rp: RadarParams, scorer: &mut dyn Scorer, st: &S
     let mut busy: FxHashSet<u32> = FxHashSet::default();
     let mut pending_buy_cost = 0.0;
     let mut blacklist: FxHashSet<u32> = FxHashSet::default();
+    let mut last_exit: FxHashMap<u32, i64> = FxHashMap::default();
     let mut entries: VecDeque<i64> = VecDeque::new();
     let mut trades: Vec<TradeV5> = Vec::new();
     let (mut failed, mut costs) = (0usize, 0.0);
@@ -591,6 +598,7 @@ pub fn simulate(w: &WindowData, rp: RadarParams, scorer: &mut dyn Scorer, st: &S
                     *exits.entry(reason).or_default() += 1;
                     if close || p.tokens == 0 {
                         busy.remove(&coin);
+                        last_exit.insert(coin, cur_t);
                         let p = pos.remove(&coin).expect("present");
                         if reason == "DevSell" || reason == "RugModel" {
                             blacklist.insert(coin);
@@ -745,8 +753,9 @@ pub fn simulate(w: &WindowData, rp: RadarParams, scorer: &mut dyn Scorer, st: &S
             }
             continue;
         }
-        // 4) Entry: radar signal rows inside the decision window only.
-        if !step.signal || e.time > ev.window.1 {
+        // 4) Entry: radar decision rows of HOT coins (or Promote rows only) inside the decision window.
+        let entry_row = if st.decision_rows { step.decision && step.radar_state == radar::RadarState::Hot } else { step.signal };
+        if !entry_row || e.time > ev.window.1 {
             continue;
         }
         let Some(x) = step.snapshot.as_ref() else { continue };
@@ -767,6 +776,10 @@ pub fn simulate(w: &WindowData, rp: RadarParams, scorer: &mut dyn Scorer, st: &S
         }
         if blacklist.contains(&e.coin) {
             block("blacklisted");
+            continue;
+        }
+        if last_exit.get(&e.coin).is_some_and(|t| e.time - t < st.reentry_cooldown_s) {
+            block("reentry_cooldown");
             continue;
         }
         if let Some(r) = eng.untradable(e.coin, MIN_EXIT_LIQ_SOL) {
@@ -1117,7 +1130,8 @@ mod tests {
         let outcome = |tick: i64| {
             let st = StratV5 { max_ret_60s_entry: 10.0, max_top10_share: 1.0, max_bundle_share: 1.0, decision_tick_s: tick, ..Default::default() };
             let r = simulate(&w, rp, &mut ByPool, &st, &c, &rk, None, false);
-            let get = |coin: u32| r.signal_outcomes.iter().find(|x| x.0 == coin).map(|x| x.1);
+            // first decided outcome per coin (several decision rows of one coin in a tick are merged)
+            let get = |coin: u32| r.signal_outcomes.iter().find(|x| x.0 == coin && x.1 != "merged_in_tick").map(|x| x.1);
             (get(0), get(1))
         };
         assert_eq!(outcome(10), (Some("entered"), Some("exposure_cap")));
@@ -1136,6 +1150,36 @@ mod tests {
         let h = hold.expect("hold table from the oracle run");
         // NoScores predicts hold = 0 at every held snapshot -> bucket 0
         assert!(h.r.iter().all(|x| x.is_finite()) && h.w[0] > 0.0 && (h.w.iter().sum::<f64>() - h.w[0]).abs() < 1e-12);
+    }
+
+    /// A coin exited by Stop is not re-entered within reentry_cooldown_s, although decision rows keep coming.
+    #[test]
+    fn decision_rows_reentry_cooldown() {
+        let mut evs = Vec::new();
+        let tk: u128 = 1_000_000_000_000_000;
+        let mut slot = 100;
+        let mut q: u128 = 50_000_000_000;
+        for s in 0..400i64 {
+            for u in 0..3u32 {
+                slot += 1;
+                if s > 30 && s < 60 {
+                    q = (q as f64 * 0.99) as u128; // dump right after entry -> Stop
+                }
+                evs.push(mk(slot, s, (s as u32) * 3 + u, true, 300_000_000, q, tk));
+            }
+        }
+        let mut ev = Events::new(evs, vec!["M".into()], (0, 400), vec![]);
+        ev.cover_end = vec![100_000];
+        let rp = RadarParams { min_buyers: 5, min_buy_sol: 1.0, max_median_buy_sol: 1.0, ..RadarParams::default() };
+        let w = WindowData::new("t".into(), &ev, Context::default(), f64::NAN);
+        let pr = Pred { bin: [0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0], ..Default::default() };
+        let c = CostsV5 { buy_fail_prob: 0.0, ..Default::default() };
+        let base = StratV5 { max_ret_60s_entry: 10.0, max_top10_share: 1.0, max_bundle_share: 1.0, stop_grace_s: 5, ..Default::default() };
+        let r = simulate(&w, rp, &mut Fixed(pr), &base, &c, &[0.0, 0.0, 0.0, 0.0, 0.0, 3.0, 0.0], None, false);
+        assert!(r.trades >= 1 && r.trades_list[0].final_reason == "Stop", "{:?}", r.trades_list);
+        let exit = r.trades_list[0].exit_t;
+        assert!(r.blocked.get("reentry_cooldown").copied().unwrap_or(0) > 0, "{:?}", r.blocked);
+        assert!(r.trades_list.iter().skip(1).all(|t| t.entry_t >= exit + base.reentry_cooldown_s), "{:?}", r.trades_list);
     }
 
     /// EV gate: same runner, but the model says bin 1 with negative R -> no entry.
