@@ -52,6 +52,15 @@ def log(*a):
 
 
 # ============================================================== data cache (main process)
+CACHE_VERSION = 2   # bump when the cached row definition / info keys change (V5-10)
+
+
+def entry_rows(cols):
+    """V5-10: entry-model rows = decision rows inside the backfill window (the strategy enters only there; after the
+    window the regime features are -1). Rug / hold / hazard models keep all rows (they serve open positions)."""
+    return (cols["is_signal"] == 1) & (cols["in_window"] == 1)
+
+
 def load_window(path, cache_root):
     """Parse snapshots_v5.csv.zst once into an mmap-able cache: X.npy (float32) + cols.npz."""
     import pandas as pd
@@ -63,14 +72,17 @@ def load_window(path, cache_root):
     info_p = os.path.join(cdir, "info.json")
     if os.path.exists(info_p):
         info = json.load(open(info_p))
-        if info.get("src_size") == st.st_size and info.get("src_mtime") == st.st_mtime and info.get("src") == os.path.abspath(src):
+        if (info.get("cache_version") == CACHE_VERSION and info.get("src_size") == st.st_size
+                and info.get("src_mtime") == st.st_mtime and info.get("src") == os.path.abspath(src)):
             return info
     t0 = time.time()
     with __import__("zstandard").open(src, "rt") as f:
         header = f.readline().strip().split(",")
     feats = feature_columns(header)
     assert header[:5] == ["coin", "order", "time", "is_signal", "in_window"], header[:5]
-    assert header[header.index("y_tp1"):] == LABELS, header[header.index("y_tp1"):]
+    i_y = header.index("y_tp1")
+    # prefix check: later work packages may append label columns after the V5 labels
+    assert header[i_y:i_y + len(LABELS)] == LABELS, header[i_y:]
     dt = {c: np.float32 for c in feats}
     dt.update({"coin": np.int64, "order": np.uint64, "time": np.int64, "is_signal": np.int8, "in_window": np.int8})
     dt.update({c: np.float64 for c in LABELS})
@@ -85,7 +97,8 @@ def load_window(path, cache_root):
     assert len(np.unique(cols["order"])) == len(df), f"{path}: order is not unique"
     info = {"label": lab, "path": os.path.abspath(path), "src": os.path.abspath(src), "src_size": st.st_size,
             "src_mtime": st.st_mtime, "start": int(stats["window"][0]), "end": int(stats["window"][1]),
-            "data_end": int(stats["data_end"]), "rows": int(len(df)), "signal_rows": int(cols["is_signal"].sum()),
+            "data_end": int(stats["data_end"]), "rows": int(len(df)), "signal_rows": int(entry_rows(cols).sum()),
+            "signal_rows_all": int(cols["is_signal"].sum()), "cache_version": CACHE_VERSION,
             "hazard_rows": int(hazard.sum()), "features": feats, "load_s": round(time.time() - t0, 1)}
     write_json(info_p, info)
     return info
@@ -135,7 +148,7 @@ def _win(lab):
 
 def _rows(cols, kind):
     if kind == "signal":
-        return cols["is_signal"] == 1
+        return entry_rows(cols)
     if kind == "hazard":
         return cols["hazard"].astype(bool)
     return np.ones(len(cols["order"]), bool)
@@ -636,7 +649,7 @@ def main():
         shutil.rmtree(os.path.join(fdir, "_parts"))
 
         # model -> (pred used for metrics, raw pred, rows mask, target)
-        sig, haz, allr = c["is_signal"] == 1, c["hazard"].astype(bool), np.ones(len(c["order"]), bool)
+        sig, haz, allr = entry_rows(c), c["hazard"].astype(bool), np.ones(len(c["order"]), bool)
         ev = {}
         for m in models:
             algo, kind, target, rows, _, _ = MODELS[m]

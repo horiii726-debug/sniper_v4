@@ -1,9 +1,12 @@
-"""OOS ablation of candidate feature groups (V4 §28: KEEP only with walk-forward OOS value).
+"""LEGACY V4 (reads V4 snapshots.csv; see legacy_v4_guard.py). OOS ablation of candidate feature groups (V4 §28: KEEP only with walk-forward OOS value).
 
 For each config (base, base+F1, ..., base+all) a model is trained on the two dev windows and evaluated on
 each untouched test window. KEEP rule (fixed before running): PR-AUC of p_up2 improves on BOTH test windows
 and PR-AUC of p_rug does not drop by more than 0.005 on either.
 """
+import os as _os, sys as _sys
+_sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
+from legacy_v4_guard import require_v4_snapshots  # noqa: E402
 import json, sys
 import numpy as np, pandas as pd
 from catboost import CatBoostClassifier
@@ -11,7 +14,7 @@ from sklearn.metrics import average_precision_score, roc_auc_score
 
 DEV, TEST = sys.argv[1].split(","), sys.argv[2].split(",")
 META = {"coin", "order", "time", "y_up2", "y_up5", "y_up10", "y_cont", "y_rug", "y_fwd_max", "y_peak2", "y_peak5", "y_peak10", "y_end30", "y_dump30s", "y_devsell10m"}
-data = {d: pd.read_csv(f"{d}/snapshots.csv") for d in DEV + TEST}
+data = {d: pd.read_csv(require_v4_snapshots(d)) for d in DEV + TEST}
 ALL = [c for c in data[DEV[0]].columns if c not in META]
 BASE = [c for c in ALL if not c.startswith("f")]
 GROUPS = ["f1_", "f2_", "f4_", "f6_", "f7_", "f8_"]

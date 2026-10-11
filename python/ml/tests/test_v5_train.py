@@ -150,6 +150,29 @@ def test_v5_train_end_to_end():
         _check(tmp, dirs, dfs)
 
 
+def test_entry_rows_in_window_only():
+    from v5_train import entry_rows
+    cols = {"is_signal": np.array([1, 1, 0, 1], np.int8), "in_window": np.array([1, 0, 1, 1], np.int8)}
+    assert entry_rows(cols).tolist() == [True, False, False, True]
+
+
+def test_load_window_accepts_appended_labels_and_versions_cache():
+    from v5_train import CACHE_VERSION, load_window
+    with tempfile.TemporaryDirectory() as tmp:
+        d = os.path.join(tmp, "v5_x")
+        df = make_window(d, BASE_T, seed=3, rows=500)
+        df["y_extra"] = 1
+        df.to_csv(os.path.join(d, "snapshots_v5.csv.zst"), index=False, na_rep="NaN", compression={"method": "zstd"})
+        info = load_window(d, os.path.join(tmp, "cache"))
+        assert info["cache_version"] == CACHE_VERSION == 2
+        assert info["signal_rows"] == int(((df.is_signal == 1) & (df.in_window == 1)).sum())
+        assert info["signal_rows_all"] == int((df.is_signal == 1).sum())
+        assert "y_extra" not in info["features"]
+        info_p = os.path.join(tmp, "cache", info["label"], "info.json")
+        old = json.load(open(info_p)); old.pop("cache_version"); json.dump(old, open(info_p, "w"))
+        assert load_window(d, os.path.join(tmp, "cache"))["cache_version"] == 2   # stale cache rebuilt
+
+
 def test_purge_rule_unit():
     sys.path.insert(0, ML)
     from v5_train import plan_folds

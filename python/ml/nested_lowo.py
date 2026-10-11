@@ -1,6 +1,9 @@
-"""Nested leave-one-window-out score files (CatBoost GPU).
+"""LEGACY V4 (reads V4 snapshots.csv; see legacy_v4_guard.py). Nested leave-one-window-out score files (CatBoost GPU).
 For each window W: scores_outer.csv in W (model trained on all other windows);
 for each other window V: scores_inner_excl_<W>.csv in V (model trained on windows other than W and V)."""
+import os as _os, sys as _sys
+_sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
+from legacy_v4_guard import require_v4_snapshots  # noqa: E402
 import sys, time
 import numpy as np, pandas as pd
 from catboost import CatBoostClassifier
@@ -10,7 +13,7 @@ META = {"coin", "order", "time", "y_up2", "y_up5", "y_up10", "y_cont", "y_rug", 
         "y_end30", "y_dump30s", "y_devsell10m", "y_rugdead", "y_devdump"}
 data = {}
 for w in WINS:
-    d = pd.read_csv(f"{w}/snapshots.csv")
+    d = pd.read_csv(require_v4_snapshots(w))
     d["y_rugdead"] = ((d.y_end30 <= 0.2) & (d.y_peak2 == 0)).astype(int)
     d["y_devdump"] = ((d.y_devsell10m == 1) & (d.y_end30 <= 0.3) & (d.y_peak2 == 0)).astype(int)
     data[w] = d

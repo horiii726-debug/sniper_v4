@@ -1,13 +1,16 @@
-"""CatBoost (GPU) / RandomForest / ensemble on base or all features, same walk-forward protocol.
+"""LEGACY V4 (reads V4 snapshots.csv; see legacy_v4_guard.py). CatBoost (GPU) / RandomForest / ensemble on base or all features, same walk-forward protocol.
 usage: compare_models.py DEV1,DEV2 TEST1,TEST2 MODEL FEATSET   (MODEL: catboost|randomforest|ensemble, FEATSET: base|all)
 Writes scores_cross_<MODEL>_<FEATSET>.csv (dev) and scores_final_<MODEL>_<FEATSET>.csv (test)."""
+import os as _os, sys as _sys
+_sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
+from legacy_v4_guard import require_v4_snapshots  # noqa: E402
 import json, sys
 import numpy as np, pandas as pd
 from sklearn.metrics import average_precision_score, roc_auc_score
 
 DEV, TEST, MODEL, FS = sys.argv[1].split(","), sys.argv[2].split(","), sys.argv[3], sys.argv[4]
 META = {"coin", "order", "time", "y_up2", "y_up5", "y_up10", "y_cont", "y_rug", "y_fwd_max", "y_peak2", "y_peak5", "y_peak10", "y_end30", "y_dump30s", "y_devsell10m", "y_rugdead", "y_devdump"}
-data = {d: pd.read_csv(f"{d}/snapshots.csv") for d in DEV + TEST}
+data = {d: pd.read_csv(require_v4_snapshots(d)) for d in DEV + TEST}
 # Rug = dies and never recovers within 30 min (a dump that later runs is NOT a rug: forensics show moonshots dump first).
 for d in data.values():
     d["y_rugdead"] = ((d.y_end30 <= 0.2) & (d.y_peak2 == 0)).astype(int)

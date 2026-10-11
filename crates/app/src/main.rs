@@ -488,7 +488,8 @@ fn main() -> Result<()> {
             let mut windows = Vec::new();
             for (role, set) in [("dev (cross-model OOS scores)", &devs), ("test (final model, never seen)", &tests)] {
                 for (name, e, s, usd) in set.iter() {
-                    windows.push(serde_json::json!({ "role": role, "recording": name, "report": ml_sim::simulate(e, rp, s, &best, &costs, *usd) }));
+                    let cov = ml_sim::warn_score_coverage(name, e, rp, s);
+                    windows.push(serde_json::json!({ "role": role, "recording": name, "score_coverage": cov, "report": ml_sim::simulate(e, rp, s, &best, &costs, *usd) }));
                 }
             }
             let rep = serde_json::json!({ "label": "EXPLORATORY ML BACKTEST (pre-gate, user-requested); pump.fun curve + PumpSwap SOL pools",
@@ -505,6 +506,7 @@ fn main() -> Result<()> {
             let ev = backtest::load(&rec)?;
             let usd = units::sol_usd();
             let sc = ml_sim::read_scores(&rec.join(&scores))?;
+            let cov = ml_sim::warn_score_coverage(&rec.display().to_string(), &ev, rp, &sc);
             let r = ml_sim::simulate(&ev, rp, &sc, &st, &backtest::Costs::default(), usd);
             // Runners: coins whose snapshots show >= 5x reachable (exp(y_logmax), V5 labels) at some point.
             let snaps = String::from_utf8(zstd::decode_all(std::fs::File::open(rec.join("snapshots_v5.csv.zst"))?)?)?;
@@ -541,7 +543,7 @@ fn main() -> Result<()> {
             }
             let all_over: u32 = r.diag.iter().map(|d| d.snaps_over_entry).sum();
             let all_coins_over = r.diag.iter().filter(|d| d.snaps_over_entry > 0).count();
-            println!("{}", serde_json::to_string_pretty(&serde_json::json!({ "entry_threshold": st.entry_p2, "coins_with_any_score_over_threshold": all_coins_over,
+            println!("{}", serde_json::to_string_pretty(&serde_json::json!({ "score_coverage": cov, "entry_threshold": st.entry_p2, "coins_with_any_score_over_threshold": all_coins_over,
                 "snapshots_over_threshold": all_over, "runners": out,
                 "trades": r.trades_list.iter().map(|t| serde_json::json!({"mint": &t.mint[..8], "entry_t": t.entry_t, "exit_t": t.exit_t, "ret": t.ret, "reason": t.reason, "max_mult_held": t.max_mult_held, "p2": t.p2_at_entry})).collect::<Vec<_>>() }))?);
             Ok(())
@@ -553,6 +555,7 @@ fn main() -> Result<()> {
                 let ev = backtest::load(r)?;
                 let usd = units::sol_usd();
                 let sc = ml_sim::read_scores(&r.join(&scores))?;
+                ml_sim::warn_score_coverage(&r.display().to_string(), &ev, rp, &sc);
                 let rep = ml_sim::simulate(&ev, rp, &sc, &st, &backtest::Costs::default(), usd);
                 let wins: Vec<&ml_sim::MlTrade> = rep.trades_list.iter().filter(|t| t.pnl_sol > 0.0).collect();
                 let loss: Vec<&ml_sim::MlTrade> = rep.trades_list.iter().filter(|t| t.pnl_sol <= 0.0).collect();
@@ -587,10 +590,11 @@ fn main() -> Result<()> {
                 let refs: Vec<(&backtest::Events, &ml_sim::Scores, f64)> = inner.iter().map(|(i, s)| (&evs[*i].1, s, evs[*i].2)).collect();
                 let (best, _) = ml_sim::tune(&refs, rp, &costs);
                 let outer = ml_sim::read_scores(&rec[wi].join(format!("scores_outer{sfx}.csv")))?;
+                let cov = ml_sim::warn_score_coverage(wname, wev, rp, &outer);
                 let r = ml_sim::simulate(wev, rp, &outer, &best, &costs, *wusd);
                 println!("{wname}: {:.4} -> {:.4} SOL (PnL {:+.4} SOL, {:+.1}%) trades {} win rate {:.0}% profit factor {:.2} maxDD {:.0}% held>=5x {} best {:.0}% exits {:?}",
                     r.start_sol, r.final_sol, r.pnl_sol, r.return_pct, r.trades, r.win_rate * 100.0, r.profit_factor, r.max_drawdown_pct, r.held_to_5x, r.best_ret * 100.0, r.exits);
-                results.push(serde_json::json!({ "test_window": wname, "strategy_tuned_on_other_windows": best, "report": r }));
+                results.push(serde_json::json!({ "test_window": wname, "score_coverage": cov, "strategy_tuned_on_other_windows": best, "report": r }));
             }
             std::fs::write(&out, serde_json::to_string_pretty(&serde_json::json!({
                 "label": "EXPLORATORY nested leave-one-window-out (--start-sol per window); pump.fun curve + PumpSwap", "results": results }))?)?;

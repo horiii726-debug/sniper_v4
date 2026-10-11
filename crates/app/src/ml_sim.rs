@@ -1480,6 +1480,29 @@ impl Default for MlStrategy {
     }
 }
 
+/// V5-17: (snapshot rows, snapshot rows with a score) for a V4 score file on this window. The V5 snapshot cadence
+/// differs from V4, so old V4 score files can silently match few rows.
+pub fn score_coverage(ev: &Events, rp: RadarParams, sc: &Scores) -> (usize, usize) {
+    let mut eng = Engine::new(ev, rp);
+    let (mut n, mut hit) = (0usize, 0usize);
+    for e in &ev.evs {
+        if eng.apply(e).snapshot.is_some() {
+            n += 1;
+            hit += sc.contains_key(&e.order) as usize;
+        }
+    }
+    (n, hit)
+}
+
+/// Prints a warning when fewer than half of the snapshot rows have a score; returns the coverage for reports.
+pub fn warn_score_coverage(name: &str, ev: &Events, rp: RadarParams, sc: &Scores) -> serde_json::Value {
+    let (n, hit) = score_coverage(ev, rp, sc);
+    if n > 0 && (hit as f64) < 0.5 * n as f64 {
+        eprintln!("WARNING {name}: only {hit} of {n} snapshot rows have a score (V4 score file vs V5 snapshot cadence)");
+    }
+    serde_json::json!({ "snapshot_rows": n, "scored_rows": hit })
+}
+
 /// Model scores keyed by snapshot event order: [p_up2, p_up5, p_cont, p_rug, p_dump, p_devsell].
 pub type Scores = FxHashMap<u64, [f32; 6]>;
 
@@ -2026,6 +2049,21 @@ mod tests {
         let mut e = mk(slot, slot as i64, 0, user, buy, 50_000_000, 100_000_000_000, 1_000_000_000_000);
         e.tokens = tokens;
         e
+    }
+
+    #[test]
+    fn score_coverage_counts() {
+        let mut evs = Vec::new();
+        for s in 1..=400u64 {
+            evs.push(ev(s, 0, s as u32, true));
+        }
+        let events = Events::new(evs, vec!["m".into()], (0, 1000), vec![]);
+        let rp = RadarParams { min_buyers: 3, min_buy_sol: 0.1, ..RadarParams::default() };
+        let mut eng = Engine::new(&events, rp);
+        let orders: Vec<u64> = events.evs.iter().filter_map(|e| eng.apply(e).snapshot.map(|_| e.order)).collect();
+        assert!(orders.len() >= 4);
+        let sc: Scores = orders.iter().step_by(2).map(|o| (*o, [0f32; 6])).collect();
+        assert_eq!(score_coverage(&events, rp, &sc), (orders.len(), orders.len().div_ceil(2)));
     }
 
     #[test]

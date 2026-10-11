@@ -22,7 +22,7 @@ Definitions (all on trades deduplicated across dirs, see load_all):
   state machine (nothing after the close changes them), so they are computed once globally and filtered per W.
 - score = (n * mean_logret + K * mean_logret_all) / (n + K), mean_logret_all over all qualifying trips (all wallets).
 - fast_share = share of qualifying trips with hold_s < FAST_S; is_flipper = median_hold_s < FLIP_S.
-- is_bot = fast_share > 0.8 OR mean over the wallet's active UTC days (trades before S_W) of distinct mints traded
+- is_bot = (fast_share > 0.8 AND n_closed >= BOT_MIN_TRIPS = 5, V5-12) OR mean over the wallet's active UTC days (trades before S_W) of distinct mints traded
   that day > 50.
 - sniper_coins = distinct newborn mints whose first observed trade is before S_W where the wallet bought (before S_W)
   within the first 3 slots of the mint's first observed slot. Newborn: first observed trade >= 60 s after the start
@@ -51,6 +51,7 @@ CLOSE_FRAC = 0.01          # trip closes when balance <= 1% of trip max
 FAST_S = 10                # fast trip: hold < 10 s
 FLIP_S = 60                # flipper: median hold < 60 s
 BOT_FAST_SHARE = 0.8
+BOT_MIN_TRIPS = 5           # V5-12: the fast-share bot rule needs at least this many closed trips
 BOT_MINTS_PER_DAY = 50
 SNIPER_SLOTS = 3           # bought at slot < first_slot + 3
 NEWBORN_S = 60             # first observed trade >= dir start + 60 s
@@ -315,8 +316,12 @@ def score_window(i):
     per_day = dm.groupby(["w", "day"], sort=False).size()
     mpd = per_day.groupby(level=0).mean()
     bot = np.zeros(n_w, dtype=bool)
-    bot[mpd.index.values[mpd.values > BOT_MINTS_PER_DAY]] = True
-    bot[st.index.values[st.fast_share.values > BOT_FAST_SHARE]] = True
+    mpd_rule = mpd.index.values[mpd.values > BOT_MINTS_PER_DAY]
+    fast_hi = st.fast_share.values > BOT_FAST_SHARE
+    enough = st.n_closed.values >= BOT_MIN_TRIPS
+    fast_rule = st.index.values[fast_hi & enough]
+    bot[mpd_rule] = True
+    bot[fast_rule] = True
 
     sc = snip[snip.t.values < S].groupby("w").m.nunique()
 
@@ -349,10 +354,12 @@ def score_window(i):
             "n_trips_logret_clipped": int(q.clipped.sum()),
             "mean_logret_all": None if math.isnan(mean_all) else mean_all,
             "n_wallets": int(len(out)), "n_bots": int(out.is_bot.sum()),
+            "n_bots_fast_rule": int(len(fast_rule)), "n_bots_mints_per_day_rule": int(len(mpd_rule)),
+            "n_fast_share_below_min_trips": int((fast_hi & ~enough).sum()),
             "n_clustered": int((out.cluster_size > 1).sum()), "n_clusters": int(len(csize)),
             "ignored_mints": ignored, "source_dirs": [os.path.abspath(x) for x in G["dirs"]],
             "params": {"k": K, "close_frac": CLOSE_FRAC, "fast_s": FAST_S, "flip_s": FLIP_S,
-                       "bot_fast_share": BOT_FAST_SHARE, "bot_mints_per_day": BOT_MINTS_PER_DAY,
+                       "bot_fast_share": BOT_FAST_SHARE, "bot_min_trips": BOT_MIN_TRIPS, "bot_mints_per_day": BOT_MINTS_PER_DAY,
                        "sniper_slots": SNIPER_SLOTS, "newborn_s": NEWBORN_S, "early_s": EARLY_S,
                        "min_shared": MIN_SHARED, "max_early_buyers": MAX_EARLY_BUYERS,
                        "logret_clip": LOGRET_CLIP, "launch_quote": LAUNCH_QUOTE, "launch_tol": LAUNCH_TOL}}

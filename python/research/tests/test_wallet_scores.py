@@ -190,6 +190,28 @@ def test_bot_flag():
     assert scored()["B"][1]["n_bots"] == 2
 
 
+def test_bot_flag_needs_min_trips():
+    # V5-12: one or two fast round trips are not enough to call a wallet a bot (fast-share rule needs 5 trips)
+    root = tempfile.mkdtemp(prefix="ws_test_min_")
+    r = Rec()
+    r.dev("A", TA, "Manchor")
+    r.dev("B", TB, "Mbanchor")
+    for name, n in (("Wfast2", 2), ("Wfast5", 5)):
+        for k in range(n):
+            m = f"M{name}{k}"; r.dev("A", TA + 5, m)
+            r.add("A", TA + 1000 + 10 * k, m, "buy", SOL, 100, name)
+            r.add("A", TA + 1005 + 10 * k, m, "sell", SOL, 100, name)
+    dirs = r.write(root)
+    ws.run([dirs["A"], dirs["B"]], workers=1)
+    df = pd.read_csv(os.path.join(dirs["B"], "wallet_scores.csv"), keep_default_na=False, na_values=[""])
+    meta = json.load(open(os.path.join(dirs["B"], "wallet_scores_meta.json")))
+    f2, f5 = df[df.wallet == "Wfast2"].iloc[0], df[df.wallet == "Wfast5"].iloc[0]
+    assert f2.fast_share == 1 and f2.is_bot == 0 and f2.is_flipper == 1 and f2.n_closed == 2
+    assert f5.is_bot == 1 and f5.n_closed == 5
+    assert meta["n_fast_share_below_min_trips"] == 1 and meta["n_bots_fast_rule"] == 1
+    assert meta["params"]["bot_min_trips"] == ws.BOT_MIN_TRIPS == 5
+
+
 def test_sniper_newborn():
     assert row("B", "Wsnipe").sniper_coins == 1
     assert row("B", "dev_Mn1").sniper_coins == 1

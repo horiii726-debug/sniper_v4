@@ -1,9 +1,12 @@
-"""EXPLORATORY CatBoost training (GPU) on causal snapshots; walk-forward protocol.
+"""LEGACY V4 (reads V4 snapshots.csv; see legacy_v4_guard.py). EXPLORATORY CatBoost training (GPU) on causal snapshots; walk-forward protocol.
 
 dev windows D1, D2: model A (train D1) scores D2, model B (train D2) scores D1  -> scores_cross.csv
 final model (train D1+D2) scores each test window                             -> scores_final.csv
 Test windows are never used for training or threshold selection.
 """
+import os as _os, sys as _sys
+_sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
+from legacy_v4_guard import require_v4_snapshots  # noqa: E402
 import json
 import sys
 
@@ -19,7 +22,7 @@ META = {"coin", "order", "time", "y_up2", "y_up5", "y_up10", "y_cont", "y_rug", 
 
 
 def load(d):
-    return pd.read_csv(f"{d}/snapshots.csv")
+    return pd.read_csv(require_v4_snapshots(d))
 
 
 def fit(df, y):
