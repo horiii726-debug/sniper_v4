@@ -1,0 +1,7 @@
+{
+ "base": {},
+ "rug_veto_off": {"rug_veto": 1.01},
+ "rug_exit_off": {"rug_exit": 1.01},
+ "rug_veto_off_exit_on": {"rug_veto": 1.01, "rug_exit": 0.5},
+ "rug_off_guard_off": {"rug_veto": 1.01, "max_entry_ret": null}
+}
