@@ -321,6 +321,8 @@ pub struct TradeRec {
 pub struct Report {
     pub window_s: i64,
     pub sol_usd: f64,
+    pub start_sol: f64,
+    pub final_sol: f64,
     pub start_usd: f64,
     pub final_usd: f64,
     pub return_pct: f64,
@@ -671,6 +673,8 @@ pub fn simulate(ev: &Events, st: &Strategy, c: &Costs, radar_p: RadarParams, sta
     Report {
         window_s: ev.window.1 - ev.window.0,
         sol_usd,
+        start_sol,
+        final_sol,
         start_usd: start_sol * sol_usd,
         final_usd: final_sol * sol_usd,
         return_pct: (final_sol / start_sol - 1.0) * 100.0,
@@ -711,14 +715,6 @@ pub fn price_paths(ev: &Events) -> Vec<Vec<(i64, f64)>> {
     out
 }
 
-/// SOL/USD close of the 1-minute candle at `unix_s` (Binance public API; accounting only).
-pub fn sol_usd_at(unix_s: i64) -> Result<f64> {
-    let url = format!("https://api.binance.com/api/v3/klines?symbol=SOLUSDT&interval=1m&startTime={}&limit=1", unix_s * 1000);
-    let out = std::process::Command::new("curl").args(["-s", "-m", "20", &url]).output()?;
-    let v: serde_json::Value = serde_json::from_slice(&out.stdout)?;
-    v[0][4].as_str().and_then(|s| s.parse().ok()).ok_or_else(|| anyhow!("no SOL price for {unix_s}"))
-}
-
 /// Grid on development windows only. Selection: maximize the WORST window return (robustness),
 /// fixed before looking at the test windows.
 pub fn tune(dev: &[(&Events, f64)], costs: &Costs, rp: RadarParams) -> (Strategy, Vec<(Strategy, Vec<f64>)>) {
@@ -729,7 +725,7 @@ pub fn tune(dev: &[(&Events, f64)], costs: &Costs, rp: RadarParams) -> (Strategy
                 for &dd in &[0.3, 0.5] {
                     for &stop in &[0.3, 0.5] {
                         let s = Strategy { entry_buyers_60s: b, entry_max_median_buy_sol: med, entry_min_accel: acc, mee_drawdown: dd, hard_stop: stop, ..Default::default() };
-                        let rets: Vec<f64> = dev.iter().map(|(e, usd)| simulate(e, &s, costs, rp, 100.0 / usd, *usd).return_pct).collect();
+                        let rets: Vec<f64> = dev.iter().map(|(e, usd)| simulate(e, &s, costs, rp, crate::units::start_sol(), *usd).return_pct).collect();
                         all.push((s, rets));
                     }
                 }

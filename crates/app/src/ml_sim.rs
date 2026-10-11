@@ -195,7 +195,8 @@ pub struct WalletInfo {
     pub cluster_size: u32,
 }
 
-/// Optional per-window context: wallet scores (by user id) and the SOL/USD 1-minute closes (close time, price).
+/// Optional per-window context: wallet scores (by user id) and the SOL/USD 1-minute closes (close time, price;
+/// optional local file, never fetched).
 #[derive(Default, Clone)]
 pub struct Context {
     pub wallets: Vec<Option<WalletInfo>>,
@@ -1232,7 +1233,7 @@ pub fn write_snapshots(ev: &Events, rp: RadarParams, ctx: Context, out: &std::pa
     Ok(st)
 }
 
-/// Per-window context: `wallet_scores.csv` (offline, causal) and the SOL/USD 1-minute closes (cached).
+/// Per-window context: `wallet_scores.csv` (offline, causal) and the optional local SOL/USD 1-minute closes.
 pub fn load_context(rec: &std::path::Path, ev: &Events) -> anyhow::Result<Context> {
     let mut ctx = Context { wallets: vec![None; ev.users.len()], sol_usd: Vec::new() };
     let wp = rec.join("wallet_scores.csv");
@@ -1257,47 +1258,8 @@ pub fn load_context(rec: &std::path::Path, ev: &Events) -> anyhow::Result<Contex
             });
         }
     }
-    ctx.sol_usd = sol_usd_series(rec, ev.window.0 - 3700, ev.data_end())?;
+    ctx.sol_usd = crate::units::read_sol_usd_series(rec)?;
     Ok(ctx)
-}
-
-/// SOL/USD 1-minute candles (Binance public API, accounting / regime only) as (close time, close), cached in
-/// `<rec>/sol_usd_1m.csv`. Empty on network failure (the feature becomes NaN).
-fn sol_usd_series(rec: &std::path::Path, from: i64, to: i64) -> anyhow::Result<Vec<(i64, f64)>> {
-    let cache = rec.join("sol_usd_1m.csv");
-    let parse = |text: &str| -> Vec<(i64, f64)> {
-        text.lines().filter_map(|l| {
-            let (a, b) = l.split_once(',')?;
-            Some((a.parse().ok()?, b.parse().ok()?))
-        }).collect()
-    };
-    if cache.exists() {
-        let v = parse(&std::fs::read_to_string(&cache)?);
-        if v.first().is_some_and(|x| x.0 <= from + 120) && v.last().is_some_and(|x| x.0 >= to.min(from + 60_000) - 120) {
-            return Ok(v);
-        }
-    }
-    let mut out: Vec<(i64, f64)> = Vec::new();
-    let mut start = from - from.rem_euclid(60);
-    while start <= to {
-        let url = format!("https://api.binance.com/api/v3/klines?symbol=SOLUSDT&interval=1m&startTime={}&limit=1000", start * 1000);
-        let Ok(o) = std::process::Command::new("curl").args(["-s", "-m", "30", &url]).output() else { break };
-        let Ok(v) = serde_json::from_slice::<serde_json::Value>(&o.stdout) else { break };
-        let Some(rows) = v.as_array() else { break };
-        if rows.is_empty() {
-            break;
-        }
-        for r in rows {
-            if let (Some(open_ms), Some(close)) = (r[0].as_i64(), r[4].as_str().and_then(|x| x.parse::<f64>().ok())) {
-                out.push((open_ms / 1000 + 60, close));
-            }
-        }
-        start = out.last().map(|x| x.0).unwrap_or(to + 1);
-    }
-    if !out.is_empty() {
-        std::fs::write(&cache, out.iter().map(|(a, b)| format!("{a},{b}\n")).collect::<String>())?;
-    }
-    Ok(out)
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -1421,6 +1383,9 @@ pub struct MlDiag {
 pub struct MlReport {
     pub window_s: i64,
     pub sol_usd: f64,
+    pub start_sol: f64,
+    pub final_sol: f64,
+    pub pnl_sol: f64,
     pub final_usd: f64,
     pub return_pct: f64,
     pub trades: usize,
@@ -1429,6 +1394,7 @@ pub struct MlReport {
     pub win_rate: f64,
     pub max_drawdown_pct: f64,
     pub failed_buys: usize,
+    pub costs_sol: f64,
     pub costs_usd: f64,
     pub exits: std::collections::BTreeMap<&'static str, usize>,
     pub held_to_5x: usize,
@@ -1472,7 +1438,7 @@ enum Order {
 
 pub fn simulate(ev: &Events, rp: RadarParams, sc: &Scores, st: &MlStrategy, c: &Costs, sol_usd: f64) -> MlReport {
     let mut eng = Engine::new(ev, rp);
-    let start = 100.0 / sol_usd;
+    let start = crate::units::start_sol();
     let mut cash = start;
     let txc = c.tx_cost_lamports as f64 / 1e9;
     let mut pos: FxHashMap<u32, Pos> = FxHashMap::default();
@@ -1690,6 +1656,9 @@ pub fn simulate(ev: &Events, rp: RadarParams, sc: &Scores, st: &MlStrategy, c: &
     MlReport {
         window_s: ev.window.1 - ev.window.0,
         sol_usd,
+        start_sol: start,
+        final_sol: cash,
+        pnl_sol: cash - start,
         final_usd: cash * sol_usd,
         return_pct: (cash / start - 1.0) * 100.0,
         trades: n,
@@ -1698,6 +1667,7 @@ pub fn simulate(ev: &Events, rp: RadarParams, sc: &Scores, st: &MlStrategy, c: &
         win_rate: if n > 0 { trades.iter().filter(|t| t.pnl_sol > 0.0).count() as f64 / n as f64 } else { 0.0 },
         max_drawdown_pct: max_dd * 100.0,
         failed_buys: failed,
+        costs_sol: costs,
         costs_usd: costs * sol_usd,
         exits,
         held_to_5x: trades.iter().filter(|t| t.max_mult_held >= 5.0).count(),

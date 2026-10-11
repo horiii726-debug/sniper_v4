@@ -69,13 +69,14 @@ pub struct CostsV5 {
     pub default_fee_bps: u64,
     /// Seed of the deterministic buy-failure draws (Monte Carlo varies it).
     pub fail_seed: u64,
-    pub start_usd: f64,
+    /// Starting capital, SOL.
+    pub start_sol: f64,
 }
 
 impl Default for CostsV5 {
     fn default() -> Self {
         // 500,000 lamports per transaction in total, as in V4 (base 5,000 + priority 195,000 + tip 300,000).
-        Self { latency_slots: 2, tx_base_lamports: 5_000, priority_lamports: 195_000, tip_lamports: 300_000, buy_fail_prob: 0.15, default_fee_bps: 125, fail_seed: 0, start_usd: 100.0 }
+        Self { latency_slots: 2, tx_base_lamports: 5_000, priority_lamports: 195_000, tip_lamports: 300_000, buy_fail_prob: 0.15, default_fee_bps: 125, fail_seed: 0, start_sol: crate::units::start_sol() }
     }
 }
 
@@ -282,7 +283,7 @@ pub fn simulate(w: &WindowData, rp: RadarParams, scorer: &mut dyn Scorer, st: &S
     let ev = w.ev;
     let ix = idx();
     let mut eng = Engine::new(ev, rp).with_ctx(w.ctx.clone());
-    let start = c.start_usd / w.sol_usd;
+    let start = c.start_sol;
     let mut cash = start;
     let txc = c.tx_sol();
     let mut pos: FxHashMap<u32, Pos> = FxHashMap::default();

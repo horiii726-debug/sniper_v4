@@ -9,6 +9,7 @@ mod radar_eval;
 mod logging;
 mod ml_sim;
 mod strategy_v5;
+mod units;
 mod v5_eval;
 
 use anyhow::{anyhow, bail, Context, Result};
@@ -30,6 +31,12 @@ struct Cli {
     /// Venue registry.
     #[arg(long, global = true, default_value = "config/venues.toml")]
     venues: PathBuf,
+    /// Starting capital of every simulated account, SOL (accounting is in SOL).
+    #[arg(long, global = true, default_value_t = units::DEFAULT_START_SOL)]
+    start_sol: f64,
+    /// Display-only SOL/USD rate for USD fields in reports (never fetched; absent = null).
+    #[arg(long, global = true)]
+    sol_usd: Option<f64>,
     #[command(subcommand)]
     cmd: Cmd,
 }
@@ -144,7 +151,7 @@ enum Cmd {
         #[arg(long, default_value_t = 0)]
         max_blocks: usize,
     },
-    /// EXPLORATORY rule-based backtest with $100: tune on --dev windows only, report every window.
+    /// EXPLORATORY rule-based backtest (capital --start-sol): tune on --dev windows only, report every window.
     Backtest {
         #[arg(long, required = true)]
         dev: Vec<PathBuf>,
@@ -287,8 +294,6 @@ enum Cmd {
         latency_slots: u64,
         #[arg(long, default_value_t = 0.15)]
         buy_fail_prob: f64,
-        #[arg(long, default_value_t = 100.0)]
-        start_usd: f64,
     },
     /// EXPLORATORY: V4 rule strategy vs V5 corrections without ML on the same windows, plus a per-runner table.
     V5Compare {
@@ -313,6 +318,7 @@ enum Cmd {
 
 fn main() -> Result<()> {
     let cli = Cli::parse();
+    units::set(units::Units { start_sol: cli.start_sol, sol_usd: cli.sol_usd });
     let _ = rustls::crypto::ring::default_provider().install_default();
     let rt = tokio::runtime::Builder::new_multi_thread().enable_all().build()?;
     match cli.cmd {
@@ -385,10 +391,10 @@ fn main() -> Result<()> {
             let v4: backtest::Strategy = serde_json::from_str(&std::fs::read_to_string(&v4_strategy)?)?;
             v5_eval::compare(&rec, rp, &v4, &st, &out)
         }
-        Cmd::V5Backtest { rec, models, radar_params, strategy, out, grid, mc_runs, mc_resamples, latency_slots, buy_fail_prob, start_usd } => {
+        Cmd::V5Backtest { rec, models, radar_params, strategy, out, grid, mc_runs, mc_resamples, latency_slots, buy_fail_prob } => {
             let rp: radar::Params = serde_json::from_value(serde_json::from_str::<serde_json::Value>(&std::fs::read_to_string(&radar_params)?)?["params"].clone())?;
             let st: strategy_v5::StratV5 = match strategy { Some(p) => serde_json::from_str(&std::fs::read_to_string(p)?)?, None => Default::default() };
-            let costs = strategy_v5::CostsV5 { latency_slots, buy_fail_prob, start_usd, ..Default::default() };
+            let costs = strategy_v5::CostsV5 { latency_slots, buy_fail_prob, ..Default::default() };
             let o = v5_eval::EvalOpts { models, out, grid, mc_runs, mc_resamples, costs, strategy: st };
             v5_eval::run(&rec, rp, &o)
         }
@@ -406,7 +412,7 @@ fn main() -> Result<()> {
             let costs = backtest::Costs { latency_slots, tx_cost_lamports, buy_fail_prob, ..Default::default() };
             let load = |r: &PathBuf| -> Result<(String, backtest::Events, f64)> {
                 let e = backtest::load(r)?;
-                let usd = backtest::sol_usd_at(e.window.0)?;
+                let usd = units::sol_usd();
                 Ok((r.display().to_string(), e, usd))
             };
             let devs: Vec<_> = dev.iter().map(load).collect::<Result<_>>()?;
@@ -416,8 +422,8 @@ fn main() -> Result<()> {
             let mut windows = Vec::new();
             for (role, set) in [("dev", &devs), ("test", &tests)] {
                 for (name, e, usd) in set.iter() {
-                    let r = backtest::simulate(e, &best, &costs, rp, 100.0 / usd, *usd);
-                    let base = backtest::simulate(e, &backtest::Strategy { trailing_only: Some(0.3), ..best }, &costs, rp, 100.0 / usd, *usd);
+                    let r = backtest::simulate(e, &best, &costs, rp, units::start_sol(), *usd);
+                    let base = backtest::simulate(e, &backtest::Strategy { trailing_only: Some(0.3), ..best }, &costs, rp, units::start_sol(), *usd);
                     windows.push(serde_json::json!({ "role": role, "recording": name, "mee": r,
                         "baseline_trailing30": { "final_usd": base.final_usd, "return_pct": base.return_pct, "trades": base.trades,
                             "win_rate": base.win_rate, "max_drawdown_pct": base.max_drawdown_pct } }));
@@ -457,7 +463,7 @@ fn main() -> Result<()> {
             let costs = backtest::Costs::default();
             let load = |r: &PathBuf, scores: &str| -> Result<(String, backtest::Events, ml_sim::Scores, f64)> {
                 let e = backtest::load(r)?;
-                let usd = backtest::sol_usd_at(e.window.0)?;
+                let usd = units::sol_usd();
                 Ok((r.display().to_string(), e, ml_sim::read_scores(&r.join(scores))?, usd))
             };
             let (cross, fin) = (format!("scores_cross{scores_suffix}.csv"), format!("scores_final{scores_suffix}.csv"));
@@ -483,7 +489,7 @@ fn main() -> Result<()> {
             let rp: radar::Params = serde_json::from_value(serde_json::from_str::<serde_json::Value>(&std::fs::read_to_string(&radar_params)?)?["params"].clone())?;
             let st: ml_sim::MlStrategy = serde_json::from_str(&std::fs::read_to_string(&params)?)?;
             let ev = backtest::load(&rec)?;
-            let usd = backtest::sol_usd_at(ev.window.0)?;
+            let usd = units::sol_usd();
             let sc = ml_sim::read_scores(&rec.join(&scores))?;
             let r = ml_sim::simulate(&ev, rp, &sc, &st, &backtest::Costs::default(), usd);
             // Runners: coins whose snapshots show >= 5x reachable (exp(y_logmax), V5 labels) at some point.
@@ -531,7 +537,7 @@ fn main() -> Result<()> {
             let st: ml_sim::MlStrategy = serde_json::from_str(&std::fs::read_to_string(&params)?)?;
             for r in &rec {
                 let ev = backtest::load(r)?;
-                let usd = backtest::sol_usd_at(ev.window.0)?;
+                let usd = units::sol_usd();
                 let sc = ml_sim::read_scores(&r.join(&scores))?;
                 let rep = ml_sim::simulate(&ev, rp, &sc, &st, &backtest::Costs::default(), usd);
                 let wins: Vec<&ml_sim::MlTrade> = rep.trades_list.iter().filter(|t| t.pnl_sol > 0.0).collect();
@@ -541,11 +547,11 @@ fn main() -> Result<()> {
                 for t in &rep.trades_list {
                     let e = reason_pnl.entry(t.reason).or_default();
                     e.0 += 1;
-                    e.1 += t.pnl_sol * usd;
+                    e.1 += t.pnl_sol;
                 }
-                println!("{:6} $100 -> ${:.2} | PnL {:+.2} USD | profit factor {:.2} | trades {} win {:.0}% | avg win {:+.1}% avg loss {:+.1}% | held>=2x {} >=5x {} | costs ${:.1} | by exit (n, $): {:?}",
-                    r.file_name().and_then(|x| x.to_str()).unwrap_or(""), rep.final_usd, rep.pnl_usd, rep.profit_factor, rep.trades, rep.win_rate * 100.0, avg(&wins), avg(&loss),
-                    rep.trades_list.iter().filter(|t| t.max_mult_held >= 2.0).count(), rep.held_to_5x, rep.costs_usd,
+                println!("{:6} {:.4} -> {:.4} SOL | PnL {:+.4} SOL | profit factor {:.2} | trades {} win {:.0}% | avg win {:+.1}% avg loss {:+.1}% | held>=2x {} >=5x {} | costs {:.4} SOL | by exit (n, SOL): {:?}",
+                    r.file_name().and_then(|x| x.to_str()).unwrap_or(""), rep.start_sol, rep.final_sol, rep.pnl_sol, rep.profit_factor, rep.trades, rep.win_rate * 100.0, avg(&wins), avg(&loss),
+                    rep.trades_list.iter().filter(|t| t.max_mult_held >= 2.0).count(), rep.held_to_5x, rep.costs_sol,
                     reason_pnl.iter().map(|(k, v)| format!("{k}:{}/{:+.1}", v.0, v.1)).collect::<Vec<_>>());
             }
             Ok(())
@@ -555,7 +561,7 @@ fn main() -> Result<()> {
             let rp: radar::Params = serde_json::from_value(serde_json::from_str::<serde_json::Value>(&std::fs::read_to_string(&radar_params)?)?["params"].clone())?;
             let costs = backtest::Costs::default();
             let name = |r: &PathBuf| r.file_name().and_then(|x| x.to_str()).unwrap_or("").to_string();
-            let evs: Vec<(String, backtest::Events, f64)> = rec.iter().map(|r| { let e = backtest::load(r)?; let u = backtest::sol_usd_at(e.window.0)?; Ok((name(r), e, u)) }).collect::<Result<_>>()?;
+            let evs: Vec<(String, backtest::Events, f64)> = rec.iter().map(|r| { let e = backtest::load(r)?; let u = units::sol_usd(); Ok((name(r), e, u)) }).collect::<Result<_>>()?;
             let mut results = Vec::new();
             for (wi, (wname, wev, wusd)) in evs.iter().enumerate() {
                 if !only.is_empty() && !only.contains(wname) {
@@ -568,12 +574,12 @@ fn main() -> Result<()> {
                 let (best, _) = ml_sim::tune(&refs, rp, &costs);
                 let outer = ml_sim::read_scores(&rec[wi].join(format!("scores_outer{sfx}.csv")))?;
                 let r = ml_sim::simulate(wev, rp, &outer, &best, &costs, *wusd);
-                println!("{wname}: $100 -> ${:.2} (PnL {:+.2} USD, {:+.1}%) trades {} win rate {:.0}% profit factor {:.2} maxDD {:.0}% held>=5x {} best {:.0}% exits {:?}",
-                    r.final_usd, r.pnl_usd, r.return_pct, r.trades, r.win_rate * 100.0, r.profit_factor, r.max_drawdown_pct, r.held_to_5x, r.best_ret * 100.0, r.exits);
+                println!("{wname}: {:.4} -> {:.4} SOL (PnL {:+.4} SOL, {:+.1}%) trades {} win rate {:.0}% profit factor {:.2} maxDD {:.0}% held>=5x {} best {:.0}% exits {:?}",
+                    r.start_sol, r.final_sol, r.pnl_sol, r.return_pct, r.trades, r.win_rate * 100.0, r.profit_factor, r.max_drawdown_pct, r.held_to_5x, r.best_ret * 100.0, r.exits);
                 results.push(serde_json::json!({ "test_window": wname, "strategy_tuned_on_other_windows": best, "report": r }));
             }
             std::fs::write(&out, serde_json::to_string_pretty(&serde_json::json!({
-                "label": "EXPLORATORY nested leave-one-window-out ($100 per window); pump.fun curve + PumpSwap", "results": results }))?)?;
+                "label": "EXPLORATORY nested leave-one-window-out (--start-sol per window); pump.fun curve + PumpSwap", "results": results }))?)?;
             Ok(())
         }
         Cmd::ExportEvents { rec, out } => {

@@ -24,8 +24,8 @@ pub fn run(recs: &[PathBuf], radar_params: &PathBuf) -> Result<()> {
     let mut all = Vec::new();
     for rec in recs {
         let ev: Events = backtest::load(rec)?;
-        let usd = backtest::sol_usd_at(ev.window.0)?;
-        let r = backtest::simulate(&ev, &st, &costs, rp, 100.0 / usd, usd);
+        let usd = crate::units::sol_usd();
+        let r = backtest::simulate(&ev, &st, &costs, rp, crate::units::start_sol(), usd);
         let paths = backtest::price_paths(&ev);
         let mut trades_by: BTreeMap<String, Vec<&backtest::TradeRec>> = BTreeMap::new();
         for t in &r.trades_list {

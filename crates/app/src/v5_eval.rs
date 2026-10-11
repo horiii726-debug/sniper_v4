@@ -25,7 +25,7 @@ pub fn load_windows(recs: &[PathBuf]) -> Result<Vec<Loaded>> {
     recs.par_iter()
         .map(|r| -> Result<Loaded> {
             let ev = crate::backtest::load(r)?;
-            let sol_usd = crate::backtest::sol_usd_at(ev.window.0)?;
+            let sol_usd = crate::units::sol_usd();
             Ok(Loaded { name: dir_name(r), dir: r.clone(), ev, sol_usd })
         })
         .collect()
@@ -384,7 +384,7 @@ pub fn compare(recs: &[PathBuf], rp: RadarParams, v4: &crate::backtest::Strategy
     let rows: Vec<serde_json::Value> = all.par_iter().map(|l| -> Result<serde_json::Value> {
         let d = wd(l)?;
         let c4 = crate::backtest::Costs::default();
-        let r4 = crate::backtest::simulate(&l.ev, v4, &c4, rp, 100.0 / l.sol_usd, l.sol_usd);
+        let r4 = crate::backtest::simulate(&l.ev, v4, &c4, rp, crate::units::start_sol(), l.sol_usd);
         // V5 without a model: every signal has EV = 1 >= ev_min, rug/hold/hazard models silent.
         let c5 = CostsV5 { latency_slots: c4.latency_slots, buy_fail_prob: c4.buy_fail_prob, default_fee_bps: c4.default_fee_bps, ..Default::default() };
         let r5 = s5::simulate(&d, rp, &mut s5::NoScores, st, &c5, &[1.0; 7], false);
@@ -427,10 +427,10 @@ pub fn compare(recs: &[PathBuf], rp: RadarParams, v4: &crate::backtest::Strategy
         Ok(serde_json::json!({
             "window": l.name, "window_s": l.ev.window.1 - l.ev.window.0, "data_s": l.ev.data_end() - l.ev.window.0, "followed_coins": l.ev.followed.iter().filter(|x| **x).count(),
             "sol_usd": l.sol_usd,
-            "v4": { "final_usd": r4.final_usd, "pnl_usd": r4.final_usd - 100.0, "trades": r4.trades, "win_rate": r4.win_rate, "profit_factor": pf(gp4, gl4),
+            "v4": { "start_sol": r4.start_sol, "final_sol": r4.final_sol, "pnl_sol": r4.final_sol - r4.start_sol, "final_usd": r4.final_usd, "pnl_usd": (r4.final_sol - r4.start_sol) * l.sol_usd, "trades": r4.trades, "win_rate": r4.win_rate, "profit_factor": pf(gp4, gl4),
                     "max_drawdown_pct": r4.max_drawdown_pct, "exits": r4.exits_by_reason, "held_to_5x": r4.trades_list.iter().filter(|t| t.max_mult_held >= 5.0).count(),
                     "runners_caught_5x": caught4 },
-            "v5_no_model": { "final_usd": r5.final_sol * l.sol_usd, "pnl_usd": (r5.final_sol - r5.start_sol) * l.sol_usd, "trades": r5.trades, "win_rate": r5.win_rate,
+            "v5_no_model": { "start_sol": r5.start_sol, "final_sol": r5.final_sol, "pnl_sol": r5.final_sol - r5.start_sol, "final_usd": r5.final_sol * l.sol_usd, "pnl_usd": (r5.final_sol - r5.start_sol) * l.sol_usd, "trades": r5.trades, "win_rate": r5.win_rate,
                     "profit_factor": r5.profit_factor, "max_drawdown_pct": r5.max_drawdown_pct, "exits": r5.exits_by_reason, "final_exits": r5.final_reasons,
                     "held_to_5x": r5.trades_list.iter().filter(|t| t.max_mult >= 5.0).count(), "runners_caught_5x": r5.runners_10x_captured_5x,
                     "signals": r5.signals_in_window, "blocked": r5.blocked },
@@ -443,9 +443,9 @@ pub fn compare(recs: &[PathBuf], rp: RadarParams, v4: &crate::backtest::Strategy
     }
     std::fs::write(out, serde_json::to_string_pretty(&rep)?)?;
     for w in rep["windows"].as_array().into_iter().flatten() {
-        println!("{}: data {}s | V4 $100 -> ${:.2} trades {} win {:.0}% PF {:.2} | V5(no ML) $100 -> ${:.2} trades {} win {:.0}% PF {:.2} | 10x runners {} caught>=5x V4 {} V5 {}",
-            w["window"].as_str().unwrap_or(""), w["data_s"], w["v4"]["final_usd"].as_f64().unwrap_or(0.0), w["v4"]["trades"], w["v4"]["win_rate"].as_f64().unwrap_or(0.0) * 100.0,
-            w["v4"]["profit_factor"].as_f64().unwrap_or(0.0), w["v5_no_model"]["final_usd"].as_f64().unwrap_or(0.0), w["v5_no_model"]["trades"],
+        println!("{}: data {}s | V4 {:.4} -> {:.4} SOL trades {} win {:.0}% PF {:.2} | V5(no ML) -> {:.4} SOL trades {} win {:.0}% PF {:.2} | 10x runners {} caught>=5x V4 {} V5 {}",
+            w["window"].as_str().unwrap_or(""), w["data_s"], w["v4"]["start_sol"].as_f64().unwrap_or(0.0), w["v4"]["final_sol"].as_f64().unwrap_or(0.0), w["v4"]["trades"], w["v4"]["win_rate"].as_f64().unwrap_or(0.0) * 100.0,
+            w["v4"]["profit_factor"].as_f64().unwrap_or(0.0), w["v5_no_model"]["final_sol"].as_f64().unwrap_or(0.0), w["v5_no_model"]["trades"],
             w["v5_no_model"]["win_rate"].as_f64().unwrap_or(0.0) * 100.0, w["v5_no_model"]["profit_factor"].as_f64().unwrap_or(0.0), w["runners_10x"],
             w["v4"]["runners_caught_5x"], w["v5_no_model"]["runners_caught_5x"]);
     }
