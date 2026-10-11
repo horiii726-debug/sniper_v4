@@ -10,6 +10,8 @@ time order). A row's label is KNOWN only at row_time + delay (the label horizon)
   - walk-forward model: retrained at the start of every window on all labels known by then (= v5_train folds);
   - online model: the walk-forward model, plus an update every time `--every` more coins have newly known labels
     inside the window (CatBoost continued training on the new rows + an equal-size replay sample of older rows).
+    Every `--refit-every` updates the model is retrained from scratch on all labels known by then (bounded size:
+    continued training alone adds `--update-iters` trees per update, thousands of updates per window).
 Each row is scored by the model state at its own time. Metrics on the decision rows (is_signal & in_window) of every
 scored window: ROC-AUC, PR-AUC, precision top 5 %, and the number of online updates. Acceptance (C17): online beats
 walk-forward on PR-AUC on >= 60 % of scored windows; otherwise it is not integrated.
@@ -72,6 +74,7 @@ def main():
     ap.add_argument("--delay", type=int, default=int(os.environ.get("LABEL_H", "3600")), help="label known at row time + delay (s)")
     ap.add_argument("--base-iters", type=int, default=400)
     ap.add_argument("--update-iters", type=int, default=20)
+    ap.add_argument("--refit-every", type=int, default=100, help="full refit on all known labels every N updates (0 = never)")
     ap.add_argument("--out", default="reports/v6/ONLINE_LEARN.json")
     a = ap.parse_args()
     W = [load(d, a.snap, a.target) for d in a.dirs]
@@ -96,11 +99,13 @@ def main():
         known_t = w["t"] + a.delay
         order_known = np.argsort(known_t, kind="stable")
         buf, coins = [], set()
+        known_rows = []                    # rows of this window whose label is known (for the periodic full refit)
         for r_i in order_known:
             tk = known_t[r_i]
             if tk > w["t"][-1]:
                 break                      # known only after the last row of the window: useless inside it
             buf.append(r_i)
+            known_rows.append(r_i)
             coins.add(int(w["coin"][r_i]))
             if len(coins) < a.every:
                 continue
@@ -115,7 +120,12 @@ def main():
             if seg_end > seg_start:
                 p_on[seg_start:seg_end] = model.predict_proba(w["X"][seg_start:seg_end])[:, 1]
             seg_start = max(seg_start, seg_end)
-            model = cb(a.update_iters).fit(Xu, yu, init_model=model)
+            if a.refit_every and n_upd > 0 and n_upd % a.refit_every == 0:
+                kr = np.array(known_rows)
+                Xr, yr = np.concatenate([Xh, w["X"][kr]]), np.concatenate([yh, w["y"][kr]])
+                model = cb(a.base_iters).fit(Xr, yr, sample_weight=weights(np.concatenate([ch, w["coin"][kr].astype(np.int64) + 10_000_000 * wi])))
+            else:
+                model = cb(a.update_iters).fit(Xu, yu, init_model=model)
             n_upd += 1
             if n_upd % 100 == 0:
                 print(f"  {w['name']}: {n_upd} updates, {time.time() - t0:.0f} s", flush=True)
