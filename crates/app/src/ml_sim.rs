@@ -128,6 +128,8 @@ struct Coin {
     tr: VecDeque<(i64, u32, bool, f64)>,
     /// (time, marginal price) within 300 s.
     px: VecDeque<(i64, f64)>,
+    /// (time, marginal price after the event, SOL of the event) within 60 s, same events as `px` (VWAP).
+    pxv: VecDeque<(i64, f64, f64)>,
     fast: (f64, f64),
     slow: (f64, f64),
     last_real_buy: i64,
@@ -477,6 +479,7 @@ impl Engine {
         } else {
             let pr = pool.price();
             c.px.push_back((e.time, pr));
+            c.pxv.push_back((e.time, pr, solf));
             if c.last_price > 0.0 && pr > 0.0 {
                 c.flow.push_back((e.time, (pr / c.last_price).ln(), if e.buy { solf } else { -solf }));
             }
@@ -486,6 +489,9 @@ impl Engine {
         }
         while c.px.front().is_some_and(|x| x.0 <= e.time - 300) {
             c.px.pop_front();
+        }
+        while c.pxv.front().is_some_and(|x| x.0 <= e.time - 60) {
+            c.pxv.pop_front();
         }
         while c.flow.front().is_some_and(|x| x.0 <= e.time - 60) {
             c.flow.pop_front();
@@ -657,17 +663,15 @@ impl Engine {
         };
         let hi = c.px.iter().map(|x| x.1).fold(0.0, f64::max);
         let lo = c.px.iter().map(|x| x.1).fold(f64::INFINITY, f64::min);
-        let (mut vw_q, mut vw_t) = (0.0, 0.0);
-        for &(tt, _, _, s) in win(60) {
-            let _ = tt;
-            vw_q += s;
+        // V5-14: SOL-weighted average of the marginal price after each event over 60 s (same unit as `price`).
+        let (mut vw_n, mut vw_d) = (0.0, 0.0);
+        for &(tt, pp, s) in &c.pxv {
+            if tt > t - 60 && pp > 0.0 {
+                vw_n += pp * s;
+                vw_d += s;
+            }
         }
-        // VWAP over 60 s from the price path weighted by event count (no per-trade token amounts kept here).
-        let pts: Vec<f64> = c.px.iter().filter(|x| x.0 > t - 60).map(|x| x.1).collect();
-        if !pts.is_empty() {
-            vw_t = pts.iter().sum::<f64>() / pts.len() as f64;
-        }
-        let _ = vw_q;
+        let vw_t = if vw_d > 0.0 { vw_n / vw_d } else { 0.0 };
         let fast = ewma_at(&c.fast, t as f64, TAU_FAST);
         let slow = ewma_at(&c.slow, t as f64, TAU_SLOW);
         let progress = if p.amm { 1.0 } else { 1.0 - p.real_token as f64 / CURVE_INITIAL_REAL_TOKEN };
@@ -1866,6 +1870,23 @@ mod tests {
             }
         }
         assert_eq!(all[0].1.len(), FEATURES.len());
+    }
+
+    /// V5-14: price_vs_vwap60 is SOL-weighted (1 SOL at price 1, 9 SOL at price 2 -> VWAP 1.9).
+    #[test]
+    fn vwap_is_sol_weighted() {
+        let mut a = mk(1, 100, 0, 1, true, 1_000_000_000, 1_000, 1_000);
+        a.tokens = 1_000;
+        let mut b = mk(2, 101, 0, 2, true, 9_000_000_000, 2_000, 1_000);
+        b.tokens = 1_000;
+        let events = Events::new(vec![a.clone(), b.clone()], vec!["m".into()], (0, 1000), vec![]);
+        let mut eng = Engine::new(&events, RadarParams::default());
+        eng.apply(&a);
+        eng.apply(&b);
+        let x = eng.features(0, 101);
+        let i = FEATURES.iter().position(|n| *n == "price_vs_vwap60").unwrap();
+        assert_eq!(i, 36);
+        assert!((x[i] as f64 - 2.0 / 1.9).abs() < 1e-6, "{}", x[i]);
     }
 
     /// V5-13: the liquidity gate uses the real quote reserve on the curve (virtual ~30 SOL is not withdrawable).
