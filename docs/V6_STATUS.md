@@ -53,7 +53,7 @@ Status per 2026-10-11 (branch `v6-impl`). Semua hasil di sini dari **paper / bac
 - Raw blok disimpan di `data/rawkeep` (~18 GB).
 - Bundel hasil olahan per window ada di `data/export/*.processed.tar.zst` (event decode, trades.csv, snapshot, metadata,
   SHA256SUMS).
-- `data/` tidak masuk git karena terlalu besar. Bundel diunggah sebagai GitHub Release (lihat bagian 7).
+- `data/` tidak masuk git karena terlalu besar. Bundel diunggah sebagai GitHub Release `data-v6-2026-10-11` (cara pakai di bagian 7).
 
 ## 3. Bug yang ditemukan dan sudah diperbaiki
 
@@ -166,4 +166,5 @@ MIN_TRAIN=2 scripts/v6_ml_run.sh run4w data/v5_s02d_14h data/v5_s04d_04h data/v5
 python3 python/ml/coin_level_eval.py models/v6_run4w data/v5_s02d_14h ...
 ```
 
-Data: unduh bundel `vX.processed.tar.zst` dari GitHub Release `data-v6-2026-10-11`, lalu ekstrak ke `data/v5_<window>/`.
+Data: unduh bundel `v5_<window>.processed.tar.zst` dari GitHub Release `data-v6-2026-10-11`, cek dengan `SHA256SUMS`, lalu
+ekstrak: `mkdir -p data/v5_<window> && zstd -dc v5_<window>.processed.tar.zst | tar -x -C data/v5_<window>`.
