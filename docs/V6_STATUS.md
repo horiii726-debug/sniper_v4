@@ -16,7 +16,7 @@ Status per 2026-10-11 (branch `v6-impl`). Semua hasil di sini dari **paper / bac
 - Simulasi eksekusi wallet realistis (latency, fee, tip, slippage, gagal beli/jual, rent) dan Kelly ¼ berbunga.
 
 **Yang masih kurang**
-- Trade out-of-sample masih sangat sedikit (2–4 di 1 window). Target ≥ 300 trade belum tercapai.
+- Trade out-of-sample masih sedikit: 36 di 1 window setelah venue C18 dibuka (sebelumnya 2–4). Target ≥ 300 trade belum tercapai.
 - Prediksi ≥10x lemah (presisi 13–16%).
 - Kalibrasi probabilitas belum lolos.
 - Online learning per 10 koin belum terbukti lebih baik.
@@ -141,6 +141,19 @@ Status per 2026-10-11 (branch `v6-impl`). Semua hasil di sini dari **paper / bac
 - Temuan: koin dengan EV tertinggi kebanyakan ada di **Meteora DAMM v2 / DBC**, yang tadinya diblokir.
 - Gate C18 (akurasi fill) dengan data bersih: DAMM v2, DBC, DLMM, Orca, Raydium CLMM, dan Raydium AMM v4 **LOLOS**.
   Raydium CPMM dan LaunchLab GAGAL. Venue yang lolos sekarang dibuka (`c18_venues`).
+
+**Sampel sesudah perbaikan** (`reports/v6/run2w/QUICK_*.json`; window yang sama; venue C18 dibuka; EV ≥ 0; adaptive
+trailing; setelan tunggal, BELUM dipilih grid):
+
+| Sizing | 100 USD jadi | Trade | Win rate | Profit factor | Max drawdown |
+|---|---|---|---|---|---|
+| Taruhan tetap 1/18 | $127,6 | 36 | 42% | 4,8 | 4,0% |
+| Kelly ¼ berbunga | $120,0 | 12 | 50% | 14,8 | 6,9% |
+
+- Exit: time stop 15, data habis 16 (posisi masih terbuka di akhir window, dinilai pada harga pool), adaptive trail 3,
+  rug model 2.
+- Kelly lebih sedikit trade karena 628 sinyal punya taruhan Kelly < 0,02 SOL (biaya tx tetap akan dominan).
+- Masih 1 window ±2,5 jam: belum bermakna statistik. Moonshot 10x yang tertangkap ≥5x: 0 dari 83.
 
 ## 5. Yang belum maksimal (jujur)
 
