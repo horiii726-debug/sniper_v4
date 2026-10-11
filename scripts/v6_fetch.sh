@@ -39,17 +39,19 @@ while read -r name end role; do
     rm -rf $d
     $BIN backfill --out $d --end-slot "$end" --slots "$SLOTS" --concurrency "$CONC" > logs/v5_$name.backfill.out 2>&1 || { echo "$name backfill FAILED"; continue; }
   fi
+  [ "$(h1 $d)" = PASS ] || $BIN backfill-repair --rec $d > logs/v5_$name.repair.out 2>&1
   [ "$(h1 $d)" = PASS ] || { echo "$name G0.H1 failed"; continue; }
   if [ ! -f $d/decision_window.json ]; then
     if [ ! -f $x/summary.json ]; then
       rm -rf $x
       $BIN backfill --out $x --end-slot "$((end + EXT_SLOTS))" --slots "$EXT_SLOTS" --concurrency "$CONC" > logs/v5_${name}_ext.backfill.out 2>&1 || { echo "$name extension FAILED"; continue; }
     fi
+    [ "$(h1 $x)" = PASS ] || $BIN backfill-repair --rec $x > logs/v5_${name}_ext.repair.out 2>&1
     [ "$(h1 $x)" = PASS ] || { echo "$name extension G0.H1 failed"; continue; }
     $BIN extend-window --rec $d --ext $x || { echo "$name extend FAILED"; continue; }
     rm -rf $x
   fi
-  if [ ! -f $d/pump_events_v3.bin ]; then
+  if [ ! -f $d/pump_events_v4.bin ]; then
     $BIN export-events --rec $d --out $d/trades.csv > logs/v5_$name.decode.out 2>&1 || { echo "$name decode FAILED"; continue; }
   fi
   $BIN --label-horizon-s "$LABEL_H" snapshots --rec $d > logs/v5_$name.snapshots.out 2>&1 || { echo "$name snapshots FAILED"; continue; }

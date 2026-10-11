@@ -403,6 +403,15 @@ enum Cmd {
         #[arg(long, required = true)]
         rec: Vec<PathBuf>,
     },
+    /// Re-fetch the listed blocks a backfill recording is missing (fetch errors) into an extra raw segment.
+    BackfillRepair {
+        #[arg(long, default_value = "mainnet")]
+        cluster: String,
+        #[arg(long)]
+        rec: PathBuf,
+        #[arg(long, default_value_t = 4)]
+        concurrency: usize,
+    },
     /// G0.H1 check on a backfill recording: every slot fetched or confirmed skipped.
     VerifyBackfill {
         #[arg(long)]
@@ -480,6 +489,12 @@ fn main() -> Result<()> {
             rt.block_on(backfill(settings, cluster, venues.program_ids(), out, end_slot, slots, concurrency, skipped_spot_checks))
         }
         Cmd::VerifyBackfill { rec } => verify_backfill(&rec),
+        Cmd::BackfillRepair { cluster, rec, concurrency } => {
+            let settings = Settings::load(&cli.env, cluster.parse()?)?;
+            logging::init(Redactor::new(settings.secrets()), None)?;
+            let venues = VenueRegistry::load(&cli.venues)?;
+            rt.block_on(backfill_repair(settings, venues.program_ids(), rec, concurrency))
+        }
         Cmd::MintSafety { cluster, rec } => {
             let settings = Settings::load(&cli.env, cluster.parse()?)?;
             logging::init(Redactor::new(settings.secrets()), None)?;
@@ -1256,12 +1271,15 @@ fn verify_backfill(rec: &Path) -> Result<()> {
                 events::Norm::RpcBlock { slot, block: None, error: None } => {
                     fetched_none.insert(slot);
                 }
-                events::Norm::RpcBlock { slot, error: Some(e), .. } => errors.push(format!("{slot}: {e}")),
+                events::Norm::RpcBlock { slot, error: Some(e), .. } => errors.push((slot, format!("{slot}: {e}"))),
                 _ => {}
             }
         }
     }
     let (start, end) = range.ok_or_else(|| anyhow!("no start marker"))?;
+    // a fetch error is repaired when the same slot was fetched later (backfill-repair segment)
+    let repaired = errors.iter().filter(|(s, _)| fetched_ok.contains(s)).count();
+    let errors: Vec<String> = errors.into_iter().filter(|(s, _)| !fetched_ok.contains(s)).map(|(_, e)| e).collect();
     let missing: Vec<u64> = listed.iter().filter(|s| !fetched_ok.contains(s)).copied().collect();
     let unaccounted: Vec<u64> = (start..=end).filter(|s| !listed.contains(s) && !fetched_ok.contains(s) && !fetched_none.contains(s)).collect();
     let skipped_listed_but_block: Vec<u64> = fetched_ok.iter().filter(|s| !listed.contains(s)).copied().collect();
@@ -1271,12 +1289,62 @@ fn verify_backfill(rec: &Path) -> Result<()> {
         "confirmed_skipped_by_getblocks": (end - start + 1) as usize - listed.len(),
         "spot_checked_skipped_confirmed": fetched_none.len(),
         "missing_blocks": missing.len(), "missing_examples": missing.iter().take(10).collect::<Vec<_>>(),
-        "fetch_errors": errors.len(), "error_examples": errors.iter().take(5).collect::<Vec<_>>(),
+        "fetch_errors": errors.len(), "error_examples": errors.iter().take(5).collect::<Vec<_>>(), "fetch_errors_repaired": repaired,
         "spot_check_contradictions": skipped_listed_but_block.len() + spot_contradictions.len(),
         "unaccounted_slots_note": unaccounted.len(),
         "G0_H1": if missing.is_empty() && errors.is_empty() && skipped_listed_but_block.is_empty() && spot_contradictions.is_empty() { "PASS" } else { "FAIL" },
     });
     println!("{}", serde_json::to_string_pretty(&v)?);
+    Ok(())
+}
+
+/// Listed (getBlocks) slots of a backfill recording without a fetched block.
+fn missing_listed_blocks(rec: &Path) -> Result<Vec<u64>> {
+    let mut listed: std::collections::BTreeSet<u64> = Default::default();
+    let mut ok = std::collections::BTreeSet::new();
+    for m in recorder::Reader::open(rec)? {
+        for n in events::normalize(&m?)? {
+            match n {
+                events::Norm::Control(v) if v["event"] == "getblocks" => {
+                    listed = v["slots"].as_array().map(|a| a.iter().filter_map(|x| x.as_u64()).collect()).unwrap_or_default();
+                }
+                events::Norm::RpcBlock { slot, block: Some(_), .. } => {
+                    ok.insert(slot);
+                }
+                _ => {}
+            }
+        }
+    }
+    Ok(listed.into_iter().filter(|s| !ok.contains(s)).collect())
+}
+
+async fn backfill_repair(settings: Settings, programs: Vec<String>, rec: PathBuf, concurrency: usize) -> Result<()> {
+    use futures::StreamExt;
+    let missing = missing_listed_blocks(&rec)?;
+    if missing.is_empty() {
+        println!("{}: nothing to repair", rec.display());
+        return Ok(());
+    }
+    let rpc = Rpc::new(settings.rpc_url.clone());
+    let c = std::sync::Arc::new(feed::backfill::FetchCounters::default());
+    let tmp = rec.join("_repair");
+    let _ = std::fs::remove_dir_all(&tmp);
+    let mut w = recorder::Recorder::create(&tmp, latency::mono_ns(), 3600, 60_000)?.with_compression(9, 8 << 20);
+    let pset: std::sync::Arc<std::collections::HashSet<String>> = std::sync::Arc::new(programs.iter().cloned().collect());
+    let mut stream = Box::pin(feed::backfill::fetch_ordered(rpc, missing.clone(), pset, concurrency, c.clone()));
+    while let Some(m) = stream.next().await {
+        w.write(&m)?;
+    }
+    w.close(latency::mono_ns())?;
+    let next = std::fs::read_dir(&rec)?.flatten().filter(|e| e.file_name().to_string_lossy().starts_with("raw-2")).count();
+    let mut moved = 0;
+    for (i, e) in std::fs::read_dir(&tmp)?.flatten().filter(|e| e.file_name().to_string_lossy().starts_with("raw-")).enumerate() {
+        std::fs::rename(e.path(), rec.join(format!("raw-{:06}.zst", 200_000 + next + i)))?;
+        moved += 1;
+    }
+    std::fs::remove_dir_all(&tmp)?;
+    println!("{}: re-fetched {} blocks ({} getBlock calls) into {} segment(s)", rec.display(), missing.len(),
+        c.get_block_calls.load(std::sync::atomic::Ordering::Relaxed), moved);
     Ok(())
 }
 

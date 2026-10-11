@@ -64,7 +64,7 @@ async fn fetch_slot(rpc: Rpc, slot: u64, programs: Arc<HashSet<String>>, c: Arc<
         "transactionDetails": "full", "rewards": false, "commitment": "finalized"
     }]);
     let mut last_err = Value::Null;
-    for attempt in 0..8u32 {
+    for attempt in 0..16u32 {
         c.get_block_calls.fetch_add(1, Ordering::Relaxed);
         if attempt > 0 {
             c.get_block_retries.fetch_add(1, Ordering::Relaxed);
