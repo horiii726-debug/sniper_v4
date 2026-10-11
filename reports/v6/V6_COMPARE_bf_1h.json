@@ -1,0 +1,335 @@
+{
+  "label": "EXPLORATORY comparison V4 rule strategy vs V6 strategy without ML, plus exit variants A-D (pre-gate, paper only)",
+  "windows": [
+    {
+      "data_s": 1963,
+      "followed_coins": 0,
+      "runners": [
+        {
+          "mint": "8QrupF7rYgm6zjf22yK4CESYmpUnMUAAiDWob926pump",
+          "peak_after_signal": 38.597877523192444,
+          "signal_t": 1771,
+          "v4": {
+            "blocked": {
+              "blacklisted_after_dev_sell": 7,
+              "low_liquidity": 4,
+              "max_positions": 21
+            },
+            "first_hot_t": 1771,
+            "trades": [
+              {
+                "exit": "DevSell",
+                "max_mult": 2.7200586439408627,
+                "ret": 1.4168422191617465
+              }
+            ]
+          },
+          "v5": {
+            "signal_outcomes": {
+              "low_liquidity": 2,
+              "price_guard": 10
+            },
+            "trades": []
+          }
+        },
+        {
+          "mint": "3GvHDXuSJTp7GHEecjqnRYdSE8uL3gsy5QqC7wB6pump",
+          "peak_after_signal": 29.450262617305643,
+          "signal_t": 348,
+          "v4": {
+            "blocked": {
+              "dev_sold_recently": 43,
+              "low_liquidity": 6,
+              "max_positions": 244,
+              "median_buy_too_big": 8
+            },
+            "first_hot_t": 348,
+            "trades": []
+          },
+          "v5": {
+            "signal_outcomes": {
+              "low_liquidity": 5,
+              "max_entries_per_min": 1,
+              "price_guard": 42
+            },
+            "trades": []
+          }
+        },
+        {
+          "mint": "2kWz2VR6FxnAJB7TobH4ckU9GXaVUdi2byFtLCV3pump",
+          "peak_after_signal": 19.316191825671435,
+          "signal_t": 815,
+          "v4": {
+            "blocked": {
+              "dev_sold_recently": 118,
+              "low_liquidity": 11,
+              "max_positions": 230,
+              "median_buy_too_big": 12
+            },
+            "first_hot_t": 815,
+            "trades": []
+          },
+          "v5": {
+            "signal_outcomes": {
+              "low_liquidity": 6,
+              "price_guard": 47,
+              "top10_share_too_high": 4
+            },
+            "trades": []
+          }
+        },
+        {
+          "mint": "659KLfpj6sG8zP3MNUEVsTqxzXL2RxizoG3JKfhppump",
+          "peak_after_signal": 13.7034895061655,
+          "signal_t": 1453,
+          "v4": {
+            "blocked": {
+              "dev_sold_recently": 161,
+              "low_liquidity": 46,
+              "max_positions": 296
+            },
+            "first_hot_t": 1453,
+            "trades": []
+          },
+          "v5": {
+            "signal_outcomes": {
+              "low_liquidity": 48,
+              "price_guard": 26
+            },
+            "trades": []
+          }
+        },
+        {
+          "mint": "4n8neQiebzNJhoTaiDY5Cx9PeeE2UwE2R4wN1P4mpump",
+          "peak_after_signal": 13.540820142976646,
+          "signal_t": 355,
+          "v4": {
+            "blocked": {
+              "blacklisted_after_dev_sell": 4,
+              "low_liquidity": 7,
+              "max_positions": 15
+            },
+            "first_hot_t": 355,
+            "trades": [
+              {
+                "exit": "DevSell",
+                "max_mult": 1.2320784260758568,
+                "ret": 0.013125293584160584
+              }
+            ]
+          },
+          "v5": {
+            "signal_outcomes": {
+              "low_liquidity": 2,
+              "price_guard": 5
+            },
+            "trades": []
+          }
+        },
+        {
+          "mint": "AuyjN4PqwRm7SUmBNXgTtDaKp2DMeMytBJ6rkBGspump",
+          "peak_after_signal": 12.974110299349935,
+          "signal_t": 1672,
+          "v4": {
+            "blocked": {
+              "dev_sold_recently": 65,
+              "max_positions": 119
+            },
+            "first_hot_t": 1672,
+            "trades": []
+          },
+          "v5": {
+            "signal_outcomes": {
+              "low_liquidity": 26,
+              "price_guard": 11
+            },
+            "trades": []
+          }
+        },
+        {
+          "mint": "5cmDzyg6vTahASzaRJnvJkURhzoXTWB1S14CCJb1pump",
+          "peak_after_signal": 12.785969370845248,
+          "signal_t": 1849,
+          "v4": {
+            "blocked": {
+              "low_liquidity": 3,
+              "max_positions": 68
+            },
+            "first_hot_t": 1849,
+            "trades": []
+          },
+          "v5": {
+            "signal_outcomes": {
+              "low_liquidity": 7,
+              "price_guard": 14
+            },
+            "trades": []
+          }
+        },
+        {
+          "mint": "ATcNwcCCrKy2gd6mJXyNeyhGXiPU9meAU5K3BeUtpump",
+          "peak_after_signal": 12.458442079977564,
+          "signal_t": 1,
+          "v4": {
+            "blocked": {
+              "low_liquidity": 25,
+              "max_positions": 90
+            },
+            "first_hot_t": 1,
+            "trades": []
+          },
+          "v5": {
+            "signal_outcomes": {
+              "low_liquidity": 19,
+              "price_guard": 2
+            },
+            "trades": []
+          }
+        }
+      ],
+      "runners_10x": 8,
+      "sol_usd": null,
+      "v4": {
+        "exits": {
+          "DevSell": 4,
+          "EndOfWindow": 5,
+          "HardStop": 15,
+          "Inactivity": 10,
+          "Mee": 52,
+          "Scout": 6
+        },
+        "final_sol": 0.4072647630000011,
+        "final_usd": null,
+        "held_to_5x": 0,
+        "max_drawdown_pct": 66.58341809999989,
+        "pnl_sol": -0.592735236999999,
+        "pnl_usd": null,
+        "profit_factor": 0.30447688480484675,
+        "runners_caught_5x": 0,
+        "start_sol": 1.0,
+        "trades": 92,
+        "win_rate": 0.21739130434782608
+      },
+      "v5_exit_variants": [
+        {
+          "exit_mode": "momentum_fade",
+          "expectancy_excl_top1pct_sol": -0.003589163800000002,
+          "final_exits": {
+            "DataEnd": 4,
+            "Dead": 8,
+            "DevSell": 1,
+            "LpDrop": 1,
+            "MomentumFade": 50,
+            "TimeStop": 17
+          },
+          "held_to_5x": 0,
+          "pnl_sol": -0.29333167899999746,
+          "profit_factor": 0.01382403954197836,
+          "runners_10x": 18,
+          "runners_caught_5x": 0,
+          "trades": 81,
+          "win_rate": 0.024691358024691357
+        },
+        {
+          "exit_mode": "fade_and_drawdown",
+          "expectancy_excl_top1pct_sol": -0.005831874315789478,
+          "final_exits": {
+            "DataEnd": 8,
+            "Dead": 9,
+            "DevSell": 1,
+            "LpDrop": 1,
+            "MomentumFade": 6,
+            "TimeStop": 33
+          },
+          "held_to_5x": 0,
+          "pnl_sol": -0.3229424029999989,
+          "profit_factor": 0.07831061916278655,
+          "runners_10x": 18,
+          "runners_caught_5x": 0,
+          "trades": 58,
+          "win_rate": 0.10344827586206896
+        },
+        {
+          "exit_mode": "trail",
+          "expectancy_excl_top1pct_sol": -0.005340368615384618,
+          "final_exits": {
+            "DataEnd": 8,
+            "DevSell": 1,
+            "LpDrop": 1,
+            "TimeStop": 38,
+            "Trail": 5
+          },
+          "held_to_5x": 0,
+          "pnl_sol": -0.2608677929999993,
+          "profit_factor": 0.08899335398235807,
+          "runners_10x": 18,
+          "runners_caught_5x": 0,
+          "trades": 53,
+          "win_rate": 0.07547169811320754
+        },
+        {
+          "exit_mode": "ladder",
+          "expectancy_excl_top1pct_sol": -0.011320187714285718,
+          "final_exits": {
+            "DataEnd": 10,
+            "DevSell": 2,
+            "LpDrop": 1,
+            "Stop": 2
+          },
+          "held_to_5x": 0,
+          "pnl_sol": -0.13099605799999958,
+          "profit_factor": 0.17908041723299772,
+          "runners_10x": 18,
+          "runners_caught_5x": 0,
+          "trades": 15,
+          "win_rate": 0.13333333333333333
+        }
+      ],
+      "v5_no_model": {
+        "blocked": {
+          "bundle_share_too_high": 7,
+          "data_end": 8,
+          "exposure_cap": 200,
+          "low_liquidity": 1884,
+          "max_entries_per_min": 16642,
+          "migrating_curve_complete": 2,
+          "price_guard": 8735,
+          "reentry_cooldown": 1873,
+          "top10_share_too_high": 250
+        },
+        "exits": {
+          "DataEnd": 4,
+          "Dead": 8,
+          "DevSell": 1,
+          "LpDrop": 1,
+          "MomentumFade": 50,
+          "TimeStop": 17
+        },
+        "final_exits": {
+          "DataEnd": 4,
+          "Dead": 8,
+          "DevSell": 1,
+          "LpDrop": 1,
+          "MomentumFade": 50,
+          "TimeStop": 17
+        },
+        "final_sol": 0.7066683210000025,
+        "final_usd": null,
+        "held_to_5x": 0,
+        "max_drawdown_pct": 30.416021174566556,
+        "merged_in_tick": 0,
+        "pnl_sol": -0.29333167899999746,
+        "pnl_usd": null,
+        "profit_factor": 0.01382403954197836,
+        "replacements": 0,
+        "runners_caught_5x": 0,
+        "signals": 29700,
+        "start_sol": 1.0,
+        "trades": 81,
+        "win_rate": 0.024691358024691357
+      },
+      "window": "bf_1h",
+      "window_s": 1963
+    }
+  ]
+}

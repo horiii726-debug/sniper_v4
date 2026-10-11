@@ -1,0 +1,290 @@
+{
+  "label": "EXPLORATORY comparison V4 rule strategy vs V6 strategy without ML, plus exit variants A-D (pre-gate, paper only)",
+  "windows": [
+    {
+      "data_s": 2229,
+      "followed_coins": 0,
+      "runners": [
+        {
+          "mint": "7R9MgAb71miB4YVZ1PsJRjLg52b8V3b71PEtBAySpump",
+          "peak_after_signal": 37.379310398138465,
+          "signal_t": 1091,
+          "v4": {
+            "blocked": {
+              "curve_complete_waiting_amm": 1,
+              "low_liquidity": 14,
+              "max_positions": 16
+            },
+            "first_hot_t": 1091,
+            "trades": []
+          },
+          "v5": {
+            "signal_outcomes": {
+              "low_liquidity": 1,
+              "migrating_curve_complete": 1,
+              "price_guard": 17,
+              "top10_share_too_high": 2
+            },
+            "trades": []
+          }
+        },
+        {
+          "mint": "CBH5wKt4H5fe1yBFLKSfB5B39o6CPkUmLgPDvC31pump",
+          "peak_after_signal": 19.70884771427649,
+          "signal_t": 1673,
+          "v4": {
+            "blocked": {
+              "dev_sold_recently": 4,
+              "low_liquidity": 27,
+              "max_positions": 49
+            },
+            "first_hot_t": 1673,
+            "trades": []
+          },
+          "v5": {
+            "signal_outcomes": {
+              "low_liquidity": 35
+            },
+            "trades": []
+          }
+        },
+        {
+          "mint": "3PyDjuHvjB7eSqdXDJkjQo3LyzYaV7eyKVwkrVDepump",
+          "peak_after_signal": 17.855299892343048,
+          "signal_t": 3,
+          "v4": {
+            "blocked": {
+              "low_liquidity": 1,
+              "max_positions": 143
+            },
+            "first_hot_t": 3,
+            "trades": []
+          },
+          "v5": {
+            "signal_outcomes": {
+              "low_liquidity": 17,
+              "price_guard": 2
+            },
+            "trades": []
+          }
+        },
+        {
+          "mint": "ErN6y22awhZUvziCw4gCSvjQGQabB37VccAt4Z2Tpump",
+          "peak_after_signal": 16.862445302857623,
+          "signal_t": 1936,
+          "v4": {
+            "blocked": {
+              "max_positions": 49,
+              "median_buy_too_big": 32,
+              "net_flow_not_positive": 3
+            },
+            "first_hot_t": 1936,
+            "trades": [
+              {
+                "exit": "EndOfWindow",
+                "max_mult": 8.233083618205386,
+                "ret": 6.2967907472381714
+              }
+            ]
+          },
+          "v5": {
+            "signal_outcomes": {
+              "price_guard": 56
+            },
+            "trades": []
+          }
+        },
+        {
+          "mint": "CubFbC9LjCEbRE2mGkie35pUMZDWvpyPCo9o4wNrpump",
+          "peak_after_signal": 11.577665388628228,
+          "signal_t": 190,
+          "v4": {
+            "blocked": {
+              "buy_sell_ratio_too_high": 1,
+              "few_buyers_60s": 19,
+              "max_positions": 478,
+              "median_buy_too_big": 19,
+              "net_flow_not_positive": 16,
+              "reentry_cooldown": 77
+            },
+            "first_hot_t": 190,
+            "trades": [
+              {
+                "exit": "HardStop",
+                "max_mult": 1.0,
+                "ret": -0.2385864160485376
+              }
+            ]
+          },
+          "v5": {
+            "signal_outcomes": {
+              "max_entries_per_min": 15,
+              "price_guard": 124
+            },
+            "trades": []
+          }
+        },
+        {
+          "mint": "3CvupPknMrTs5SWTC5vboX9p7ikYsMxd7K9MDedbpump",
+          "peak_after_signal": 10.986688550092685,
+          "signal_t": 896,
+          "v4": {
+            "blocked": {
+              "accel_too_low": 177,
+              "buy_sell_ratio_too_high": 6,
+              "curve_complete_waiting_amm": 1,
+              "max_positions": 1338,
+              "median_buy_too_big": 309,
+              "net_flow_not_positive": 271
+            },
+            "first_hot_t": 896,
+            "trades": []
+          },
+          "v5": {
+            "signal_outcomes": {
+              "max_entries_per_min": 5,
+              "price_guard": 239
+            },
+            "trades": []
+          }
+        }
+      ],
+      "runners_10x": 6,
+      "sol_usd": null,
+      "v4": {
+        "exits": {
+          "DevSell": 4,
+          "EndOfWindow": 5,
+          "HardStop": 17,
+          "Inactivity": 8,
+          "Mee": 90,
+          "Scout": 4
+        },
+        "final_sol": 1.5780868590000035,
+        "final_usd": null,
+        "held_to_5x": 3,
+        "max_drawdown_pct": 37.584380138737636,
+        "pnl_sol": 0.5780868590000035,
+        "pnl_usd": null,
+        "profit_factor": 1.4845463150150093,
+        "runners_caught_5x": 1,
+        "start_sol": 1.0,
+        "trades": 128,
+        "win_rate": 0.3125
+      },
+      "v5_exit_variants": [
+        {
+          "exit_mode": "momentum_fade",
+          "expectancy_excl_top1pct_sol": -0.002822517197674422,
+          "final_exits": {
+            "DataEnd": 6,
+            "Dead": 10,
+            "DevSell": 1,
+            "MomentumFade": 51,
+            "TimeStop": 19
+          },
+          "held_to_5x": 0,
+          "pnl_sol": -0.15724760399999715,
+          "profit_factor": 0.5210579862924093,
+          "runners_10x": 11,
+          "runners_caught_5x": 0,
+          "trades": 87,
+          "win_rate": 0.10344827586206896
+        },
+        {
+          "exit_mode": "fade_and_drawdown",
+          "expectancy_excl_top1pct_sol": -0.001687623175675678,
+          "final_exits": {
+            "DataEnd": 11,
+            "Dead": 16,
+            "MomentumFade": 9,
+            "TimeStop": 39
+          },
+          "held_to_5x": 0,
+          "pnl_sol": -0.03689523999999855,
+          "profit_factor": 0.8680975634406798,
+          "runners_10x": 11,
+          "runners_caught_5x": 0,
+          "trades": 75,
+          "win_rate": 0.17333333333333334
+        },
+        {
+          "exit_mode": "trail",
+          "expectancy_excl_top1pct_sol": -0.0036475933880597044,
+          "final_exits": {
+            "DataEnd": 10,
+            "TimeStop": 46,
+            "Trail": 12
+          },
+          "held_to_5x": 0,
+          "pnl_sol": -0.15489988199999882,
+          "profit_factor": 0.44511287718904236,
+          "runners_10x": 11,
+          "runners_caught_5x": 0,
+          "trades": 68,
+          "win_rate": 0.04411764705882353
+        },
+        {
+          "exit_mode": "ladder",
+          "expectancy_excl_top1pct_sol": -0.005324846600000003,
+          "final_exits": {
+            "DataEnd": 12,
+            "Stop": 3,
+            "Trail": 1
+          },
+          "held_to_5x": 0,
+          "pnl_sol": -0.008341873999999527,
+          "profit_factor": 0.9201247346239649,
+          "runners_10x": 11,
+          "runners_caught_5x": 0,
+          "trades": 16,
+          "win_rate": 0.125
+        }
+      ],
+      "v5_no_model": {
+        "blocked": {
+          "blacklisted": 7,
+          "bundle_share_too_high": 33,
+          "data_end": 9,
+          "exposure_cap": 569,
+          "low_liquidity": 1324,
+          "max_entries_per_min": 21759,
+          "migrating_curve_complete": 3,
+          "price_guard": 15366,
+          "reentry_cooldown": 2200,
+          "top10_share_too_high": 274
+        },
+        "exits": {
+          "DataEnd": 6,
+          "Dead": 10,
+          "DevSell": 1,
+          "MomentumFade": 51,
+          "TimeStop": 19
+        },
+        "final_exits": {
+          "DataEnd": 6,
+          "Dead": 10,
+          "DevSell": 1,
+          "MomentumFade": 51,
+          "TimeStop": 19
+        },
+        "final_sol": 0.8427523960000028,
+        "final_usd": null,
+        "held_to_5x": 0,
+        "max_drawdown_pct": 18.45339144569965,
+        "merged_in_tick": 0,
+        "pnl_sol": -0.15724760399999715,
+        "pnl_usd": null,
+        "profit_factor": 0.5210579862924093,
+        "replacements": 0,
+        "runners_caught_5x": 0,
+        "signals": 41656,
+        "start_sol": 1.0,
+        "trades": 87,
+        "win_rate": 0.10344827586206896
+      },
+      "window": "h1d",
+      "window_s": 2229
+    }
+  ]
+}

@@ -1,0 +1,305 @@
+{
+  "label": "EXPLORATORY comparison V4 rule strategy vs V5 corrections without ML (pre-gate, paper only)",
+  "windows": [
+    {
+      "data_s": 1963,
+      "followed_coins": 0,
+      "runners": [
+        {
+          "mint": "9fPYZGDxsWj54pcSMW1Zv3z2CYgL4ZFLBFCAjGEcpump",
+          "peak_after_signal": 37.13593730249094,
+          "signal_t": 652,
+          "v4": {
+            "blocked": {
+              "dev_sold_recently": 1,
+              "low_liquidity": 4,
+              "max_positions": 59
+            },
+            "first_hot_t": 652,
+            "trades": []
+          },
+          "v5": {
+            "signal_outcomes": {
+              "low_liquidity": 1
+            },
+            "trades": []
+          }
+        },
+        {
+          "mint": "4qc4AMSL6NFkkX3AeYbAf2NV9bNH7LvorhRkufxvpump",
+          "peak_after_signal": 20.037204695963293,
+          "signal_t": 276,
+          "v4": {
+            "blocked": {
+              "buy_sell_ratio_too_high": 7,
+              "dev_sold_recently": 18,
+              "few_buyers_60s": 4,
+              "max_positions": 110,
+              "median_buy_too_big": 1,
+              "net_flow_not_positive": 10
+            },
+            "first_hot_t": 276,
+            "trades": []
+          },
+          "v5": {
+            "signal_outcomes": {
+              "exposure_cap": 1
+            },
+            "trades": []
+          }
+        },
+        {
+          "mint": "4xZqo83VuTTDdXbzNMq12cxyd63GwaJQ2U24ysnzpump",
+          "peak_after_signal": 19.991143004940636,
+          "signal_t": 966,
+          "v4": {
+            "blocked": {
+              "dev_sold_recently": 32,
+              "low_liquidity": 8,
+              "max_positions": 6
+            },
+            "first_hot_t": 966,
+            "trades": []
+          },
+          "v5": {
+            "signal_outcomes": {
+              "low_liquidity": 1
+            },
+            "trades": []
+          }
+        },
+        {
+          "mint": "5cmDzyg6vTahASzaRJnvJkURhzoXTWB1S14CCJb1pump",
+          "peak_after_signal": 18.5230452487852,
+          "signal_t": 1832,
+          "v4": {
+            "blocked": {
+              "low_liquidity": 3,
+              "max_positions": 79
+            },
+            "first_hot_t": 1832,
+            "trades": []
+          },
+          "v5": {
+            "signal_outcomes": {
+              "low_liquidity": 1
+            },
+            "trades": []
+          }
+        },
+        {
+          "mint": "4n8neQiebzNJhoTaiDY5Cx9PeeE2UwE2R4wN1P4mpump",
+          "peak_after_signal": 14.427977268768599,
+          "signal_t": 296,
+          "v4": {
+            "blocked": {
+              "blacklisted_after_dev_sell": 4,
+              "low_liquidity": 8,
+              "max_positions": 42
+            },
+            "first_hot_t": 296,
+            "trades": [
+              {
+                "exit": "DevSell",
+                "max_mult": 1.2320973235196757,
+                "ret": 0.012687799639757002
+              }
+            ]
+          },
+          "v5": {
+            "signal_outcomes": {
+              "low_liquidity": 1
+            },
+            "trades": []
+          }
+        },
+        {
+          "mint": "3GvHDXuSJTp7GHEecjqnRYdSE8uL3gsy5QqC7wB6pump",
+          "peak_after_signal": 12.90439042433173,
+          "signal_t": 343,
+          "v4": {
+            "blocked": {
+              "dev_sold_recently": 147,
+              "low_liquidity": 11,
+              "max_positions": 141,
+              "median_buy_too_big": 8
+            },
+            "first_hot_t": 343,
+            "trades": []
+          },
+          "v5": {
+            "signal_outcomes": {
+              "exposure_cap": 1
+            },
+            "trades": []
+          }
+        },
+        {
+          "mint": "2kWz2VR6FxnAJB7TobH4ckU9GXaVUdi2byFtLCV3pump",
+          "peak_after_signal": 12.583741390093092,
+          "signal_t": 809,
+          "v4": {
+            "blocked": {
+              "dev_sold_recently": 136,
+              "low_liquidity": 8,
+              "max_positions": 225,
+              "median_buy_too_big": 7
+            },
+            "first_hot_t": 809,
+            "trades": []
+          },
+          "v5": {
+            "signal_outcomes": {
+              "exposure_cap": 1
+            },
+            "trades": []
+          }
+        },
+        {
+          "mint": "ATcNwcCCrKy2gd6mJXyNeyhGXiPU9meAU5K3BeUtpump",
+          "peak_after_signal": 12.458442079977564,
+          "signal_t": 1,
+          "v4": {
+            "blocked": {
+              "low_liquidity": 25,
+              "max_positions": 90
+            },
+            "first_hot_t": 1,
+            "trades": []
+          },
+          "v5": {
+            "signal_outcomes": {
+              "low_liquidity": 1
+            },
+            "trades": []
+          }
+        },
+        {
+          "mint": "7fi1BVTQzjQRqF6VXhZPpZ9UVbEwFtvqXUtfMaB9pump",
+          "peak_after_signal": 11.605608757942937,
+          "signal_t": 1081,
+          "v4": {
+            "blocked": {
+              "low_liquidity": 5,
+              "max_positions": 169,
+              "reentry_cooldown": 36
+            },
+            "first_hot_t": 1081,
+            "trades": [
+              {
+                "exit": "HardStop",
+                "max_mult": 1.4496091791169516,
+                "ret": -0.36299758844325813
+              }
+            ]
+          },
+          "v5": {
+            "signal_outcomes": {
+              "low_liquidity": 1
+            },
+            "trades": []
+          }
+        },
+        {
+          "mint": "659KLfpj6sG8zP3MNUEVsTqxzXL2RxizoG3JKfhppump",
+          "peak_after_signal": 10.569284625868523,
+          "signal_t": 1403,
+          "v4": {
+            "blocked": {
+              "dev_sold_recently": 166,
+              "low_liquidity": 19,
+              "max_positions": 361
+            },
+            "first_hot_t": 1403,
+            "trades": []
+          },
+          "v5": {
+            "signal_outcomes": {
+              "low_liquidity": 1
+            },
+            "trades": []
+          }
+        },
+        {
+          "mint": "BjbF5By9Td31dy61rGQttqZWJDSKKYzpjTWcyvqEpump",
+          "peak_after_signal": 10.158756165285993,
+          "signal_t": 1173,
+          "v4": {
+            "blocked": {
+              "low_liquidity": 22,
+              "max_positions": 72
+            },
+            "first_hot_t": 1173,
+            "trades": []
+          },
+          "v5": {
+            "signal_outcomes": {
+              "low_liquidity": 1
+            },
+            "trades": []
+          }
+        }
+      ],
+      "runners_10x": 11,
+      "sol_usd": 109.65,
+      "v4": {
+        "exits": {
+          "DevSell": 5,
+          "EndOfWindow": 5,
+          "HardStop": 11,
+          "Inactivity": 11,
+          "Mee": 54,
+          "Scout": 9
+        },
+        "final_sol": 0.5002920400583688,
+        "final_usd": 54.857022192400144,
+        "held_to_5x": 0,
+        "max_drawdown_pct": 55.83736255641967,
+        "pnl_sol": -0.4117006639999987,
+        "pnl_usd": -45.14297780759986,
+        "profit_factor": 0.43090327611674056,
+        "runners_caught_5x": 0,
+        "start_sol": 0.9119927040583675,
+        "trades": 95,
+        "win_rate": 0.25263157894736843
+      },
+      "v5_no_model": {
+        "blocked": {
+          "exposure_cap": 984,
+          "low_liquidity": 551,
+          "max_entries_per_min": 298,
+          "migrating_curve_complete": 10,
+          "ret_60s_too_high": 1,
+          "top10_share_too_high": 2
+        },
+        "exits": {
+          "DataEnd": 10,
+          "DevSell": 4,
+          "Stop": 1,
+          "TP1": 2
+        },
+        "final_exits": {
+          "DataEnd": 10,
+          "DevSell": 4,
+          "Stop": 1
+        },
+        "final_sol": 0.8319547080583678,
+        "final_usd": 91.22383373860004,
+        "held_to_5x": 0,
+        "max_drawdown_pct": 15.568094367524122,
+        "merged_in_tick": 0,
+        "pnl_sol": -0.08003799599999972,
+        "pnl_usd": -8.77616626139997,
+        "profit_factor": 0.32718212519625567,
+        "replacements": 0,
+        "runners_caught_5x": 0,
+        "signals": 1862,
+        "start_sol": 0.9119927040583675,
+        "trades": 15,
+        "win_rate": 0.13333333333333333
+      },
+      "window": "bf_1h",
+      "window_s": 1963
+    }
+  ]
+}

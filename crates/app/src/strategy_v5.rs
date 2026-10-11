@@ -119,6 +119,12 @@ pub struct StratV5 {
     pub c18_venues: bool,
     /// Compounding: each new position = this fraction of the current equity (None = fixed bet_sol).
     pub bet_equity_frac: Option<f64>,
+    /// Fractional Kelly sizing on the current equity (compounding): bet = kelly_frac x f* x equity, f* = growth-optimal
+    /// fraction for the candidate's bin probabilities and the training trades' returns per true bin (`KellyTable`).
+    /// f* = 0 (no edge) -> no trade. None = off (fixed bet / bet_equity_frac).
+    pub kelly_frac: Option<f64>,
+    /// Kelly bets below this are skipped: fixed tx costs (~0.001 SOL per round trip) would dominate.
+    pub kelly_min_bet_sol: f64,
 }
 
 impl Default for StratV5 {
@@ -150,6 +156,8 @@ impl Default for StratV5 {
             entry_on_watch: false,
             c18_venues: false,
             bet_equity_frac: None,
+            kelly_frac: None,
+            kelly_min_bet_sol: 0.02,
             d_min: 0.15,
             d_max: 0.60,
             trail_fixed: 0.30,
@@ -490,6 +498,52 @@ pub(crate) struct Cand {
     pub ev: f64,
     pub order: u64,
     pub label: Option<Labels>,
+    /// Growth-optimal fraction of equity f* (NaN = no Kelly table).
+    pub kelly: f64,
+}
+
+/// Bet of a candidate in SOL: fractional Kelly on the equity when enabled and fitted, else the tick's fixed bet.
+pub(crate) fn cand_bet(st: &StratV5, c: &Cand, equity: f64) -> f64 {
+    match st.kelly_frac {
+        Some(k) if c.kelly.is_finite() => k * c.kelly * equity.max(0.0),
+        _ => st.bet_sol,
+    }
+}
+
+/// Fractional Kelly input: g[k][j] = mean ln(1 + f_j r) over the training trades whose true bin is k (bins with few
+/// trades shrunk toward the pooled mean, prior weight 5 trades, like R_k), on the grid f_j = 0.0025 .. 1.0.
+#[derive(Debug, Clone, Serialize)]
+pub struct KellyTable {
+    pub f: Vec<f64>,
+    pub g: Vec<Vec<f64>>,
+}
+
+impl KellyTable {
+    pub fn fit(rets: &[(u8, f64)]) -> Option<Self> {
+        if rets.is_empty() {
+            return None;
+        }
+        let f: Vec<f64> = (1..=400).map(|j| j as f64 * 0.0025).collect();
+        let lg = |r: f64, fj: f64| (1.0 + fj * r).max(1e-9).ln();
+        let pooled: Vec<f64> = f.iter().map(|&fj| rets.iter().map(|(_, r)| lg(*r, fj)).sum::<f64>() / rets.len() as f64).collect();
+        let g = (0..7u8).map(|k| {
+            let rk: Vec<f64> = rets.iter().filter(|(b, _)| *b == k).map(|(_, r)| *r).collect();
+            f.iter().zip(&pooled).map(|(&fj, &pj)| (rk.iter().map(|r| lg(*r, fj)).sum::<f64>() + 5.0 * pj) / (rk.len() as f64 + 5.0)).collect()
+        }).collect();
+        Some(Self { f, g })
+    }
+
+    /// Growth-optimal fraction for bin probabilities `p` (0 = expected log growth <= 0 at every fraction).
+    pub fn f_star(&self, p: &[f32; 7]) -> f64 {
+        let mut best = (0.0, 0.0);
+        for j in 0..self.f.len() {
+            let v: f64 = (0..7).map(|k| p[k] as f64 * self.g[k][j]).sum();
+            if v > best.1 {
+                best = (self.f[j], v);
+            }
+        }
+        best.0
+    }
 }
 
 /// V5-1: an open position that may be replaced. `hold_sol` = value x H(P(hold)) (expected net SOL of holding).
@@ -547,9 +601,13 @@ pub(crate) fn allocate(cands: &[Cand], held: &[Held], mut cap: Capacity, st: &St
     let mut victims: Vec<Held> = held.to_vec();
     victims.sort_by(|a, b| a.hold_sol.total_cmp(&b.hold_sol).then(a.coin.cmp(&b.coin)));
     let mut vi = 0;
-    let b = st.bet_sol;
     for i in keep {
         let c = &cands[i];
+        let b = cand_bet(st, c, cap.equity);
+        if st.kelly_frac.is_some() && b < st.kelly_min_bet_sol {
+            out.push(Decision::Block(i, if c.kelly > 0.0 { "kelly_bet_too_small" } else { "kelly_no_edge" }));
+            continue;
+        }
         if cap.entries_60s >= st.max_entries_per_min {
             out.push(Decision::Block(i, "max_entries_per_min"));
             continue;
@@ -623,6 +681,13 @@ fn idx() -> Idx {
 /// in-window signal with a fixed bet, no gates, unlimited cash and slots (used to measure R_k).
 #[allow(clippy::too_many_arguments)]
 pub fn simulate(w: &WindowData, rp: RadarParams, scorer: &mut dyn Scorer, st: &StratV5, c: &CostsV5, rk: &[f64; 7], hold: Option<&HoldTable>, oracle: bool) -> ReportV5 {
+    simulate_k(w, rp, scorer, st, c, rk, hold, None, oracle)
+}
+
+/// `simulate` with an optional Kelly table (used when `st.kelly_frac` is set).
+#[allow(clippy::too_many_arguments)]
+pub fn simulate_k(w: &WindowData, rp: RadarParams, scorer: &mut dyn Scorer, st: &StratV5, c: &CostsV5, rk: &[f64; 7], hold: Option<&HoldTable>,
+                  kelly: Option<&KellyTable>, oracle: bool) -> ReportV5 {
     let ev = w.ev;
     let ix = idx();
     let mut eng = Engine::new(ev, rp).with_ctx(w.ctx.clone()).with_c18_venues(st.c18_venues);
@@ -723,11 +788,12 @@ pub fn simulate(w: &WindowData, rp: RadarParams, scorer: &mut dyn Scorer, st: &S
                     let cd = live[ci];
                     outcomes.push((cd.coin, "entered"));
                     busy.insert(cd.coin);
-                    pending_buy_cost += st.bet_sol;
+                    let bet = if oracle { st.bet_sol } else { cand_bet(st, &cd, equity) };
+                    pending_buy_cost += bet;
                     if !oracle {
                         entries.push_back(last_t);
                     }
-                    let lamports = (st.bet_sol * 1e9) as u64;
+                    let lamports = (bet * 1e9) as u64;
                     let min_tokens = (eng.fill_buy(cd.coin, lamports, c.default_fee_bps) as f64 * (1.0 - c.buy_slippage)) as u128;
                     pending.push((last_slot + c.latency_slots, Order::Buy { coin: cd.coin, lamports, ev: cd.ev, label: cd.label, min_tokens }));
                 }
@@ -1056,7 +1122,8 @@ pub fn simulate(w: &WindowData, rp: RadarParams, scorer: &mut dyn Scorer, st: &S
         if cands.is_empty() {
             cand_tick = tick_of(e.slot, e.time);
         }
-        cands.push(Cand { coin: e.coin, ev: e_ev, order: e.order, label });
+        let kf = kelly.map_or(f64::NAN, |k| k.f_star(&pr.bin));
+        cands.push(Cand { coin: e.coin, ev: e_ev, order: e.order, label, kelly: kf });
     }
     let n = trades.len();
     let mut pnls: Vec<f64> = trades.iter().map(|t| t.pnl_sol).collect();
@@ -1106,6 +1173,12 @@ pub fn simulate(w: &WindowData, rp: RadarParams, scorer: &mut dyn Scorer, st: &S
 /// given (so model exits act as in the test), else no model (price exits only). Bins with few trades are shrunk
 /// toward the pooled mean (prior weight 5 trades). Returns (R, trades per bin, hold table from the same runs).
 pub fn estimate_rk(train: &[(&WindowData, Option<&FileScores>)], rp: RadarParams, st: &StratV5, c: &CostsV5) -> ([f64; 7], [usize; 7], Option<HoldTable>) {
+    let (rk, cnt, hold, _) = estimate_rk_kelly(train, rp, st, c);
+    (rk, cnt, hold)
+}
+
+/// `estimate_rk` plus the Kelly table fitted on the same training trades.
+pub fn estimate_rk_kelly(train: &[(&WindowData, Option<&FileScores>)], rp: RadarParams, st: &StratV5, c: &CostsV5) -> ([f64; 7], [usize; 7], Option<HoldTable>, Option<KellyTable>) {
     use rayon::prelude::*;
     let reps: Vec<ReportV5> = train.par_iter().map(|(w, sc)| match sc {
         Some(sc) => simulate(w, rp, &mut FileScoresRef(sc), st, c, &[0.0; 7], None, true),
@@ -1129,7 +1202,8 @@ pub fn estimate_rk(train: &[(&WindowData, Option<&FileScores>)], rp: RadarParams
         rk[k] = (sum[k] + 5.0 * prior) / (cnt[k] as f64 + 5.0);
     }
     let obs: Vec<(u8, f64, f64)> = reps.iter().flat_map(|r| r.trades_list.iter().flat_map(|t| t.hold_obs.iter().copied())).collect();
-    (rk, cnt, HoldTable::fit(&obs))
+    let rets: Vec<(u8, f64)> = reps.iter().flat_map(|r| r.trades_list.iter().filter_map(|t| t.true_bin.map(|b| (b, t.ret)))).collect();
+    (rk, cnt, HoldTable::fit(&obs), KellyTable::fit(&rets))
 }
 
 #[cfg(test)]
@@ -1202,6 +1276,22 @@ mod tests {
 
     /// Wallet execution: a zero buy-slippage limit fails on a rising price (fee paid, no position); failing sells are
     /// retried (each try pays its fee) and the last try has no limit; ATA rent is locked and refunded.
+    /// Kelly: no edge -> 0; a bin with sure +100 % and one with -100 % at 50/50 -> f* = 0 (log growth <= 0);
+    /// 60 % +100 % / 40 % -50 % -> f* = p/b_loss - q/b_win = 0.6/0.5 - 0.4/1 = 0.8; quarter Kelly sizes on equity.
+    #[test]
+    fn kelly_fraction_and_bet() {
+        let rets: Vec<(u8, f64)> = (0..1000).map(|i| if i % 2 == 0 { (6u8, 1.0) } else { (0u8, -0.5) }).collect();
+        let k = KellyTable::fit(&rets).unwrap();
+        let p = |a: f32| { let mut x = [0f32; 7]; x[6] = a; x[0] = 1.0 - a; x };
+        assert_eq!(k.f_star(&p(0.0)), 0.0, "only losers: no bet");
+        assert!((k.f_star(&p(0.6)) - 0.8).abs() < 0.02, "{}", k.f_star(&p(0.6)));
+        assert!(k.f_star(&p(0.3)) == 0.0, "negative edge");
+        let st = StratV5 { kelly_frac: Some(0.25), ..Default::default() };
+        let c = Cand { coin: 0, ev: 0.0, order: 0, label: None, kelly: 0.8 };
+        assert!((cand_bet(&st, &c, 2.0) - 0.4).abs() < 1e-12);
+        assert_eq!(cand_bet(&st, &Cand { kelly: f64::NAN, ..c }, 2.0), st.bet_sol, "no table: fixed bet");
+    }
+
     #[test]
     fn wallet_execution_slippage_retries_and_rent() {
         let mut ev = Events::new(runner_events(), vec!["M".into()], (0, 120), vec![]);
@@ -1309,7 +1399,7 @@ mod tests {
     }
 
     fn cand(coin: u32, ev: f64, order: u64) -> Cand {
-        Cand { coin, ev, order, label: None }
+        Cand { coin, ev, order, label: None, kelly: f64::NAN }
     }
 
     fn cap_for(n_bets: f64, st: &StratV5) -> Capacity {

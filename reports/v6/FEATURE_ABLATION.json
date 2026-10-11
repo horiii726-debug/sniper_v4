@@ -1,0 +1,364 @@
+{
+ "label": "EXPLORATORY feature-group drop-one ablation (short horizon, 2 windows, direction only)",
+ "model": "random_forest",
+ "horizon_s": 600,
+ "full": [
+  {
+   "y_s_2x": {
+    "rows": 56322,
+    "positives": 4602,
+    "base_rate": 0.08170874613827633,
+    "direction_only": false,
+    "auc": 0.8557262776734148,
+    "pr_auc": 0.29365307681892494,
+    "brier": 0.06529341756393635,
+    "precision_top1pct": 0.35346358792184723,
+    "median_max_mult_top1pct": 1.581353068863232,
+    "precision_top5pct": 0.3650568181818182,
+    "median_max_mult_top5pct": 1.5796947267149486
+   },
+   "y_s_5x": {
+    "rows": 56322,
+    "positives": 432,
+    "base_rate": 0.007670182166826462,
+    "direction_only": false,
+    "auc": 0.9057673430945707,
+    "pr_auc": 0.0741008759861822,
+    "brier": 0.007329183846234229,
+    "precision_top1pct": 0.11545293072824156,
+    "median_max_mult_top1pct": 1.6810095335301105,
+    "precision_top5pct": 0.07386363636363637,
+    "median_max_mult_top5pct": 1.4624943406743223
+   }
+  },
+  {
+   "y_s_2x": {
+    "rows": 38853,
+    "positives": 3555,
+    "base_rate": 0.09149872596710679,
+    "direction_only": false,
+    "auc": 0.8697903978335473,
+    "pr_auc": 0.3207040811239745,
+    "brier": 0.06964693206690495,
+    "precision_top1pct": 0.3213367609254499,
+    "median_max_mult_top1pct": 1.600228417160273,
+    "precision_top5pct": 0.36181163149768397,
+    "median_max_mult_top5pct": 1.6923170754062844
+   },
+   "y_s_5x": {
+    "rows": 38853,
+    "positives": 706,
+    "base_rate": 0.018171055002187735,
+    "direction_only": false,
+    "auc": 0.8738038388993346,
+    "pr_auc": 0.08074028633080123,
+    "brier": 0.017369246600544078,
+    "precision_top1pct": 0.10796915167095116,
+    "median_max_mult_top1pct": 1.7164317155498359,
+    "precision_top5pct": 0.07668553782810088,
+    "median_max_mult_top5pct": 1.5527583048395641
+   }
+  }
+ ],
+ "groups": [
+  {
+   "group": "base_flow_counts",
+   "n_features": 15,
+   "delta_pr_auc_when_dropped": [
+    0.001444452720068809,
+    -0.0017276566503885288
+   ],
+   "delta_top1pct_when_dropped": [
+    -0.0044404973357016,
+    0.0012853470437017983
+   ],
+   "verdict": "unclear"
+  },
+  {
+   "group": "buy_sell_size",
+   "n_features": 12,
+   "delta_pr_auc_when_dropped": [
+    0.0001794860505365814,
+    0.0003500346717225586
+   ],
+   "delta_top1pct_when_dropped": [
+    -0.0071047957371225545,
+    0.012853470437018004
+   ],
+   "verdict": "hurts"
+  },
+  {
+   "group": "acceleration_ewma",
+   "n_features": 4,
+   "delta_pr_auc_when_dropped": [
+    0.001950925437209941,
+    -0.001850490497990527
+   ],
+   "delta_top1pct_when_dropped": [
+    0.006216696269982239,
+    -0.0064267352185089985
+   ],
+   "verdict": "unclear"
+  },
+  {
+   "group": "price_returns",
+   "n_features": 8,
+   "delta_pr_auc_when_dropped": [
+    -0.00831523279331256,
+    -0.007381154139861845
+   ],
+   "delta_top1pct_when_dropped": [
+    -0.015097690941385432,
+    -0.025706940874036008
+   ],
+   "verdict": "helps"
+  },
+  {
+   "group": "trader_mix",
+   "n_features": 4,
+   "delta_pr_auc_when_dropped": [
+    -0.0022784473130360097,
+    -9.41524289337567e-05
+   ],
+   "delta_top1pct_when_dropped": [
+    -0.010657193605683818,
+    -0.011568123393316192
+   ],
+   "verdict": "helps"
+  },
+  {
+   "group": "dev_creator",
+   "n_features": 6,
+   "delta_pr_auc_when_dropped": [
+    0.0033013198757605375,
+    0.0009850853111066649
+   ],
+   "delta_top1pct_when_dropped": [
+    0.003552397868561291,
+    -0.0025706940874036036
+   ],
+   "verdict": "hurts"
+  },
+  {
+   "group": "curve_pool",
+   "n_features": 13,
+   "delta_pr_auc_when_dropped": [
+    0.00163088629511602,
+    -0.0010993190893354154
+   ],
+   "delta_top1pct_when_dropped": [
+    -0.005328596802841895,
+    0.010282776349614386
+   ],
+   "verdict": "unclear"
+  },
+  {
+   "group": "bundles_concentration",
+   "n_features": 5,
+   "delta_pr_auc_when_dropped": [
+    0.0006457251915317139,
+    -0.00034575910416290156
+   ],
+   "delta_top1pct_when_dropped": [
+    0.005328596802841937,
+    -0.0012853470437018052
+   ],
+   "verdict": "unclear"
+  },
+  {
+   "group": "wash_multisell",
+   "n_features": 2,
+   "delta_pr_auc_when_dropped": [
+    0.0006675071172552727,
+    -0.0004701325749472268
+   ],
+   "delta_top1pct_when_dropped": [
+    -0.004440497335701593,
+    0.003856041131105388
+   ],
+   "verdict": "unclear"
+  },
+  {
+   "group": "holders",
+   "n_features": 3,
+   "delta_pr_auc_when_dropped": [
+    0.0011224052927804873,
+    0.0011501147788054028
+   ],
+   "delta_top1pct_when_dropped": [
+    -0.00888099467140318,
+    -0.007712082262210797
+   ],
+   "verdict": "hurts"
+  },
+  {
+   "group": "slot_bursts",
+   "n_features": 2,
+   "delta_pr_auc_when_dropped": [
+    -0.0013502506037428863,
+    -0.003140982015068308
+   ],
+   "delta_top1pct_when_dropped": [
+    -0.010657193605683818,
+    -0.006426735218509005
+   ],
+   "verdict": "helps"
+  },
+  {
+   "group": "arrival_hawkes",
+   "n_features": 10,
+   "delta_pr_auc_when_dropped": [
+    0.001354596646286399,
+    0.000553410505026948
+   ],
+   "delta_top1pct_when_dropped": [
+    0.010657193605683839,
+    -0.003856041131105395
+   ],
+   "verdict": "hurts"
+  },
+  {
+   "group": "smart_wallets",
+   "n_features": 6,
+   "delta_pr_auc_when_dropped": [
+    0.0018345824400889527,
+    -0.0010276880412499398
+   ],
+   "delta_top1pct_when_dropped": [
+    0.0008880994671403297,
+    -0.023136246786632397
+   ],
+   "verdict": "unclear"
+  },
+  {
+   "group": "crowd_growth",
+   "n_features": 1,
+   "delta_pr_auc_when_dropped": [
+    -1.225531490639531e-05,
+    0.0007656007069192089
+   ],
+   "delta_top1pct_when_dropped": [
+    -0.015985790408525748,
+    0.01028277634961438
+   ],
+   "verdict": "unclear"
+  },
+  {
+   "group": "order_flow_liq",
+   "n_features": 6,
+   "delta_pr_auc_when_dropped": [
+    -0.00022663504002349427,
+    -0.002737505266959102
+   ],
+   "delta_top1pct_when_dropped": [
+    0.0008880994671403297,
+    -0.006426735218509005
+   ],
+   "verdict": "helps"
+  },
+  {
+   "group": "overhang",
+   "n_features": 2,
+   "delta_pr_auc_when_dropped": [
+    -0.0005679767693305277,
+    -0.0028407298062391173
+   ],
+   "delta_top1pct_when_dropped": [
+    -0.013321492007104793,
+    -0.012853470437018004
+   ],
+   "verdict": "helps"
+  },
+  {
+   "group": "regime",
+   "n_features": 4,
+   "delta_pr_auc_when_dropped": [
+    7.354551403762621e-05,
+    0.0019528686078295124
+   ],
+   "delta_top1pct_when_dropped": [
+    -0.007104795737122541,
+    -0.003856041131105409
+   ],
+   "verdict": "hurts"
+  },
+  {
+   "group": "trader_speed",
+   "n_features": 3,
+   "delta_pr_auc_when_dropped": [
+    -5.366307020594069e-05,
+    -0.0039786535626476285
+   ],
+   "delta_top1pct_when_dropped": [
+    -0.0071047957371225615,
+    -0.01928020565552699
+   ],
+   "verdict": "helps"
+  },
+  {
+   "group": "radar_state",
+   "n_features": 5,
+   "delta_pr_auc_when_dropped": [
+    -0.0011086157674221053,
+    -0.004078707976630062
+   ],
+   "delta_top1pct_when_dropped": [
+    -0.010657193605683825,
+    -0.0102827763496144
+   ],
+   "verdict": "helps"
+  },
+  {
+   "group": "radar_cusum",
+   "n_features": 6,
+   "delta_pr_auc_when_dropped": [
+    0.0017175921718136783,
+    0.0011951004871019952
+   ],
+   "delta_top1pct_when_dropped": [
+    0.0017761989342806386,
+    0.010282776349614386
+   ],
+   "verdict": "hurts"
+  },
+  {
+   "group": "radar_clusters_nfl",
+   "n_features": 6,
+   "delta_pr_auc_when_dropped": [
+    0.0002489663935794223,
+    -0.0007312825961101471
+   ],
+   "delta_top1pct_when_dropped": [
+    0.0008880994671403158,
+    -0.011568123393316213
+   ],
+   "verdict": "unclear"
+  },
+  {
+   "group": "radar_dust_split",
+   "n_features": 6,
+   "delta_pr_auc_when_dropped": [
+    8.018790226578532e-05,
+    -0.001116612534921034
+   ],
+   "delta_top1pct_when_dropped": [
+    -0.007992895204262877,
+    0.0
+   ],
+   "verdict": "unclear"
+  },
+  {
+   "group": "microstructure_misc",
+   "n_features": 1,
+   "delta_pr_auc_when_dropped": [
+    -0.0010069275594077748,
+    -0.00015508906354665813
+   ],
+   "delta_top1pct_when_dropped": [
+    -0.003552397868561284,
+    -0.0051413881748072
+   ],
+   "verdict": "helps"
+  }
+ ]
+}

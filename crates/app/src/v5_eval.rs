@@ -77,9 +77,9 @@ pub fn run_walk_forward(all: &[Loaded], data: &[WindowData], tests: &[usize], mo
         // Out-of-sample scores of each training window (from its own earlier fold), when that fold exists.
         let own: Vec<Option<FileScores>> = train.iter().map(|d| scores(models, &d.name, &d.name).ok()).collect();
         let pairs: Vec<(&WindowData, Option<&FileScores>)> = train.iter().zip(own.iter()).map(|(d, s)| (*d, s.as_ref())).collect();
-        let (rk, rk_trades, hold) = s5::estimate_rk(&pairs, rp, st, c);
+        let (rk, rk_trades, hold, kelly) = s5::estimate_rk_kelly(&pairs, rp, st, c);
         let mut sc = scores(models, &w.name, &w.name)?;
-        let report = s5::simulate(&data[ti], rp, &mut sc, st, c, &rk, hold.as_ref(), false);
+        let report = s5::simulate_k(&data[ti], rp, &mut sc, st, c, &rk, hold.as_ref(), kelly.as_ref(), false);
         Ok(WindowResult { window: w.name.clone(), rk, rk_trades, hold, report })
     }).collect()
 }
@@ -143,13 +143,13 @@ fn median(sorted: &[f64]) -> f64 {
     }
 }
 
-/// Strategy grid (24 points, file 01 §9.3) for the base strategy's exit mode, always 3 ev_min values x 8:
+/// Strategy grid (32 points, file 01 §9.3 + ev_min 0) for the base strategy's exit mode, always 4 ev_min values x 8:
 /// Momentum Fade: fade_persist_s x fade_rate_frac x idle_s; Fade+drawdown: fade_persist_s x trail_k x fade_rate_frac;
 /// Trail: trail_fixed (4) x price guard on/off; Ladder (V5 §9): bag_trail x tp1_mult x pre_tp_stop.
 pub fn grid(base: &StratV5) -> Vec<StratV5> {
     use s5::ExitMode;
     let mut g = Vec::new();
-    for &ev_min in &[0.05, 0.15, 0.30] {
+    for &ev_min in &[0.0, 0.05, 0.15, 0.30] {
         let b = StratV5 { ev_min, ..*base };
         match base.exit_mode {
             ExitMode::MomentumFade => {
