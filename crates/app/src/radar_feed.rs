@@ -9,7 +9,7 @@ use std::sync::Arc;
 
 #[derive(Default, Clone, Copy)]
 struct FeedCoin {
-    on_amm: bool,
+    active: crate::backtest::ActivePool,
     liq_sol: f64,
     mprice: f64,
 }
@@ -22,7 +22,7 @@ pub struct TradeBuilder {
 
 impl TradeBuilder {
     pub fn new(n_coins: usize, clusters: Option<Arc<[u32]>>) -> Self {
-        Self { coins: vec![FeedCoin { on_amm: false, liq_sol: f64::NAN, mprice: f64::NAN }; n_coins], clusters }
+        Self { coins: vec![FeedCoin { active: Default::default(), liq_sol: f64::NAN, mprice: f64::NAN }; n_coins], clusters }
     }
 
     /// Cluster id of a wallet (identity without a lookup or for wallets outside it).
@@ -34,11 +34,10 @@ impl TradeBuilder {
         let cluster = self.cluster_of(e.user);
         let by_creator = e.user == e.creator || (self.clusters.is_some() && cluster == self.cluster_of(e.creator));
         let fc = &mut self.coins[e.coin as usize];
-        if e.amm || !fc.on_amm {
+        if fc.active.accept(e) {
             fc.liq_sol = if e.amm { e.quote_res as f64 } else { e.real_quote as f64 } / 1e9;
             fc.mprice = if e.token_res > 0 { e.quote_res as f64 / e.token_res as f64 } else { f64::NAN };
         }
-        fc.on_amm |= e.amm;
         let solf = e.sol as f64 / 1e9;
         Trade {
             time: e.time,
@@ -182,7 +181,7 @@ mod tests {
 
     fn ev(time: i64, coin: u32, amm: bool, real_token: u64) -> Ev {
         Ev { slot: 1, order: 1, time, coin, amm, buy: true, sol: 100_000_000, tokens: 1000, user: 1, creator: 9, quote_res: 40_000_000_000,
-             token_res: 1_000_000_000_000_000, real_quote: 2_000_000_000, real_token, fee_bps: 100, complete: false }
+             token_res: 1_000_000_000_000_000, real_quote: 2_000_000_000, real_token, fee_bps: 100, complete: false, venue: amm as u8 }
     }
 
     fn events(scanned: bool, created: Vec<Option<(i64, Option<f64>)>>) -> Events {

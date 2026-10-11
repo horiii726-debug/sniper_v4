@@ -901,7 +901,7 @@ mod tests {
 
     fn mk(slot: u64, time: i64, user: u32, buy: bool, sol: u64, q: u128, tk: u128) -> Ev {
         Ev { slot, order: (slot << 24) | ((user as u64 & 0xFFFF) << 8), time, coin: 0, amm: true, buy, sol, tokens: 1_000_000, user, creator: 999_999,
-             quote_res: q, token_res: tk, real_quote: 0, real_token: 0, fee_bps: 100, complete: false }
+             quote_res: q, token_res: tk, real_quote: 0, real_token: 0, fee_bps: 100, complete: false, venue: 1 }
     }
 
     /// A coin that pumps 10x after the signal: the exit ladder sells TP1 at 2x, TP2 at 5x and trails the bag;

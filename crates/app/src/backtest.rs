@@ -36,6 +36,63 @@ pub struct Ev {
     pub real_token: u64,
     pub fee_bps: u64,
     pub complete: bool,
+    /// Venue code (`decoder::venue_pool::code`): 0 pump.fun curve, 1 PumpSwap, 2.. other venues.
+    pub venue: u8,
+}
+
+/// Event layout of the V4 / V5 caches (`pump_events.bin`, `pump_events_v2.bin`): no venue (pump only).
+#[derive(Deserialize)]
+struct EvV2 {
+    slot: u64,
+    order: u64,
+    time: i64,
+    coin: u32,
+    amm: bool,
+    buy: bool,
+    sol: u64,
+    tokens: u64,
+    user: u32,
+    creator: u32,
+    quote_res: u128,
+    token_res: u128,
+    real_quote: u64,
+    real_token: u64,
+    fee_bps: u64,
+    complete: bool,
+}
+
+impl From<EvV2> for Ev {
+    fn from(e: EvV2) -> Ev {
+        Ev {
+            slot: e.slot, order: e.order, time: e.time, coin: e.coin, amm: e.amm, buy: e.buy, sol: e.sol, tokens: e.tokens, user: e.user,
+            creator: e.creator, quote_res: e.quote_res, token_res: e.token_res, real_quote: e.real_quote, real_token: e.real_token,
+            fee_bps: e.fee_bps, complete: e.complete, venue: e.amm as u8,
+        }
+    }
+}
+
+/// Which pool of a coin sets its price / liquidity (one rule for every component): the bonding curve until the coin
+/// trades on an AMM; among AMM venues, the deepest pool (by quote reserve) takes over; the same venue always updates.
+#[derive(Debug, Clone, Copy, Default)]
+pub struct ActivePool {
+    pub known: bool,
+    pub venue: u8,
+    pub quote: u128,
+}
+
+impl ActivePool {
+    /// True if this event comes from (or becomes) the coin's active pool; updates the state.
+    pub fn accept(&mut self, e: &Ev) -> bool {
+        let take = !self.known || e.venue == self.venue || (!self.amm() && e.amm) || (e.amm && self.amm() && e.quote_res >= self.quote);
+        if take {
+            *self = ActivePool { known: true, venue: e.venue, quote: e.quote_res };
+        }
+        take
+    }
+
+    pub fn amm(&self) -> bool {
+        self.known && self.venue != decoder::venue_pool::code::PUMP_CURVE
+    }
 }
 
 pub struct Events {
@@ -69,7 +126,7 @@ impl Events {
     }
 }
 
-/// On-disk window cache (`pump_events_v2.bin`); field order is the format, do not change it.
+/// On-disk window cache (`pump_events_v3.bin`, all venues); field order is the format, do not change it.
 #[derive(Serialize, Deserialize)]
 struct WindowCache {
     evs: Vec<Ev>,
@@ -78,10 +135,23 @@ struct WindowCache {
     users: Vec<String>,
 }
 
+pub const CACHE_V3: &str = "pump_events_v3.bin";
+/// Placeholder creator address for venues whose trades do not name the coin's creator.
+pub const UNKNOWN_CREATOR: &str = "unknown_creator";
+
+/// V5 cache (`pump_events_v2.bin`): pump venues only, no venue field.
+#[derive(Deserialize)]
+struct WindowCacheV2 {
+    evs: Vec<EvV2>,
+    mints: Vec<String>,
+    window: (i64, i64),
+    users: Vec<String>,
+}
+
 /// Older V4 cache (`pump_events.bin`): no wallet address table.
 #[derive(Deserialize)]
 struct WindowCacheV1 {
-    evs: Vec<Ev>,
+    evs: Vec<EvV2>,
     mints: Vec<String>,
     window: (i64, i64),
 }
@@ -169,21 +239,35 @@ pub fn load_window(rec: &Path) -> Result<Events> {
     Ok(ev)
 }
 
+/// Decoded-event cache present (any version)?
+pub fn has_event_cache(rec: &Path) -> bool {
+    [CACHE_V3, "pump_events_v2.bin", "pump_events.bin"].iter().any(|f| rec.join(f).exists())
+}
+
 fn load_window_events(rec: &Path) -> Result<Events> {
-    let cache = rec.join("pump_events_v2.bin");
+    let cache = rec.join(CACHE_V3);
     if cache.exists() {
         let c: WindowCache = bincode::deserialize(&std::fs::read(&cache)?)?;
         return Ok(Events::new(c.evs, c.mints, c.window, c.users));
     }
+    // A raw recording with an old pump-only cache is decoded again (all venues); without raw the old cache is used.
+    let has_raw = std::fs::read_dir(rec).map(|d| d.flatten().any(|f| f.file_name().to_string_lossy().starts_with("raw-"))).unwrap_or(false);
+    let v2 = rec.join("pump_events_v2.bin");
+    if v2.exists() && !has_raw {
+        let c: WindowCacheV2 = bincode::deserialize(&std::fs::read(&v2)?)?;
+        return Ok(Events::new(c.evs.into_iter().map(Ev::from).collect(), c.mints, c.window, c.users));
+    }
     let v1 = rec.join("pump_events.bin");
-    if v1.exists() {
+    if v1.exists() && !has_raw {
         // V4 caches carry wallet ids only: placeholder names keep ids distinct (no cross-window wallet joins).
         let c: WindowCacheV1 = bincode::deserialize(&std::fs::read(&v1)?)?;
         let n = c.evs.iter().map(|e| e.user.max(e.creator)).max().map_or(0, |m| m as usize + 1);
         let users = (0..n).map(|i| format!("v4id{i}")).collect();
-        return Ok(Events::new(c.evs, c.mints, c.window, users));
+        return Ok(Events::new(c.evs.into_iter().map(Ev::from).collect(), c.mints, c.window, users));
     }
     let mut dec = crate::pump_check::load_decoder()?;
+    let reg = config::VenueRegistry::load(Path::new("config/venues.toml"))?;
+    let mut vdec = decoder::venue_pool::VenueDecoder::new(reg.venue.iter().map(|v| (v.name.as_str(), v.program_id.as_str())));
     let mut creations: Vec<CreationRec> = Vec::new();
     let (mut s0, mut s1) = (u64::MAX, 0u64);
     let mut mints: FxHashMap<String, u32> = FxHashMap::default();
@@ -238,6 +322,35 @@ fn load_window_events(rec: &Path) -> Result<Events> {
                     real_token: e.real_token,
                     fee_bps: e.fee_bps,
                     complete: e.complete,
+                    venue: if e.venue == Venue::Amm { decoder::venue_pool::code::PUMPSWAP } else { decoder::venue_pool::code::PUMP_CURVE },
+                });
+            }
+            // Other venues (Raydium, Meteora, Orca, ...): generic SOL-quoted trades; the creator is unknown there.
+            if let Some(p) = vdec.decode(t) {
+                let n = mints.len() as u32;
+                let coin = *mints.entry(p.trade.mint.clone()).or_insert(n);
+                let n = users.len() as u32;
+                let user = *users.entry(p.trade.trader.clone()).or_insert(n);
+                let n = users.len() as u32;
+                let creator = *users.entry(UNKNOWN_CREATOR.to_string()).or_insert(n);
+                evs.push(Ev {
+                    slot,
+                    order: (slot << 24) | ((i as u64) << 8) | 0xFF,
+                    time,
+                    coin,
+                    amm: true,
+                    buy: p.trade.side == decoder::balance_delta::Side::Buy,
+                    sol: p.trade.sol_lamports,
+                    tokens: p.trade.token_raw.min(u64::MAX as u128) as u64,
+                    user,
+                    creator,
+                    quote_res: p.quote_res,
+                    token_res: p.token_res,
+                    real_quote: p.quote_res.min(u64::MAX as u128) as u64,
+                    real_token: p.token_res.min(u64::MAX as u128) as u64,
+                    fee_bps: 0,
+                    complete: false,
+                    venue: p.venue,
                 });
             }
         }
@@ -255,6 +368,14 @@ fn load_window_events(rec: &Path) -> Result<Events> {
     creations.sort_by_key(|c| c.order);
     write_creations(&rec.join(CREATIONS_FILE), &CreationsFile { version: CREATIONS_VERSION, window: (t0, t1), first_slot: s0, last_slot: s1, complete: true, items: creations })?;
     std::fs::write(&cache, bincode::serialize(&out)?)?;
+    let mut by: std::collections::BTreeMap<&str, u64> = Default::default();
+    for e in &out.evs {
+        *by.entry(decoder::venue_pool::code::name(e.venue)).or_default() += 1;
+    }
+    std::fs::write(rec.join("venue_decode_stats.json"), serde_json::to_string_pretty(&serde_json::json!({
+        "events_by_venue": by,
+        "generic_skipped": vdec.skipped.iter().map(|(k, v)| (format!("{k:?}"), *v)).collect::<std::collections::BTreeMap<_, _>>(),
+    }))?)?;
     Ok(Events::new(out.evs, out.mints, out.window, out.users))
 }
 
@@ -490,6 +611,7 @@ fn hash01(a: u64, b: u64) -> f64 {
 pub fn simulate(ev: &Events, st: &Strategy, c: &Costs, radar_p: RadarParams, start_sol: f64, sol_usd: f64) -> Report {
     let nc = ev.mints.len();
     let mut pools: Vec<Pool> = vec![Pool::default(); nc];
+    let mut active: Vec<ActivePool> = vec![ActivePool::default(); nc];
     let mut cs: Vec<CoinState> = (0..nc).map(|_| CoinState::default()).collect();
     let mut feed = RadarFeed::new(ev, radar_p);
     let mut swept = Vec::new();
@@ -534,7 +656,7 @@ pub fn simulate(ev: &Events, st: &Strategy, c: &Costs, radar_p: RadarParams, sta
                         let p = pools[coin as usize];
                         cash -= txc;
                         tx_costs += txc;
-                        if hash01(coin as u64, cur_slot) < c.buy_fail_prob || !p.known || (p.complete && !p.amm) {
+                        if hash01(coin as u64, cur_slot) < c.buy_fail_prob || !p.known || (p.complete && !p.amm) || !decoder::venue_pool::code::validated(active[coin as usize].venue) {
                             failed_buys += 1;
                             continue;
                         }
@@ -620,9 +742,9 @@ pub fn simulate(ev: &Events, st: &Strategy, c: &Costs, radar_p: RadarParams, sta
             peak_eq = peak_eq.max(eq);
             max_dd = max_dd.max(1.0 - eq / peak_eq);
         }
-        // 3) Apply the market event.
+        // 3) Apply the market event (active pool rule).
         let p = &mut pools[e.coin as usize];
-        if e.amm || !p.amm {
+        if active[e.coin as usize].accept(e) {
             *p = Pool {
                 quote_res: e.quote_res,
                 token_res: e.token_res,
@@ -734,6 +856,10 @@ pub fn simulate(ev: &Events, st: &Strategy, c: &Costs, radar_p: RadarParams, sta
             block("curve_complete_waiting_amm");
             continue;
         }
+        if !decoder::venue_pool::code::validated(active[e.coin as usize].venue) {
+            block("venue_unvalidated");
+            continue;
+        }
         if pool.exit_liquidity_sol() < st.entry_min_quote_res_sol {
             block("low_liquidity");
             continue;
@@ -831,12 +957,10 @@ pub fn simulate(ev: &Events, st: &Strategy, c: &Costs, radar_p: RadarParams, sta
 /// Marginal price after each event (quote/token reserves); curve until completion, then the AMM pool.
 pub fn price_paths(ev: &Events) -> Vec<Vec<(i64, f64)>> {
     let mut out: Vec<Vec<(i64, f64)>> = vec![Vec::new(); ev.mints.len()];
-    let mut on_amm = vec![false; ev.mints.len()];
+    let mut active = vec![ActivePool::default(); ev.mints.len()];
     for e in &ev.evs {
         let c = e.coin as usize;
-        if e.amm {
-            on_amm[c] = true;
-        } else if on_amm[c] {
+        if !active[c].accept(e) {
             continue;
         }
         if e.token_res > 0 {
@@ -886,9 +1010,9 @@ mod tests {
         let d = std::env::temp_dir().join(format!("creations_test_{}", std::process::id()));
         std::fs::create_dir_all(&d).unwrap();
         let ev0 = |coin: u32, time: i64| Ev { slot: 1, order: 1 << 24, time, coin, amm: false, buy: true, sol: 1, tokens: 1, user: 0, creator: 0,
-            quote_res: 1, token_res: 1, real_quote: 0, real_token: 0, fee_bps: 0, complete: false };
+            quote_res: 1, token_res: 1, real_quote: 0, real_token: 0, fee_bps: 0, complete: false, venue: 0 };
         let cache = WindowCache { evs: vec![ev0(0, 100), ev0(1, 150)], mints: vec!["A".into(), "B".into()], window: (100, 200), users: vec!["u".into()] };
-        std::fs::write(d.join("pump_events_v2.bin"), bincode::serialize(&cache).unwrap()).unwrap();
+        std::fs::write(d.join(CACHE_V3), bincode::serialize(&cache).unwrap()).unwrap();
         let rec = |mint: &str, time: i64, migration: bool| CreationRec { mint: mint.into(), slot: 1, order: 1, time, amm: migration, migration, price: 2.0 };
         let f = CreationsFile { version: CREATIONS_VERSION, window: (100, 200), first_slot: 1, last_slot: 9, complete: true,
             items: vec![rec("A", 120, false), rec("B", 130, true), rec("Z", 140, false)] };
@@ -902,6 +1026,21 @@ mod tests {
         let ev = load_window(&d).unwrap();
         assert!(!ev.creations_scanned && ev.created == vec![None, None]);
         std::fs::remove_dir_all(&d).unwrap();
+    }
+
+    /// Active pool: curve until an AMM trade; among AMM venues the deeper pool takes over; same venue always updates.
+    #[test]
+    fn active_pool_rule() {
+        let e = |venue: u8, q: u128| Ev { slot: 1, order: 1, time: 1, coin: 0, amm: venue != 0, buy: true, sol: 1, tokens: 1, user: 0, creator: 0,
+            quote_res: q, token_res: 1, real_quote: 0, real_token: 0, fee_bps: 0, complete: false, venue };
+        let mut a = ActivePool::default();
+        assert!(a.accept(&e(0, 30)));
+        assert!(a.accept(&e(1, 80)), "migration to PumpSwap");
+        assert!(!a.accept(&e(0, 99)), "late curve event");
+        assert!(!a.accept(&e(3, 50)), "shallower Raydium pool");
+        assert!(a.accept(&e(1, 40)), "same venue always updates");
+        assert!(a.accept(&e(3, 50)), "now deeper");
+        assert_eq!(a.venue, 3);
     }
 
     /// V4-4: exit liquidity is the real quote reserve on the curve, the pool quote reserve on the AMM.

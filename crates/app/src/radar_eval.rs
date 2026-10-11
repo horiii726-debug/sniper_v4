@@ -122,10 +122,9 @@ pub fn from_events(ev: &Events, p: &Params) -> Dataset {
     }
 }
 
-/// `events`: decoded event cache (`pump_events_v2.bin` / `pump_events.bin`); `raw`: raw recording; `auto`: events
-/// when a cache exists, else raw.
+/// `events`: decoded event cache (any version); `raw`: raw recording; `auto`: events when a cache exists, else raw.
 pub fn load_auto(rec: &Path, p: &Params, source: &str) -> Result<Dataset> {
-    let has_events = rec.join("pump_events_v2.bin").exists() || rec.join("pump_events.bin").exists();
+    let has_events = crate::backtest::has_event_cache(rec);
     match source {
         "events" => Ok(from_events(&crate::backtest::load_window(rec)?, p)),
         "raw" => load(rec, p),
@@ -676,7 +675,7 @@ mod tests {
             let q = 30_000_000_000u128 + (i as u128) * 1_000_000_000;
             evs.push(Ev { slot: 10 + i, order: (10 + i) << 24, time: t, coin, amm: false, buy: true, sol: 100_000_000, tokens: 1_000_000, user: i as u32,
                           creator: 999, quote_res: q, token_res: 1_000_000_000_000_000, real_quote: (q - 30_000_000_000) as u64,
-                          real_token: 790_000_000_000_000, fee_bps: 100, complete: false });
+                          real_token: 790_000_000_000_000, fee_bps: 100, complete: false, venue: 0 });
         }
         let ev = Events::new(evs, vec!["a".into(), "b".into()], (0, 1000), vec![]);
         let ds = from_events(&ev, &Params::default());

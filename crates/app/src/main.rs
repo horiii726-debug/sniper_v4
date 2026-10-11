@@ -632,7 +632,7 @@ fn main() -> Result<()> {
             let mut f = std::io::BufWriter::new(std::fs::File::create(&out)?);
             writeln!(f, "slot,block_time,order,mint,venue,side,sol_lamports,token_raw,trader,creator,quote_reserve_after,token_reserve_after,real_quote,real_token,fee_bps,curve_complete")?;
             for e in &ev.evs {
-                writeln!(f, "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}", e.slot, e.time, e.order, ev.mints[e.coin as usize], if e.amm { "pumpswap" } else { "pumpfun_curve" },
+                writeln!(f, "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}", e.slot, e.time, e.order, ev.mints[e.coin as usize], match e.venue { 0 => "pumpfun_curve", 1 => "pumpswap", v => decoder::venue_pool::code::name(v) },
                     if e.buy { "buy" } else { "sell" }, e.sol, e.tokens, ev.users[e.user as usize], ev.users[e.creator as usize], e.quote_res, e.token_res,
                     e.real_quote, e.real_token, e.fee_bps, e.complete as u8)?;
             }

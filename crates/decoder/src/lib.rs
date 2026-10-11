@@ -6,3 +6,4 @@ pub mod balance_delta;
 pub mod idl;
 pub mod pump;
 pub mod txview;
+pub mod venue_pool;

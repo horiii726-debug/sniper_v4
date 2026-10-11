@@ -8,7 +8,7 @@
 //! Labels (V5 §3) use the marginal pool price path (quote/token reserves) from the first event >= t + 1 s
 //! (latency) forward over H = 10 h, on window + follow-up data; they are never used as features.
 
-use crate::backtest::{Costs, Events};
+use crate::backtest::{ActivePool, Costs, Events};
 use decoder::pump::{buy_tokens_out, sell_quote_out};
 use crate::radar_feed::RadarFeed;
 use radar::{Params as RadarParams, RadarState, Signal};
@@ -108,6 +108,7 @@ struct Pool {
     amm: bool,
     complete: bool,
     known: bool,
+    venue: u8,
 }
 
 impl Pool {
@@ -253,6 +254,7 @@ struct WalletLive {
 /// Shared causal state: pools, per-coin windows, radar, wallet first-seen.
 pub struct Engine {
     pools: Vec<Pool>,
+    active: Vec<ActivePool>,
     coins: Vec<Coin>,
     feed: RadarFeed,
     first_seen: FxHashMap<u32, i64>,
@@ -296,6 +298,7 @@ impl Engine {
         let n = ev.mints.len();
         Self {
             pools: vec![Pool::default(); n],
+            active: vec![ActivePool::default(); n],
             coins: (0..n).map(|_| Coin::default()).collect(),
             feed: RadarFeed::new(ev, rp),
             first_seen: FxHashMap::default(),
@@ -379,7 +382,8 @@ impl Engine {
             self.new_coins.push_back(e.time);
         }
         let p = &mut self.pools[ci];
-        if e.amm || !p.amm {
+        let on_active = self.active[ci].accept(e);
+        if on_active {
             *p = Pool {
                 quote_res: e.quote_res,
                 token_res: e.token_res,
@@ -389,6 +393,7 @@ impl Engine {
                 amm: e.amm,
                 complete: e.complete,
                 known: true,
+                venue: e.venue,
             };
         }
         let pool = *p;
@@ -543,8 +548,8 @@ impl Engine {
         while c.tr.front().is_some_and(|x| x.0 <= e.time - 300) {
             c.tr.pop_front();
         }
-        if !e.amm && c.on_amm {
-            // late curve event after migration: ignore for the price path
+        if !on_active {
+            // event of a non-active pool (late curve event after migration, shallower AMM pool): not on the price path
         } else {
             let pr = pool.price();
             c.px.push_back((e.time, pr));
@@ -641,6 +646,8 @@ impl Engine {
             Some("pool_unknown")
         } else if p.complete && !p.amm {
             Some("migrating_curve_complete")
+        } else if !decoder::venue_pool::code::validated(p.venue) {
+            Some("venue_unvalidated")
         } else if p.exit_liquidity_sol() < min_exit_sol {
             Some("low_liquidity")
         } else {
@@ -1156,15 +1163,14 @@ impl Engine {
     }
 }
 
-/// Marginal price path per coin: (time, price); curve until the coin first trades on the AMM.
+/// Marginal price path per coin: (time, price) of the active pool (curve until the coin trades on an AMM; the deepest
+/// AMM pool among venues).
 pub fn paths(ev: &Events) -> Vec<Vec<(i64, f64)>> {
     let mut out: Vec<Vec<(i64, f64)>> = vec![Vec::new(); ev.mints.len()];
-    let mut on_amm = vec![false; ev.mints.len()];
+    let mut active = vec![ActivePool::default(); ev.mints.len()];
     for e in &ev.evs {
         let c = e.coin as usize;
-        if e.amm {
-            on_amm[c] = true;
-        } else if on_amm[c] {
+        if !active[c].accept(e) {
             continue;
         }
         if e.token_res > 0 {
@@ -2001,7 +2007,7 @@ mod tests {
         Ev {
             slot, order: (slot << 24) | (k << 8), time: (slot / 4) as i64, coin: 0, amm: true, buy, sol: 50_000_000,
             tokens: 1_000_000, user, creator: 999, quote_res: 100_000_000_000, token_res: 1_000_000_000_000,
-            real_quote: 0, real_token: 0, fee_bps: 100, complete: false,
+            real_quote: 0, real_token: 0, fee_bps: 100, complete: false, venue: 1,
         }
     }
 
@@ -2099,7 +2105,7 @@ mod tests {
 
     fn mk(slot: u64, time: i64, coin: u32, user: u32, buy: bool, sol: u64, q: u128, tk: u128) -> Ev {
         Ev { slot, order: (slot << 24) | ((user as u64 & 0xFFFF) << 8), time, coin, amm: true, buy, sol, tokens: 1_000, user, creator: 999,
-             quote_res: q, token_res: tk, real_quote: 0, real_token: 0, fee_bps: 100, complete: false }
+             quote_res: q, token_res: tk, real_quote: 0, real_token: 0, fee_bps: 100, complete: false, venue: 1 }
     }
 
     /// Death: real trades stop, price collapsed below 10% of the peak, 30 min pass -> one death at last_real + 1800.
