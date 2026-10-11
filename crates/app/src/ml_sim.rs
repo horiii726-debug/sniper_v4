@@ -252,7 +252,12 @@ pub struct Context {
     pub clusters: Option<std::sync::Arc<[u32]>>,
     /// Per coin: the mint has a honeypot-risk flag (`data/mint_safety.csv`, see mint_safety.rs). None = not checked.
     pub mint_unsafe: Option<std::sync::Arc<[bool]>>,
+    /// Per coin: listed in `config/non_meme_mints.txt` (stablecoins, LSTs, wrapped majors, protocol tokens).
+    pub non_meme: Option<std::sync::Arc<[bool]>>,
 }
+
+/// Non-memecoin mint list (first token of each non-comment line).
+pub const NON_MEME_FILE: &str = "config/non_meme_mints.txt";
 
 /// Live, causal per-wallet activity across all coins (trader speed).
 #[derive(Default, Clone, Copy)]
@@ -347,6 +352,10 @@ impl Engine {
     }
 
     /// The coin's mint carries a honeypot-risk flag (false when unchecked).
+    pub fn non_meme(&self, coin: u32) -> bool {
+        self.ctx.non_meme.as_ref().is_some_and(|m| m.get(coin as usize).copied().unwrap_or(false))
+    }
+
     pub fn mint_unsafe(&self, coin: u32) -> bool {
         self.ctx.mint_unsafe.as_ref().is_some_and(|m| m.get(coin as usize).copied().unwrap_or(false))
     }
@@ -1589,6 +1598,12 @@ pub fn load_context(rec: &std::path::Path, ev: &Events) -> anyhow::Result<Contex
     if ms.exists() {
         let m = crate::mint_safety::read_cache(ms)?;
         ctx.mint_unsafe = Some(ev.mints.iter().map(|x| m.get(x).is_some_and(|s| s.honeypot_risk())).collect::<Vec<bool>>().into());
+    }
+    let nm = std::path::Path::new(NON_MEME_FILE);
+    if nm.exists() {
+        let list: FxHashSet<String> = std::fs::read_to_string(nm)?.lines().map(str::trim).filter(|l| !l.is_empty() && !l.starts_with('#'))
+            .filter_map(|l| l.split_whitespace().next().map(str::to_string)).collect();
+        ctx.non_meme = Some(ev.mints.iter().map(|x| list.contains(x)).collect::<Vec<bool>>().into());
     }
     let fp = rec.join("dev_family.csv");
     if fp.exists() {

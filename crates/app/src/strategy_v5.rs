@@ -128,6 +128,9 @@ pub struct StratV5 {
     /// Sell a held position when P(rug) >= this (None = `rug_veto`, the entry threshold). Separate so the sweep can
     /// tell the entry veto and the exit apart (the rug model rates moonshot launches 0.5-0.7).
     pub rug_exit: Option<f32>,
+    /// Memecoins only: skip listed non-meme assets (`config/non_meme_mints.txt`), mints with risk flags, and pegged
+    /// tokens (5-minute price range < 0.5 % with >= 20 trades: stablecoins, LSTs).
+    pub meme_only: bool,
 }
 
 impl Default for StratV5 {
@@ -162,6 +165,7 @@ impl Default for StratV5 {
             kelly_frac: None,
             kelly_min_bet_sol: 0.02,
             rug_exit: None,
+            meme_only: false,
             d_min: 0.15,
             d_max: 0.60,
             trail_fixed: 0.30,
@@ -456,7 +460,7 @@ fn stage(r: &str) -> u8 {
         "no_cash" | "slots_full" | "exposure_cap" | "max_entries_per_min" | "kelly_bet_too_small" | "kelly_no_edge" => 8,
         "ev_below_min" | "rug_veto" | "price_guard" | "ret_60s_too_high" | "top10_share_too_high" | "bundle_share_too_high" => 7,
         "risk_loss_limit" | "risk_loss_streak" | "no_score" => 6,
-        "mint_unsafe" => 5,
+        "mint_unsafe" | "not_memecoin" => 5,
         "pool_unknown" | "venue_unvalidated" | "low_liquidity" | "migrating_curve_complete" => 4,
         "merged_in_tick" => 0,
         _ => 1,
@@ -750,6 +754,8 @@ impl<'a> WindowData<'a> {
 }
 
 struct Idx {
+    high300: usize,
+    n300: usize,
     ret_60s: usize,
     top10: usize,
     bundle: usize,
@@ -760,7 +766,7 @@ struct Idx {
 
 fn idx() -> Idx {
     let f = |n: &str| FEATURES.iter().position(|x| *x == n).unwrap_or_else(|| panic!("feature {n}"));
-    Idx { ret_60s: f("ret_60s"), top10: f("top10_supply_share"), bundle: f("f2_bundle_buy_share"), vol: f("vol_60s"), low300: f("price_vs_low300"), buyers60: f("buyers_60s") }
+    Idx { high300: f("price_vs_high300"), n300: f("n_trades_300s"), ret_60s: f("ret_60s"), top10: f("top10_supply_share"), bundle: f("f2_bundle_buy_share"), vol: f("vol_60s"), low300: f("price_vs_low300"), buyers60: f("buyers_60s") }
 }
 
 /// Simulate one window. `rk` = net return per entry bin (from `estimate_rk`). `oracle` = enter every
@@ -1173,6 +1179,12 @@ pub fn simulate_k(w: &WindowData, rp: RadarParams, scorer: &mut dyn Scorer, st: 
         }
         if st.mint_gate && eng.mint_unsafe(e.coin) {
             block("mint_unsafe");
+            continue;
+        }
+        // price / low300 over price / high300 = high300 / low300 (5-minute range)
+        let pegged = x[ix.n300] >= 20.0 && x[ix.high300] > 0.0 && x[ix.low300] / x[ix.high300] < 1.005;
+        if st.meme_only && (eng.non_meme(e.coin) || eng.mint_unsafe(e.coin) || pegged) {
+            block("not_memecoin");
             continue;
         }
         if st.max_loss_frac.is_some_and(|x| last_eq <= start * (1.0 - x)) {

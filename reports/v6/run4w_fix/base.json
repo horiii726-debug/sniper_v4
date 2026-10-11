@@ -1,1 +1,1 @@
-{"exit_mode":"adaptive_trail","ev_min":0.0,"c18_venues":true,"time_stop_s":300,"time_stop_max_buyers60":3.0,"max_positions":18,"bet_sol":0.04685,"max_total_exposure":1.0,"max_entries_per_min":1000000,"rug_veto":0.5,"max_entry_ret":0.10}
+{"exit_mode": "adaptive_trail", "ev_min": 0.0, "c18_venues": true, "time_stop_s": 300, "time_stop_max_buyers60": 3.0, "max_positions": 18, "bet_sol": 0.04685, "max_total_exposure": 1.0, "max_entries_per_min": 1000000, "rug_veto": 0.5, "max_entry_ret": 0.1, "meme_only": true}

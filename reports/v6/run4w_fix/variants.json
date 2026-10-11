@@ -85,5 +85,8 @@
   "rug_veto": 0.7,
   "rug_exit": 1.01,
   "max_entry_ret": null
+ },
+ "all_assets_not_meme_only": {
+  "meme_only": false
  }
 }
