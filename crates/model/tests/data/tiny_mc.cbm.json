@@ -1,0 +1,79 @@
+{
+ "features_info": {
+  "float_features": [
+   {
+    "feature_index": 0,
+    "flat_feature_index": 0,
+    "feature_id": "f0",
+    "borders": [
+     0.5
+    ],
+    "nan_value_treatment": "AsFalse",
+    "has_nans": true
+   },
+   {
+    "feature_index": 1,
+    "flat_feature_index": 1,
+    "feature_id": "f1",
+    "borders": [
+     0.5
+    ],
+    "nan_value_treatment": "AsFalse",
+    "has_nans": false
+   }
+  ]
+ },
+ "oblivious_trees": [
+  {
+   "leaf_values": [
+    1,
+    0.125,
+    -1.25,
+    0,
+    2.125,
+    -0.25,
+    0.5,
+    0.625,
+    -0.25,
+    -0.5,
+    0.125,
+    0
+   ],
+   "leaf_weights": [
+    1,
+    1,
+    1,
+    1
+   ],
+   "splits": [
+    {
+     "border": 0.5,
+     "float_feature_index": 0,
+     "split_index": 0,
+     "split_type": "FloatFeature"
+    },
+    {
+     "border": 0.5,
+     "float_feature_index": 1,
+     "split_index": 1,
+     "split_type": "FloatFeature"
+    }
+   ]
+  }
+ ],
+ "scale_and_bias": [
+  1.0,
+  [
+   0.0,
+   0.0,
+   0.0
+  ]
+ ],
+ "model_info": {
+  "params": {
+   "loss_function": {
+    "type": "MultiClass"
+   }
+  }
+ }
+}

@@ -1,0 +1,12 @@
+{
+ "name": "tiny_mc",
+ "kind": "multiclass",
+ "n_classes": 3,
+ "features": [
+  "f0",
+  "f1"
+ ],
+ "target": "test",
+ "train_windows": [],
+ "calibrated": true
+}

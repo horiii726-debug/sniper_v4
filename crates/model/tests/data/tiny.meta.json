@@ -1,0 +1,12 @@
+{
+ "name": "tiny",
+ "kind": "binary",
+ "n_classes": 2,
+ "features": [
+  "f0",
+  "f1"
+ ],
+ "target": "test",
+ "train_windows": [],
+ "calibrated": true
+}
