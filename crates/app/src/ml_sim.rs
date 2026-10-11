@@ -1182,6 +1182,53 @@ pub fn labels(path: &[(i64, f64)], t: i64, deaths: &[i64], cover_end: i64) -> Op
     })
 }
 
+/// V5-9 diagnostic barriers (multiple of p0): index 0 is the -65% barrier of `y_bin`.
+pub const BARRIERS_DIAG: [f64; 4] = [0.35, 0.25, 0.15, 0.10];
+
+/// V5-9: path statistics from t with the same p0 / horizon / coverage as `labels`.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
+pub struct BarrierPath {
+    /// Max multiple within the horizon (= exp(y_logmax)).
+    pub peak: f64,
+    /// Seconds from t to the peak (0 if no new high).
+    pub t_peak: i64,
+    /// Lowest multiple before the peak (1.0 if none lower).
+    pub min_before_peak: f64,
+    /// Peak multiple before each barrier of BARRIERS_DIAG is hit ([0] == y_peak_barrier).
+    pub peak_before: [f64; 4],
+}
+
+pub fn barrier_path(path: &[(i64, f64)], t: i64, cover_end: i64) -> Option<BarrierPath> {
+    let i0 = path.partition_point(|x| x.0 < t + LABEL_LAT_S);
+    let p0 = path.get(i0)?.1;
+    if p0 <= 0.0 {
+        return None;
+    }
+    let end = (t + H_S).min(cover_end);
+    let (mut peak, mut t_peak, mut min_run, mut min_before_peak) = (1.0f64, 0i64, 1.0f64, 1.0f64);
+    let mut hit = [false; 4];
+    let mut pb = [f64::NAN; 4];
+    for &(tt, p) in &path[i0 + 1..] {
+        if tt > end {
+            break;
+        }
+        let m = p / p0;
+        if m > peak {
+            peak = m;
+            t_peak = tt - t;
+            min_before_peak = min_run;
+        }
+        min_run = min_run.min(m);
+        for k in 0..4 {
+            if !hit[k] {
+                pb[k] = if pb[k].is_nan() { m } else { pb[k].max(m) };
+                hit[k] = m <= BARRIERS_DIAG[k];
+            }
+        }
+    }
+    Some(BarrierPath { peak, t_peak, min_before_peak, peak_before: pb.map(|x| if x.is_nan() { 1.0 } else { x }) })
+}
+
 /// V5 §3.2 censoring: the label window [t, t + H] is covered by data, or the coin died inside the data first.
 pub fn label_covered(t: i64, deaths: &[i64], cover_end: i64) -> bool {
     cover_end >= t + H_S || deaths.iter().any(|&d| d > t && d <= cover_end)
@@ -1881,6 +1928,32 @@ mod tests {
         // death within 10 min
         assert_eq!(labels(&path(&[(101, 1.0)]), 100, &[650], cov).unwrap().dead_10m, 1);
         assert_eq!(labels(&path(&[(101, 1.0)]), 100, &[701], cov).unwrap().dead_10m, 0);
+    }
+
+    /// V5-9: barrier_path agrees with labels() (peak before the -65% barrier, logmax) on pseudo-random paths.
+    #[test]
+    fn barrier_path_matches_labels() {
+        let mut x: u64 = 11;
+        for _ in 0..200 {
+            let mut p = Vec::new();
+            let mut v = 1.0f64;
+            for k in 0..60i64 {
+                x = x.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+                v *= 0.6 + ((x >> 33) % 1000) as f64 / 1000.0 * 0.9;
+                p.push((100 + k * 7, v));
+            }
+            let (y, b) = (labels(&p, 99, &[], 10_000).unwrap(), barrier_path(&p, 99, 10_000).unwrap());
+            assert_eq!(b.peak_before[0] as f32, y.peak_barrier);
+            assert!((b.peak.ln() as f32 - y.logmax).abs() < 1e-5);
+        }
+    }
+
+    #[test]
+    fn barrier_path_dump_then_run() {
+        let b = barrier_path(&[(101, 1.0), (150, 0.3), (300, 12.0)], 100, 1_000_000).unwrap();
+        assert_eq!((b.peak, b.t_peak, b.min_before_peak), (12.0, 200, 0.3));
+        assert_eq!(b.peak_before, [0.3, 12.0, 12.0, 12.0]);
+        assert_eq!(b.peak_before.map(bin_of), [0, 5, 5, 5]);
     }
 
     #[test]

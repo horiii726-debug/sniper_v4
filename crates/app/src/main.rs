@@ -4,6 +4,7 @@ mod backtest;
 mod census;
 mod diagnose;
 mod follow;
+mod label_diag;
 mod pump_check;
 mod radar_eval;
 mod logging;
@@ -309,6 +310,15 @@ enum Cmd {
         #[arg(long)]
         v5_strategy: Option<PathBuf>,
     },
+    /// V5-9 diagnostic: how often runners touch the -65% y_bin barrier (and wider ones) before their peak.
+    LabelDiag {
+        #[arg(long, required = true)]
+        rec: Vec<PathBuf>,
+        #[arg(long, default_value = "config/radar_params.json")]
+        radar_params: PathBuf,
+        #[arg(long, default_value = "reports/V5_9_BARRIER.json")]
+        out: PathBuf,
+    },
     /// G0.H1 check on a backfill recording: every slot fetched or confirmed skipped.
     VerifyBackfill {
         #[arg(long)]
@@ -385,6 +395,10 @@ fn main() -> Result<()> {
             rt.block_on(backfill(settings, cluster, venues.program_ids(), out, end_slot, slots, concurrency, skipped_spot_checks))
         }
         Cmd::VerifyBackfill { rec } => verify_backfill(&rec),
+        Cmd::LabelDiag { rec, radar_params, out } => {
+            let rp: radar::Params = serde_json::from_value(serde_json::from_str::<serde_json::Value>(&std::fs::read_to_string(&radar_params)?)?["params"].clone())?;
+            label_diag::run(&rec, rp, &out)
+        }
         Cmd::V5Compare { rec, radar_params, v4_strategy, out, v5_strategy } => {
             let st: strategy_v5::StratV5 = match v5_strategy { Some(p) => serde_json::from_str(&std::fs::read_to_string(p)?)?, None => Default::default() };
             let rp: radar::Params = serde_json::from_value(serde_json::from_str::<serde_json::Value>(&std::fs::read_to_string(&radar_params)?)?["params"].clone())?;
