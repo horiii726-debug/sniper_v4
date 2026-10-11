@@ -639,8 +639,11 @@ def main():
                        ("p_rug_rfcpu", "rug_rfcpu"), ("p_hold", "hold"), ("p_dead", "hazard")]:
             if m in parts:
                 sc[col] = parts[m]["cal"]
-        if "p_rug_cb" in sc and "p_rug_rfgpu" in sc:
-            sc["p_rug"] = 0.5 * (sc["p_rug_cb"] + sc["p_rug_rfgpu"])
+        # p_rug = mean of calibrated CatBoost and random forest (GPU RF; the CPU RF when xgboost is unavailable)
+        rf_name = "rug_rfgpu" if "rug_rfgpu" in parts else "rug_rfcpu"
+        rf_col = "p_" + rf_name
+        if "p_rug_cb" in sc and rf_col in sc:
+            sc["p_rug"] = 0.5 * (sc["p_rug_cb"] + sc[rf_col])
         order_cols = ["order"] + [f"p_bin{k}" for k in range(N_BIN)] + ["p_tp1", "p_rug_cb", "p_rug_rfgpu", "p_rug_rfcpu",
                                                                         "p_rug", "p_hold", "p_dead"]
         sc = sc[[x for x in order_cols if x in sc]]
@@ -657,7 +660,7 @@ def main():
             ev[m] = (parts[m]["cal"][msk], parts[m]["raw"][msk], c[target][msk].astype(int), c["y_logmax"][msk])
         if "p_rug" in sc:
             msk = ~np.isnan(c["y_rugdead"])
-            ev["rug"] = (sc["p_rug"].to_numpy()[msk], 0.5 * (parts["rug_cb"]["raw"] + parts["rug_rfgpu"]["raw"])[msk],
+            ev["rug"] = (sc["p_rug"].to_numpy()[msk], 0.5 * (parts["rug_cb"]["raw"] + parts[rf_name]["raw"])[msk],
                          c["y_rugdead"][msk].astype(int), c["y_logmax"][msk])
         per_fold[f["test"]] = ev
         for k, v in ev.items():

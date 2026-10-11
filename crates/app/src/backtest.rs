@@ -136,6 +136,8 @@ struct WindowCache {
 }
 
 pub const CACHE_V3: &str = "pump_events_v3.bin";
+/// Shared wallet of same-tx buy+sell legs of one mint (arbitrage / round trips).
+pub const ARB_USER: &str = "arb_roundtrip";
 /// Placeholder creator address for venues whose trades do not name the coin's creator.
 pub const UNKNOWN_CREATOR: &str = "unknown_creator";
 
@@ -323,9 +325,11 @@ fn load_window_events(rec: &Path) -> Result<Events> {
                     amm: cr.venue == Venue::Amm, migration: cr.migration, price: cr.price,
                 });
             }
-            let mut pump_mints: Vec<String> = Vec::new();
+            let tx_first = evs.len();
+            // pump legs of this tx: (mint, pool); the pool owns the vaults (PumpSwap) or is the curve account
+            let mut pump_legs: Vec<(String, String)> = Vec::new();
             for (k, e) in dec.decode(&tx).into_iter().enumerate() {
-                pump_mints.push(e.mint.clone());
+                pump_legs.push((e.mint.clone(), e.pool.clone()));
                 let n = mints.len() as u32;
                 let coin = *mints.entry(e.mint).or_insert(n);
                 let n = users.len() as u32;
@@ -380,8 +384,10 @@ fn load_window_events(rec: &Path) -> Result<Events> {
                         *leg_stats.entry("price_legs".into()).or_default() += 1;
                         continue;
                     }
-                    if pump_mints.iter().any(|m| m == &l.mint) {
-                        *leg_stats.entry("skip_pump_mint".into()).or_default() += 1;
+                    // the pump decoder already has the pump pools' legs; other pools of the same mint (arbitrage
+                    // against PumpSwap) are kept. Without a pool key the pump mint is skipped entirely.
+                    if pump_legs.iter().any(|(m, pool)| *pool == l.owner || (pool.is_empty() && *m == l.mint)) {
+                        *leg_stats.entry("skip_pump_pool".into()).or_default() += 1;
                         continue;
                     }
                     let to_lamports = |amt: u128| -> Option<u128> {
@@ -435,6 +441,21 @@ fn load_window_events(rec: &Path) -> Result<Events> {
                         complete: false,
                         venue,
                     });
+                }
+            }
+            // Arbitrage / round trip: the same mint bought AND sold within one tx is price discovery, not demand.
+            // Those legs keep their prices and sizes but go to one shared wallet, so they cannot inflate buyer /
+            // seller / cluster counts.
+            if evs.len() - tx_first >= 2 {
+                let legs = &evs[tx_first..];
+                let arb: Vec<u32> = legs.iter().filter(|a| a.buy).map(|a| a.coin).filter(|c| legs.iter().any(|b| !b.buy && b.coin == *c)).collect();
+                if !arb.is_empty() {
+                    let n = users.len() as u32;
+                    let au = *users.entry(ARB_USER.to_string()).or_insert(n);
+                    for e in evs[tx_first..].iter_mut().filter(|e| arb.contains(&e.coin)) {
+                        e.user = au;
+                    }
+                    *leg_stats.entry("arb_roundtrip_legs".into()).or_default() += evs[tx_first..].iter().filter(|e| e.user == au).count() as u64;
                 }
             }
             if let Some(p) = decoded {

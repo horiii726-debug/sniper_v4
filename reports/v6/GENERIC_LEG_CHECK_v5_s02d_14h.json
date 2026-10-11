@@ -1,0 +1,37 @@
+{
+ "dir": "data/v5_s02d_14h",
+ "events_by_venue": {
+  "pumpswap": 541010,
+  "other_venue": 528523,
+  "meteora_damm_v2": 348629,
+  "pumpfun_curve": 295339,
+  "stable_quoted": 136705,
+  "meteora_dbc": 134624,
+  "orca_whirlpool": 42469,
+  "meteora_dlmm": 41861,
+  "raydium_clmm": 22185,
+  "raydium_amm_v4": 14716,
+  "raydium_cpmm": 3425,
+  "raydium_launchlab": 433
+ },
+ "other_venue": {
+  "legs": 528523,
+  "coins": 1805,
+  "matched": 49128,
+  "coins_without_reference_venue": 1148,
+  "ratio_median": 1.0,
+  "ratio_p10": 0.9450381201012643,
+  "ratio_p90": 1.0767036402227934,
+  "within_10pct": 0.9011765184823318
+ },
+ "stable_quoted": {
+  "legs": 136705,
+  "coins": 2009,
+  "matched": 73249,
+  "coins_without_reference_venue": 1703,
+  "ratio_median": 0.9999920789955937,
+  "ratio_p10": 0.9937219605250457,
+  "ratio_p90": 1.0059032444103015,
+  "within_10pct": 0.9913036355445125
+ }
+}

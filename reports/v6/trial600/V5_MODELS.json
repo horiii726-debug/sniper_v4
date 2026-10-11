@@ -1,0 +1,6382 @@
+{
+ "generated": "2026-10-11 14:11:57",
+ "exploratory": true,
+ "quick": false,
+ "config": {
+  "min_train": 1,
+  "H_s": 600,
+  "gpus": [
+   0
+  ],
+  "gpu_slots": 3,
+  "cpu_workers": 2,
+  "catboost_thread_count": 12,
+  "rf_cpu_n_jobs": 74,
+  "models": [
+   "entry_bin",
+   "entry_tp1",
+   "rug_cb",
+   "rug_rfcpu",
+   "hold",
+   "hazard",
+   "baseline_lr"
+  ],
+  "out": "/root/sniper_v4/models/v6_trial600"
+ },
+ "windows": [
+  {
+   "label": "h1d",
+   "path": "/root/sniper_v4/data/h1d",
+   "start": 1791499503,
+   "end": 1791501732,
+   "data_end": 1791501732,
+   "rows": 56469,
+   "signal_rows": 40538,
+   "hazard_rows": 10013
+  },
+  {
+   "label": "bf_1h",
+   "path": "/root/sniper_v4/data/bf_1h",
+   "start": 1791594841,
+   "end": 1791596804,
+   "data_end": 1791596804,
+   "rows": 39100,
+   "signal_rows": 27700,
+   "hazard_rows": 7035
+  }
+ ],
+ "features": [
+  "age_s",
+  "newborn",
+  "on_amm",
+  "quote_res_sol",
+  "curve_progress",
+  "fee_bps",
+  "n_trades_15s",
+  "n_trades_60s",
+  "n_trades_300s",
+  "buyers_15s",
+  "buyers_60s",
+  "sellers_60s",
+  "buy_sol_15s",
+  "buy_sol_60s",
+  "sell_sol_15s",
+  "sell_sol_60s",
+  "net_flow_15s",
+  "net_flow_60s",
+  "flow_imb_60s",
+  "median_buy_60s",
+  "max_buy_60s",
+  "dust_share_60s",
+  "repeat_buyer_share_60s",
+  "new_wallet_share_60s",
+  "top_buyer_share_60s",
+  "ewma_fast",
+  "ewma_slow",
+  "accel",
+  "secs_since_real_buy",
+  "ret_5s",
+  "ret_15s",
+  "ret_60s",
+  "ret_300s",
+  "price_vs_high300",
+  "price_vs_low300",
+  "mult_since_first",
+  "price_vs_vwap60",
+  "creator_sold",
+  "creator_sell_sol",
+  "creator_buy_sol",
+  "secs_since_hot",
+  "sellers_15s",
+  "buy_sell_count_ratio_60s",
+  "f1_sol_in_curve",
+  "f1_sol_per_trade",
+  "f1_trades_since_first",
+  "f2_bundle_buy_share",
+  "f2_bundle_txs_60s",
+  "f2_early20_supply_share",
+  "f2_top10_holder_share",
+  "f4_wash_share_60s",
+  "f4_multi_sell_txs_60s",
+  "f6_holders",
+  "f6_holders_vs_max",
+  "f7_max_slot_buyers_60s",
+  "f7_slot_buy_std_60s",
+  "f8_dt_median20",
+  "f8_dt_p90_20",
+  "f8_dt_cv20",
+  "f8_last_dt",
+  "f8_cluster_share20",
+  "f8_hawkes_fast",
+  "f8_hawkes_slow",
+  "f8_hawkes_ratio",
+  "f8_hawkes_buy_sell_ratio",
+  "dev_hold_share",
+  "dev_net_sol",
+  "dev_ever_sold",
+  "sellers_5s",
+  "sell_sol_5s",
+  "buy_sol_5s",
+  "max_sell_15s",
+  "created_known",
+  "log_quote_res",
+  "smart_buy_q_60s",
+  "smart_share_60s",
+  "n_smart_buyers_300s",
+  "flipper_share_60s",
+  "sniper_share_held",
+  "cluster_buy_share_60s",
+  "buyer_growth",
+  "holder_vel_60s",
+  "hawkes_branching",
+  "hhi_buy_60s",
+  "retail_share_60s",
+  "whale_buys_60s",
+  "median_sell_60s",
+  "p90_buy_60s",
+  "p90_sell_60s",
+  "buy_q_60s",
+  "sell_q_60s",
+  "ofi_60s",
+  "cvd_300s",
+  "kyle_lambda_60s",
+  "vol_60s",
+  "early_retention",
+  "profit_overhang",
+  "curve_speed",
+  "eta_migration_s",
+  "attention_share_5m",
+  "new_coins_per_min",
+  "market_vol_10m",
+  "sol_ret_1h",
+  "fast_wallet_share_60s",
+  "wallet_rate_med_60s",
+  "early20_delay_med_s",
+  "top10_supply_share",
+  "rd_state",
+  "rd_kind_new",
+  "rd_birth_src",
+  "rd_secs_in_state",
+  "rd_decisions_in_state",
+  "rd_cusum_uc",
+  "rd_cusum_bsol",
+  "rd_cusum_nfl",
+  "rd_cusum_alarm_age_s",
+  "rd_cusum_alarms",
+  "rd_cusum_pop",
+  "rd_clusters_60s",
+  "rd_cluster_growth",
+  "rd_cluster_accel",
+  "rd_nfl_60s",
+  "rd_liq_real_sol",
+  "rd_dust_n_60s",
+  "rd_dust_sol_60s",
+  "rd_dust_sol_share_60s",
+  "rd_dust_top_cluster_share_60s",
+  "rd_split_max_sol_liq_300s",
+  "rd_split_max_n_300s",
+  "rd_clusters_known"
+ ],
+ "folds": [
+  {
+   "name": "fold_bf_1h",
+   "test": "bf_1h",
+   "train": [
+    "h1d"
+   ],
+   "excluded_by_purge": []
+  },
+  {
+   "name": "final",
+   "test": null,
+   "train": [
+    "h1d",
+    "bf_1h"
+   ],
+   "excluded_by_purge": []
+  }
+ ],
+ "skipped_folds": [],
+ "tasks": [
+  {
+   "model": "baseline_lr",
+   "fold": "final",
+   "algo": "lr",
+   "device": null,
+   "pid": 60860,
+   "inner_note": "inner train 1 windows (purged), calibration ['bf_1h']",
+   "inner_rows": 40538,
+   "cal_rows": 27700,
+   "iso_classes_fitted": 1,
+   "inner_s": 5.1,
+   "train_rows": 68238,
+   "train_pos": 3331,
+   "dummy_classes": [],
+   "best_iteration": null,
+   "refit_iterations": null,
+   "calibrated": true,
+   "refit_s": 19.5,
+   "wall_s": 24.8,
+   "pool": "cpu",
+   "attempts": 1
+  },
+  {
+   "model": "entry_bin",
+   "fold": "final",
+   "algo": "cb",
+   "device": 0,
+   "pid": 59544,
+   "inner_note": "inner train 1 windows (purged), calibration ['bf_1h']",
+   "inner_rows": 40538,
+   "cal_rows": 27700,
+   "iso_classes_fitted": 5,
+   "inner_s": 95.7,
+   "train_rows": 68238,
+   "train_pos": [
+    8,
+    6572,
+    57801,
+    3386,
+    349,
+    119,
+    3
+   ],
+   "dummy_classes": [],
+   "best_iteration": 62,
+   "refit_iterations": 63,
+   "calibrated": true,
+   "refit_s": 3.0,
+   "wall_s": 98.6,
+   "pool": "gpu0",
+   "attempts": 1
+  },
+  {
+   "model": "entry_tp1",
+   "fold": "final",
+   "algo": "cb",
+   "device": 0,
+   "pid": 61636,
+   "inner_note": "inner train 1 windows (purged), calibration ['bf_1h']",
+   "inner_rows": 40538,
+   "cal_rows": 27700,
+   "iso_classes_fitted": 1,
+   "inner_s": 34.3,
+   "train_rows": 68238,
+   "train_pos": 3331,
+   "dummy_classes": [],
+   "best_iteration": 44,
+   "refit_iterations": 45,
+   "calibrated": true,
+   "refit_s": 3.4,
+   "wall_s": 37.7,
+   "pool": "gpu0",
+   "attempts": 1
+  },
+  {
+   "model": "hazard",
+   "fold": "final",
+   "algo": "cb",
+   "device": 0,
+   "pid": 62774,
+   "inner_note": "inner train 1 windows (purged), calibration ['bf_1h']",
+   "inner_rows": 10013,
+   "cal_rows": 7035,
+   "iso_classes_fitted": 0,
+   "inner_s": 254.5,
+   "train_rows": 17048,
+   "train_pos": 0,
+   "dummy_classes": [
+    1
+   ],
+   "best_iteration": 2999,
+   "refit_iterations": 3000,
+   "calibrated": false,
+   "refit_s": 275.0,
+   "wall_s": 529.5,
+   "pool": "gpu0",
+   "attempts": 1
+  },
+  {
+   "model": "hold",
+   "fold": "final",
+   "algo": "cb",
+   "device": 0,
+   "pid": 61339,
+   "inner_note": "inner train 1 windows (purged), calibration ['bf_1h']",
+   "inner_rows": 56469,
+   "cal_rows": 39100,
+   "iso_classes_fitted": 1,
+   "inner_s": 24.9,
+   "train_rows": 95569,
+   "train_pos": 7348,
+   "dummy_classes": [],
+   "best_iteration": 67,
+   "refit_iterations": 68,
+   "calibrated": true,
+   "refit_s": 2.3,
+   "wall_s": 27.3,
+   "pool": "gpu0",
+   "attempts": 1
+  },
+  {
+   "model": "rug_cb",
+   "fold": "final",
+   "algo": "cb",
+   "device": 0,
+   "pid": 59546,
+   "inner_note": "inner train 1 windows (purged), calibration ['bf_1h']",
+   "inner_rows": 56469,
+   "cal_rows": 39100,
+   "iso_classes_fitted": 1,
+   "inner_s": 63.0,
+   "train_rows": 95569,
+   "train_pos": 8320,
+   "dummy_classes": [],
+   "best_iteration": 32,
+   "refit_iterations": 33,
+   "calibrated": true,
+   "refit_s": 0.6,
+   "wall_s": 63.6,
+   "pool": "gpu0",
+   "attempts": 1
+  },
+  {
+   "model": "rug_rfcpu",
+   "fold": "final",
+   "algo": "skrf",
+   "device": null,
+   "pid": 59547,
+   "inner_note": "inner train 1 windows (purged), calibration ['bf_1h']",
+   "inner_rows": 56469,
+   "cal_rows": 39100,
+   "iso_classes_fitted": 1,
+   "inner_s": 21.0,
+   "train_rows": 95569,
+   "train_pos": 8320,
+   "dummy_classes": [],
+   "best_iteration": null,
+   "refit_iterations": null,
+   "calibrated": true,
+   "refit_s": 37.9,
+   "wall_s": 59.0,
+   "pool": "cpu",
+   "attempts": 1
+  },
+  {
+   "model": "baseline_lr",
+   "fold": "fold_bf_1h",
+   "algo": "lr",
+   "device": null,
+   "pid": 61156,
+   "inner_note": "single window: time split at 75% quantile (no purge)",
+   "inner_rows": 29382,
+   "cal_rows": 11156,
+   "iso_classes_fitted": 1,
+   "inner_s": 22.4,
+   "train_rows": 40538,
+   "train_pos": 1968,
+   "dummy_classes": [],
+   "best_iteration": null,
+   "refit_iterations": null,
+   "calibrated": true,
+   "refit_s": 3.4,
+   "wall_s": 26.1,
+   "pool": "cpu",
+   "attempts": 1
+  },
+  {
+   "model": "entry_bin",
+   "fold": "fold_bf_1h",
+   "algo": "cb",
+   "device": 0,
+   "pid": 59545,
+   "inner_note": "single window: time split at 75% quantile (no purge)",
+   "inner_rows": 29382,
+   "cal_rows": 11156,
+   "iso_classes_fitted": 5,
+   "inner_s": 96.0,
+   "train_rows": 40538,
+   "train_pos": [
+    2,
+    3844,
+    34454,
+    2047,
+    150,
+    38,
+    3
+   ],
+   "dummy_classes": [],
+   "best_iteration": 68,
+   "refit_iterations": 69,
+   "calibrated": true,
+   "refit_s": 1.1,
+   "wall_s": 97.1,
+   "pool": "gpu0",
+   "attempts": 1
+  },
+  {
+   "model": "entry_tp1",
+   "fold": "fold_bf_1h",
+   "algo": "cb",
+   "device": 0,
+   "pid": 62469,
+   "inner_note": "single window: time split at 75% quantile (no purge)",
+   "inner_rows": 29382,
+   "cal_rows": 11156,
+   "iso_classes_fitted": 1,
+   "inner_s": 36.9,
+   "train_rows": 40538,
+   "train_pos": 1968,
+   "dummy_classes": [],
+   "best_iteration": 45,
+   "refit_iterations": 46,
+   "calibrated": true,
+   "refit_s": 1.2,
+   "wall_s": 38.1,
+   "pool": "gpu0",
+   "attempts": 1
+  },
+  {
+   "model": "hazard",
+   "fold": "fold_bf_1h",
+   "algo": "cb",
+   "device": 0,
+   "pid": 63049,
+   "inner_note": "single window: time split at 75% quantile (no purge)",
+   "inner_rows": 7191,
+   "cal_rows": 2822,
+   "iso_classes_fitted": 0,
+   "inner_s": 258.8,
+   "train_rows": 10013,
+   "train_pos": 0,
+   "dummy_classes": [
+    1
+   ],
+   "best_iteration": 2999,
+   "refit_iterations": 3000,
+   "calibrated": false,
+   "refit_s": 261.4,
+   "wall_s": 520.3,
+   "pool": "gpu0",
+   "attempts": 1
+  },
+  {
+   "model": "hold",
+   "fold": "fold_bf_1h",
+   "algo": "cb",
+   "device": 0,
+   "pid": 62103,
+   "inner_note": "single window: time split at 75% quantile (no purge)",
+   "inner_rows": 42350,
+   "cal_rows": 14119,
+   "iso_classes_fitted": 1,
+   "inner_s": 64.0,
+   "train_rows": 56469,
+   "train_pos": 4248,
+   "dummy_classes": [],
+   "best_iteration": 85,
+   "refit_iterations": 86,
+   "calibrated": true,
+   "refit_s": 3.8,
+   "wall_s": 67.8,
+   "pool": "gpu0",
+   "attempts": 1
+  },
+  {
+   "model": "rug_cb",
+   "fold": "fold_bf_1h",
+   "algo": "cb",
+   "device": 0,
+   "pid": 61977,
+   "inner_note": "single window: time split at 75% quantile (no purge)",
+   "inner_rows": 42350,
+   "cal_rows": 14119,
+   "iso_classes_fitted": 1,
+   "inner_s": 57.9,
+   "train_rows": 56469,
+   "train_pos": 4158,
+   "dummy_classes": [],
+   "best_iteration": 24,
+   "refit_iterations": 25,
+   "calibrated": true,
+   "refit_s": 1.8,
+   "wall_s": 59.7,
+   "pool": "gpu0",
+   "attempts": 1
+  },
+  {
+   "model": "rug_rfcpu",
+   "fold": "fold_bf_1h",
+   "algo": "skrf",
+   "device": null,
+   "pid": 59548,
+   "inner_note": "single window: time split at 75% quantile (no purge)",
+   "inner_rows": 42350,
+   "cal_rows": 14119,
+   "iso_classes_fitted": 1,
+   "inner_s": 20.7,
+   "train_rows": 56469,
+   "train_pos": 4158,
+   "dummy_classes": [],
+   "best_iteration": null,
+   "refit_iterations": null,
+   "calibrated": true,
+   "refit_s": 33.2,
+   "wall_s": 56.8,
+   "pool": "cpu",
+   "attempts": 1
+  }
+ ],
+ "metrics": {
+  "per_fold": {
+   "bf_1h": {
+    "entry_bin": {
+     "rows": 27700,
+     "class_counts": [
+      6,
+      2728,
+      23347,
+      1339,
+      199,
+      81,
+      0
+     ],
+     "mlogloss": 0.48795248666445823,
+     "mlogloss_raw": 0.9002682346904374,
+     "bin_ge5": {
+      "rows": 27700,
+      "positives": 81,
+      "base_rate": 0.002924187725631769,
+      "pr_auc": 0.03850197884536642,
+      "roc_auc": 0.9044838072198464,
+      "brier": 0.0029041086643761074,
+      "log_loss": 0.019133171960594324,
+      "reliability": [
+       {
+        "bin": "0.0-0.1",
+        "mean_pred": 0.008256970427116806,
+        "obs_rate": 0.002924187725631769,
+        "count": 27700
+       },
+       {
+        "bin": "0.1-0.2",
+        "mean_pred": null,
+        "obs_rate": null,
+        "count": 0
+       },
+       {
+        "bin": "0.2-0.3",
+        "mean_pred": null,
+        "obs_rate": null,
+        "count": 0
+       },
+       {
+        "bin": "0.3-0.4",
+        "mean_pred": null,
+        "obs_rate": null,
+        "count": 0
+       },
+       {
+        "bin": "0.4-0.5",
+        "mean_pred": null,
+        "obs_rate": null,
+        "count": 0
+       },
+       {
+        "bin": "0.5-0.6",
+        "mean_pred": null,
+        "obs_rate": null,
+        "count": 0
+       },
+       {
+        "bin": "0.6-0.7",
+        "mean_pred": null,
+        "obs_rate": null,
+        "count": 0
+       },
+       {
+        "bin": "0.7-0.8",
+        "mean_pred": null,
+        "obs_rate": null,
+        "count": 0
+       },
+       {
+        "bin": "0.8-0.9",
+        "mean_pred": null,
+        "obs_rate": null,
+        "count": 0
+       },
+       {
+        "bin": "0.9-1.0",
+        "mean_pred": null,
+        "obs_rate": null,
+        "count": 0
+       }
+      ]
+     },
+     "bin_ge3": {
+      "rows": 27700,
+      "positives": 1619,
+      "base_rate": 0.05844765342960289,
+      "pr_auc": 0.2723828068328346,
+      "roc_auc": 0.8780253512013305,
+      "brier": 0.04738379658264524,
+      "log_loss": 0.16530661726293094,
+      "reliability": [
+       {
+        "bin": "0.0-0.1",
+        "mean_pred": 0.01805402059391081,
+        "obs_rate": 0.021910760223542977,
+        "count": 22546
+       },
+       {
+        "bin": "0.1-0.2",
+        "mean_pred": 0.15291472980224025,
+        "obs_rate": 0.15575696542463915,
+        "count": 2979
+       },
+       {
+        "bin": "0.2-0.3",
+        "mean_pred": 0.24840443929318132,
+        "obs_rate": 0.27874885004599814,
+        "count": 1087
+       },
+       {
+        "bin": "0.3-0.4",
+        "mean_pred": 0.3237498017396292,
+        "obs_rate": 0.3290441176470588,
+        "count": 1088
+       },
+       {
+        "bin": "0.4-0.5",
+        "mean_pred": null,
+        "obs_rate": null,
+        "count": 0
+       },
+       {
+        "bin": "0.5-0.6",
+        "mean_pred": null,
+        "obs_rate": null,
+        "count": 0
+       },
+       {
+        "bin": "0.6-0.7",
+        "mean_pred": null,
+        "obs_rate": null,
+        "count": 0
+       },
+       {
+        "bin": "0.7-0.8",
+        "mean_pred": null,
+        "obs_rate": null,
+        "count": 0
+       },
+       {
+        "bin": "0.8-0.9",
+        "mean_pred": null,
+        "obs_rate": null,
+        "count": 0
+       },
+       {
+        "bin": "0.9-1.0",
+        "mean_pred": null,
+        "obs_rate": null,
+        "count": 0
+       }
+      ]
+     },
+     "top1pct_by_p_bin_ge5_reached_10x": {
+      "n": 277,
+      "precision": 0.05415162454873646,
+      "base_rate": 0.0033212996389891695,
+      "lift": 16.304347826086957
+     }
+    },
+    "entry_tp1": {
+     "rows": 27700,
+     "positives": 1363,
+     "base_rate": 0.0492057761732852,
+     "pr_auc": 0.19868948698755623,
+     "roc_auc": 0.8765863400819409,
+     "brier": 0.04168625900295116,
+     "log_loss": 0.14827153849360136,
+     "reliability": [
+      {
+       "bin": "0.0-0.1",
+       "mean_pred": 0.01976046305930918,
+       "obs_rate": 0.025061176272044555,
+       "count": 23702
+      },
+      {
+       "bin": "0.1-0.2",
+       "mean_pred": 0.13885767596460202,
+       "obs_rate": 0.14212620807276863,
+       "count": 1759
+      },
+      {
+       "bin": "0.2-0.3",
+       "mean_pred": 0.21789311341727557,
+       "obs_rate": 0.23179991067440822,
+       "count": 2239
+      },
+      {
+       "bin": "0.3-0.4",
+       "mean_pred": null,
+       "obs_rate": null,
+       "count": 0
+      },
+      {
+       "bin": "0.4-0.5",
+       "mean_pred": null,
+       "obs_rate": null,
+       "count": 0
+      },
+      {
+       "bin": "0.5-0.6",
+       "mean_pred": null,
+       "obs_rate": null,
+       "count": 0
+      },
+      {
+       "bin": "0.6-0.7",
+       "mean_pred": null,
+       "obs_rate": null,
+       "count": 0
+      },
+      {
+       "bin": "0.7-0.8",
+       "mean_pred": null,
+       "obs_rate": null,
+       "count": 0
+      },
+      {
+       "bin": "0.8-0.9",
+       "mean_pred": null,
+       "obs_rate": null,
+       "count": 0
+      },
+      {
+       "bin": "0.9-1.0",
+       "mean_pred": null,
+       "obs_rate": null,
+       "count": 0
+      }
+     ],
+     "brier_raw": 0.0965861423582047,
+     "log_loss_raw": 0.30082826912785043,
+     "top1pct_reached_10x": {
+      "n": 277,
+      "precision": 0.018050541516245487,
+      "base_rate": 0.0033212996389891695,
+      "lift": 5.434782608695652
+     }
+    },
+    "rug_cb": {
+     "rows": 39100,
+     "positives": 4162,
+     "base_rate": 0.10644501278772378,
+     "pr_auc": 0.34815582194749556,
+     "roc_auc": 0.877086781639881,
+     "brier": 0.07671094809545832,
+     "log_loss": 0.2830668693846446,
+     "reliability": [
+      {
+       "bin": "0.0-0.1",
+       "mean_pred": 0.03443451426793065,
+       "obs_rate": 0.015584415584415584,
+       "count": 28490
+      },
+      {
+       "bin": "0.1-0.2",
+       "mean_pred": 0.1333258479572902,
+       "obs_rate": 0.3246231155778894,
+       "count": 995
+      },
+      {
+       "bin": "0.2-0.3",
+       "mean_pred": 0.25220607464123385,
+       "obs_rate": 0.2877442273534636,
+       "count": 1126
+      },
+      {
+       "bin": "0.3-0.4",
+       "mean_pred": 0.3674014625073327,
+       "obs_rate": 0.36116910229645094,
+       "count": 479
+      },
+      {
+       "bin": "0.4-0.5",
+       "mean_pred": 0.41917735771181636,
+       "obs_rate": 0.36059817945383615,
+       "count": 7690
+      },
+      {
+       "bin": "0.5-0.6",
+       "mean_pred": 0.5578571428571427,
+       "obs_rate": 0.57,
+       "count": 200
+      },
+      {
+       "bin": "0.6-0.7",
+       "mean_pred": 0.626935417460554,
+       "obs_rate": 0.0,
+       "count": 1
+      },
+      {
+       "bin": "0.7-0.8",
+       "mean_pred": 0.7445910265553093,
+       "obs_rate": 1.0,
+       "count": 2
+      },
+      {
+       "bin": "0.8-0.9",
+       "mean_pred": null,
+       "obs_rate": null,
+       "count": 0
+      },
+      {
+       "bin": "0.9-1.0",
+       "mean_pred": 0.9980985694125354,
+       "obs_rate": 0.07692307692307693,
+       "count": 117
+      }
+     ],
+     "brier_raw": 0.07549717687106641,
+     "log_loss_raw": 0.24093446022498116
+    },
+    "rug_rfcpu": {
+     "rows": 39100,
+     "positives": 4162,
+     "base_rate": 0.10644501278772378,
+     "pr_auc": 0.3489815118972005,
+     "roc_auc": 0.8812294086739333,
+     "brier": 0.07422814864373824,
+     "log_loss": 0.24673695954421548,
+     "reliability": [
+      {
+       "bin": "0.0-0.1",
+       "mean_pred": 0.009032615139658839,
+       "obs_rate": 0.00513354948278524,
+       "count": 25908
+      },
+      {
+       "bin": "0.1-0.2",
+       "mean_pred": 0.1301097695884544,
+       "obs_rate": 0.15793127386324193,
+       "count": 2881
+      },
+      {
+       "bin": "0.2-0.3",
+       "mean_pred": 0.23746402333433128,
+       "obs_rate": 0.33242506811989103,
+       "count": 367
+      },
+      {
+       "bin": "0.3-0.4",
+       "mean_pred": 0.3936368452070725,
+       "obs_rate": 0.3344155844155844,
+       "count": 8624
+      },
+      {
+       "bin": "0.4-0.5",
+       "mean_pred": 0.4739213474591673,
+       "obs_rate": 0.44761904761904764,
+       "count": 630
+      },
+      {
+       "bin": "0.5-0.6",
+       "mean_pred": 0.5297444516320148,
+       "obs_rate": 0.4142640364188164,
+       "count": 659
+      },
+      {
+       "bin": "0.6-0.7",
+       "mean_pred": null,
+       "obs_rate": null,
+       "count": 0
+      },
+      {
+       "bin": "0.7-0.8",
+       "mean_pred": null,
+       "obs_rate": null,
+       "count": 0
+      },
+      {
+       "bin": "0.8-0.9",
+       "mean_pred": 0.859105849179356,
+       "obs_rate": 0.0,
+       "count": 1
+      },
+      {
+       "bin": "0.9-1.0",
+       "mean_pred": 1.0,
+       "obs_rate": 0.43333333333333335,
+       "count": 30
+      }
+     ],
+     "brier_raw": 0.09623425061313932,
+     "log_loss_raw": 0.2819176902810332
+    },
+    "hold": {
+     "rows": 39100,
+     "positives": 3100,
+     "base_rate": 0.0792838874680307,
+     "pr_auc": 0.2357326721561228,
+     "roc_auc": 0.8528727464157706,
+     "brier": 0.06340797438372196,
+     "log_loss": 0.2061780800833788,
+     "reliability": [
+      {
+       "bin": "0.0-0.1",
+       "mean_pred": 0.012668182319641931,
+       "obs_rate": 0.009700794763908368,
+       "count": 25668
+      },
+      {
+       "bin": "0.1-0.2",
+       "mean_pred": 0.11684444051141045,
+       "obs_rate": 0.15758468335787923,
+       "count": 5432
+      },
+      {
+       "bin": "0.2-0.3",
+       "mean_pred": 0.2865915152596798,
+       "obs_rate": 0.2494061757719715,
+       "count": 7999
+      },
+      {
+       "bin": "0.3-0.4",
+       "mean_pred": null,
+       "obs_rate": null,
+       "count": 0
+      },
+      {
+       "bin": "0.4-0.5",
+       "mean_pred": null,
+       "obs_rate": null,
+       "count": 0
+      },
+      {
+       "bin": "0.5-0.6",
+       "mean_pred": 0.5,
+       "obs_rate": 0.0,
+       "count": 1
+      },
+      {
+       "bin": "0.6-0.7",
+       "mean_pred": null,
+       "obs_rate": null,
+       "count": 0
+      },
+      {
+       "bin": "0.7-0.8",
+       "mean_pred": null,
+       "obs_rate": null,
+       "count": 0
+      },
+      {
+       "bin": "0.8-0.9",
+       "mean_pred": null,
+       "obs_rate": null,
+       "count": 0
+      },
+      {
+       "bin": "0.9-1.0",
+       "mean_pred": null,
+       "obs_rate": null,
+       "count": 0
+      }
+     ],
+     "brier_raw": 0.06369683259366361,
+     "log_loss_raw": 0.20716877156989383
+    },
+    "hazard": {
+     "rows": 7035,
+     "positives": 0,
+     "base_rate": 0.0,
+     "pr_auc": null,
+     "roc_auc": null,
+     "brier": 5.992147617760214e-10,
+     "log_loss": 2.7912518611846837e-06,
+     "reliability": [
+      {
+       "bin": "0.0-0.1",
+       "mean_pred": 2.790950793479734e-06,
+       "obs_rate": 0.0,
+       "count": 7035
+      },
+      {
+       "bin": "0.1-0.2",
+       "mean_pred": null,
+       "obs_rate": null,
+       "count": 0
+      },
+      {
+       "bin": "0.2-0.3",
+       "mean_pred": null,
+       "obs_rate": null,
+       "count": 0
+      },
+      {
+       "bin": "0.3-0.4",
+       "mean_pred": null,
+       "obs_rate": null,
+       "count": 0
+      },
+      {
+       "bin": "0.4-0.5",
+       "mean_pred": null,
+       "obs_rate": null,
+       "count": 0
+      },
+      {
+       "bin": "0.5-0.6",
+       "mean_pred": null,
+       "obs_rate": null,
+       "count": 0
+      },
+      {
+       "bin": "0.6-0.7",
+       "mean_pred": null,
+       "obs_rate": null,
+       "count": 0
+      },
+      {
+       "bin": "0.7-0.8",
+       "mean_pred": null,
+       "obs_rate": null,
+       "count": 0
+      },
+      {
+       "bin": "0.8-0.9",
+       "mean_pred": null,
+       "obs_rate": null,
+       "count": 0
+      },
+      {
+       "bin": "0.9-1.0",
+       "mean_pred": null,
+       "obs_rate": null,
+       "count": 0
+      }
+     ],
+     "brier_raw": 5.992147617760214e-10,
+     "log_loss_raw": 2.7912518611846837e-06
+    },
+    "baseline_lr": {
+     "rows": 27700,
+     "positives": 1363,
+     "base_rate": 0.0492057761732852,
+     "pr_auc": 0.1897786408673634,
+     "roc_auc": 0.8706064943936918,
+     "brier": 0.042325170536513926,
+     "log_loss": 0.15254934896720457,
+     "reliability": [
+      {
+       "bin": "0.0-0.1",
+       "mean_pred": 0.020323984790785767,
+       "obs_rate": 0.007926553955751769,
+       "count": 19933
+      },
+      {
+       "bin": "0.1-0.2",
+       "mean_pred": 0.1440084611180718,
+       "obs_rate": 0.14321945397583172,
+       "count": 6703
+      },
+      {
+       "bin": "0.2-0.3",
+       "mean_pred": 0.2453670659989023,
+       "obs_rate": 0.329004329004329,
+       "count": 231
+      },
+      {
+       "bin": "0.3-0.4",
+       "mean_pred": 0.3010493093608617,
+       "obs_rate": 0.2007255139056832,
+       "count": 827
+      },
+      {
+       "bin": "0.4-0.5",
+       "mean_pred": 0.449516742201579,
+       "obs_rate": 0.0,
+       "count": 1
+      },
+      {
+       "bin": "0.5-0.6",
+       "mean_pred": 0.5377083194701406,
+       "obs_rate": 0.5,
+       "count": 2
+      },
+      {
+       "bin": "0.6-0.7",
+       "mean_pred": 0.6666666666666666,
+       "obs_rate": 0.6666666666666666,
+       "count": 3
+      },
+      {
+       "bin": "0.7-0.8",
+       "mean_pred": null,
+       "obs_rate": null,
+       "count": 0
+      },
+      {
+       "bin": "0.8-0.9",
+       "mean_pred": null,
+       "obs_rate": null,
+       "count": 0
+      },
+      {
+       "bin": "0.9-1.0",
+       "mean_pred": null,
+       "obs_rate": null,
+       "count": 0
+      }
+     ],
+     "brier_raw": 0.04246709400584023,
+     "log_loss_raw": 0.15021097151482607,
+     "top1pct_reached_10x": {
+      "n": 277,
+      "precision": 0.010830324909747292,
+      "base_rate": 0.0033212996389891695,
+      "lift": 3.260869565217391
+     }
+    }
+   }
+  },
+  "pooled": {
+   "entry_bin": {
+    "rows": 27700,
+    "class_counts": [
+     6,
+     2728,
+     23347,
+     1339,
+     199,
+     81,
+     0
+    ],
+    "mlogloss": 0.48795248666445823,
+    "mlogloss_raw": 0.9002682346904374,
+    "bin_ge5": {
+     "rows": 27700,
+     "positives": 81,
+     "base_rate": 0.002924187725631769,
+     "pr_auc": 0.03850197884536642,
+     "roc_auc": 0.9044838072198464,
+     "brier": 0.0029041086643761074,
+     "log_loss": 0.019133171960594324,
+     "reliability": [
+      {
+       "bin": "0.0-0.1",
+       "mean_pred": 0.008256970427116806,
+       "obs_rate": 0.002924187725631769,
+       "count": 27700
+      },
+      {
+       "bin": "0.1-0.2",
+       "mean_pred": null,
+       "obs_rate": null,
+       "count": 0
+      },
+      {
+       "bin": "0.2-0.3",
+       "mean_pred": null,
+       "obs_rate": null,
+       "count": 0
+      },
+      {
+       "bin": "0.3-0.4",
+       "mean_pred": null,
+       "obs_rate": null,
+       "count": 0
+      },
+      {
+       "bin": "0.4-0.5",
+       "mean_pred": null,
+       "obs_rate": null,
+       "count": 0
+      },
+      {
+       "bin": "0.5-0.6",
+       "mean_pred": null,
+       "obs_rate": null,
+       "count": 0
+      },
+      {
+       "bin": "0.6-0.7",
+       "mean_pred": null,
+       "obs_rate": null,
+       "count": 0
+      },
+      {
+       "bin": "0.7-0.8",
+       "mean_pred": null,
+       "obs_rate": null,
+       "count": 0
+      },
+      {
+       "bin": "0.8-0.9",
+       "mean_pred": null,
+       "obs_rate": null,
+       "count": 0
+      },
+      {
+       "bin": "0.9-1.0",
+       "mean_pred": null,
+       "obs_rate": null,
+       "count": 0
+      }
+     ]
+    },
+    "bin_ge3": {
+     "rows": 27700,
+     "positives": 1619,
+     "base_rate": 0.05844765342960289,
+     "pr_auc": 0.2723828068328346,
+     "roc_auc": 0.8780253512013305,
+     "brier": 0.04738379658264524,
+     "log_loss": 0.16530661726293094,
+     "reliability": [
+      {
+       "bin": "0.0-0.1",
+       "mean_pred": 0.01805402059391081,
+       "obs_rate": 0.021910760223542977,
+       "count": 22546
+      },
+      {
+       "bin": "0.1-0.2",
+       "mean_pred": 0.15291472980224025,
+       "obs_rate": 0.15575696542463915,
+       "count": 2979
+      },
+      {
+       "bin": "0.2-0.3",
+       "mean_pred": 0.24840443929318132,
+       "obs_rate": 0.27874885004599814,
+       "count": 1087
+      },
+      {
+       "bin": "0.3-0.4",
+       "mean_pred": 0.3237498017396292,
+       "obs_rate": 0.3290441176470588,
+       "count": 1088
+      },
+      {
+       "bin": "0.4-0.5",
+       "mean_pred": null,
+       "obs_rate": null,
+       "count": 0
+      },
+      {
+       "bin": "0.5-0.6",
+       "mean_pred": null,
+       "obs_rate": null,
+       "count": 0
+      },
+      {
+       "bin": "0.6-0.7",
+       "mean_pred": null,
+       "obs_rate": null,
+       "count": 0
+      },
+      {
+       "bin": "0.7-0.8",
+       "mean_pred": null,
+       "obs_rate": null,
+       "count": 0
+      },
+      {
+       "bin": "0.8-0.9",
+       "mean_pred": null,
+       "obs_rate": null,
+       "count": 0
+      },
+      {
+       "bin": "0.9-1.0",
+       "mean_pred": null,
+       "obs_rate": null,
+       "count": 0
+      }
+     ]
+    },
+    "top1pct_by_p_bin_ge5_reached_10x": {
+     "n": 277,
+     "precision": 0.05415162454873646,
+     "base_rate": 0.0033212996389891695,
+     "lift": 16.304347826086957
+    }
+   },
+   "entry_tp1": {
+    "rows": 27700,
+    "positives": 1363,
+    "base_rate": 0.0492057761732852,
+    "pr_auc": 0.19868948698755623,
+    "roc_auc": 0.8765863400819409,
+    "brier": 0.04168625900295116,
+    "log_loss": 0.14827153849360136,
+    "reliability": [
+     {
+      "bin": "0.0-0.1",
+      "mean_pred": 0.01976046305930918,
+      "obs_rate": 0.025061176272044555,
+      "count": 23702
+     },
+     {
+      "bin": "0.1-0.2",
+      "mean_pred": 0.13885767596460202,
+      "obs_rate": 0.14212620807276863,
+      "count": 1759
+     },
+     {
+      "bin": "0.2-0.3",
+      "mean_pred": 0.21789311341727557,
+      "obs_rate": 0.23179991067440822,
+      "count": 2239
+     },
+     {
+      "bin": "0.3-0.4",
+      "mean_pred": null,
+      "obs_rate": null,
+      "count": 0
+     },
+     {
+      "bin": "0.4-0.5",
+      "mean_pred": null,
+      "obs_rate": null,
+      "count": 0
+     },
+     {
+      "bin": "0.5-0.6",
+      "mean_pred": null,
+      "obs_rate": null,
+      "count": 0
+     },
+     {
+      "bin": "0.6-0.7",
+      "mean_pred": null,
+      "obs_rate": null,
+      "count": 0
+     },
+     {
+      "bin": "0.7-0.8",
+      "mean_pred": null,
+      "obs_rate": null,
+      "count": 0
+     },
+     {
+      "bin": "0.8-0.9",
+      "mean_pred": null,
+      "obs_rate": null,
+      "count": 0
+     },
+     {
+      "bin": "0.9-1.0",
+      "mean_pred": null,
+      "obs_rate": null,
+      "count": 0
+     }
+    ],
+    "brier_raw": 0.0965861423582047,
+    "log_loss_raw": 0.30082826912785043,
+    "top1pct_reached_10x": {
+     "n": 277,
+     "precision": 0.018050541516245487,
+     "base_rate": 0.0033212996389891695,
+     "lift": 5.434782608695652
+    }
+   },
+   "rug_cb": {
+    "rows": 39100,
+    "positives": 4162,
+    "base_rate": 0.10644501278772378,
+    "pr_auc": 0.34815582194749556,
+    "roc_auc": 0.877086781639881,
+    "brier": 0.07671094809545832,
+    "log_loss": 0.2830668693846446,
+    "reliability": [
+     {
+      "bin": "0.0-0.1",
+      "mean_pred": 0.03443451426793065,
+      "obs_rate": 0.015584415584415584,
+      "count": 28490
+     },
+     {
+      "bin": "0.1-0.2",
+      "mean_pred": 0.1333258479572902,
+      "obs_rate": 0.3246231155778894,
+      "count": 995
+     },
+     {
+      "bin": "0.2-0.3",
+      "mean_pred": 0.25220607464123385,
+      "obs_rate": 0.2877442273534636,
+      "count": 1126
+     },
+     {
+      "bin": "0.3-0.4",
+      "mean_pred": 0.3674014625073327,
+      "obs_rate": 0.36116910229645094,
+      "count": 479
+     },
+     {
+      "bin": "0.4-0.5",
+      "mean_pred": 0.41917735771181636,
+      "obs_rate": 0.36059817945383615,
+      "count": 7690
+     },
+     {
+      "bin": "0.5-0.6",
+      "mean_pred": 0.5578571428571427,
+      "obs_rate": 0.57,
+      "count": 200
+     },
+     {
+      "bin": "0.6-0.7",
+      "mean_pred": 0.626935417460554,
+      "obs_rate": 0.0,
+      "count": 1
+     },
+     {
+      "bin": "0.7-0.8",
+      "mean_pred": 0.7445910265553093,
+      "obs_rate": 1.0,
+      "count": 2
+     },
+     {
+      "bin": "0.8-0.9",
+      "mean_pred": null,
+      "obs_rate": null,
+      "count": 0
+     },
+     {
+      "bin": "0.9-1.0",
+      "mean_pred": 0.9980985694125354,
+      "obs_rate": 0.07692307692307693,
+      "count": 117
+     }
+    ],
+    "brier_raw": 0.07549717687106641,
+    "log_loss_raw": 0.24093446022498116
+   },
+   "rug_rfcpu": {
+    "rows": 39100,
+    "positives": 4162,
+    "base_rate": 0.10644501278772378,
+    "pr_auc": 0.3489815118972005,
+    "roc_auc": 0.8812294086739333,
+    "brier": 0.07422814864373824,
+    "log_loss": 0.24673695954421548,
+    "reliability": [
+     {
+      "bin": "0.0-0.1",
+      "mean_pred": 0.009032615139658839,
+      "obs_rate": 0.00513354948278524,
+      "count": 25908
+     },
+     {
+      "bin": "0.1-0.2",
+      "mean_pred": 0.1301097695884544,
+      "obs_rate": 0.15793127386324193,
+      "count": 2881
+     },
+     {
+      "bin": "0.2-0.3",
+      "mean_pred": 0.23746402333433128,
+      "obs_rate": 0.33242506811989103,
+      "count": 367
+     },
+     {
+      "bin": "0.3-0.4",
+      "mean_pred": 0.3936368452070725,
+      "obs_rate": 0.3344155844155844,
+      "count": 8624
+     },
+     {
+      "bin": "0.4-0.5",
+      "mean_pred": 0.4739213474591673,
+      "obs_rate": 0.44761904761904764,
+      "count": 630
+     },
+     {
+      "bin": "0.5-0.6",
+      "mean_pred": 0.5297444516320148,
+      "obs_rate": 0.4142640364188164,
+      "count": 659
+     },
+     {
+      "bin": "0.6-0.7",
+      "mean_pred": null,
+      "obs_rate": null,
+      "count": 0
+     },
+     {
+      "bin": "0.7-0.8",
+      "mean_pred": null,
+      "obs_rate": null,
+      "count": 0
+     },
+     {
+      "bin": "0.8-0.9",
+      "mean_pred": 0.859105849179356,
+      "obs_rate": 0.0,
+      "count": 1
+     },
+     {
+      "bin": "0.9-1.0",
+      "mean_pred": 1.0,
+      "obs_rate": 0.43333333333333335,
+      "count": 30
+     }
+    ],
+    "brier_raw": 0.09623425061313932,
+    "log_loss_raw": 0.2819176902810332
+   },
+   "hold": {
+    "rows": 39100,
+    "positives": 3100,
+    "base_rate": 0.0792838874680307,
+    "pr_auc": 0.2357326721561228,
+    "roc_auc": 0.8528727464157706,
+    "brier": 0.06340797438372196,
+    "log_loss": 0.2061780800833788,
+    "reliability": [
+     {
+      "bin": "0.0-0.1",
+      "mean_pred": 0.012668182319641931,
+      "obs_rate": 0.009700794763908368,
+      "count": 25668
+     },
+     {
+      "bin": "0.1-0.2",
+      "mean_pred": 0.11684444051141045,
+      "obs_rate": 0.15758468335787923,
+      "count": 5432
+     },
+     {
+      "bin": "0.2-0.3",
+      "mean_pred": 0.2865915152596798,
+      "obs_rate": 0.2494061757719715,
+      "count": 7999
+     },
+     {
+      "bin": "0.3-0.4",
+      "mean_pred": null,
+      "obs_rate": null,
+      "count": 0
+     },
+     {
+      "bin": "0.4-0.5",
+      "mean_pred": null,
+      "obs_rate": null,
+      "count": 0
+     },
+     {
+      "bin": "0.5-0.6",
+      "mean_pred": 0.5,
+      "obs_rate": 0.0,
+      "count": 1
+     },
+     {
+      "bin": "0.6-0.7",
+      "mean_pred": null,
+      "obs_rate": null,
+      "count": 0
+     },
+     {
+      "bin": "0.7-0.8",
+      "mean_pred": null,
+      "obs_rate": null,
+      "count": 0
+     },
+     {
+      "bin": "0.8-0.9",
+      "mean_pred": null,
+      "obs_rate": null,
+      "count": 0
+     },
+     {
+      "bin": "0.9-1.0",
+      "mean_pred": null,
+      "obs_rate": null,
+      "count": 0
+     }
+    ],
+    "brier_raw": 0.06369683259366361,
+    "log_loss_raw": 0.20716877156989383
+   },
+   "hazard": {
+    "rows": 7035,
+    "positives": 0,
+    "base_rate": 0.0,
+    "pr_auc": null,
+    "roc_auc": null,
+    "brier": 5.992147617760214e-10,
+    "log_loss": 2.7912518611846837e-06,
+    "reliability": [
+     {
+      "bin": "0.0-0.1",
+      "mean_pred": 2.790950793479734e-06,
+      "obs_rate": 0.0,
+      "count": 7035
+     },
+     {
+      "bin": "0.1-0.2",
+      "mean_pred": null,
+      "obs_rate": null,
+      "count": 0
+     },
+     {
+      "bin": "0.2-0.3",
+      "mean_pred": null,
+      "obs_rate": null,
+      "count": 0
+     },
+     {
+      "bin": "0.3-0.4",
+      "mean_pred": null,
+      "obs_rate": null,
+      "count": 0
+     },
+     {
+      "bin": "0.4-0.5",
+      "mean_pred": null,
+      "obs_rate": null,
+      "count": 0
+     },
+     {
+      "bin": "0.5-0.6",
+      "mean_pred": null,
+      "obs_rate": null,
+      "count": 0
+     },
+     {
+      "bin": "0.6-0.7",
+      "mean_pred": null,
+      "obs_rate": null,
+      "count": 0
+     },
+     {
+      "bin": "0.7-0.8",
+      "mean_pred": null,
+      "obs_rate": null,
+      "count": 0
+     },
+     {
+      "bin": "0.8-0.9",
+      "mean_pred": null,
+      "obs_rate": null,
+      "count": 0
+     },
+     {
+      "bin": "0.9-1.0",
+      "mean_pred": null,
+      "obs_rate": null,
+      "count": 0
+     }
+    ],
+    "brier_raw": 5.992147617760214e-10,
+    "log_loss_raw": 2.7912518611846837e-06
+   },
+   "baseline_lr": {
+    "rows": 27700,
+    "positives": 1363,
+    "base_rate": 0.0492057761732852,
+    "pr_auc": 0.1897786408673634,
+    "roc_auc": 0.8706064943936918,
+    "brier": 0.042325170536513926,
+    "log_loss": 0.15254934896720457,
+    "reliability": [
+     {
+      "bin": "0.0-0.1",
+      "mean_pred": 0.020323984790785767,
+      "obs_rate": 0.007926553955751769,
+      "count": 19933
+     },
+     {
+      "bin": "0.1-0.2",
+      "mean_pred": 0.1440084611180718,
+      "obs_rate": 0.14321945397583172,
+      "count": 6703
+     },
+     {
+      "bin": "0.2-0.3",
+      "mean_pred": 0.2453670659989023,
+      "obs_rate": 0.329004329004329,
+      "count": 231
+     },
+     {
+      "bin": "0.3-0.4",
+      "mean_pred": 0.3010493093608617,
+      "obs_rate": 0.2007255139056832,
+      "count": 827
+     },
+     {
+      "bin": "0.4-0.5",
+      "mean_pred": 0.449516742201579,
+      "obs_rate": 0.0,
+      "count": 1
+     },
+     {
+      "bin": "0.5-0.6",
+      "mean_pred": 0.5377083194701406,
+      "obs_rate": 0.5,
+      "count": 2
+     },
+     {
+      "bin": "0.6-0.7",
+      "mean_pred": 0.6666666666666666,
+      "obs_rate": 0.6666666666666666,
+      "count": 3
+     },
+     {
+      "bin": "0.7-0.8",
+      "mean_pred": null,
+      "obs_rate": null,
+      "count": 0
+     },
+     {
+      "bin": "0.8-0.9",
+      "mean_pred": null,
+      "obs_rate": null,
+      "count": 0
+     },
+     {
+      "bin": "0.9-1.0",
+      "mean_pred": null,
+      "obs_rate": null,
+      "count": 0
+     }
+    ],
+    "brier_raw": 0.04246709400584023,
+    "log_loss_raw": 0.15021097151482607,
+    "top1pct_reached_10x": {
+     "n": 277,
+     "precision": 0.010830324909747292,
+     "base_rate": 0.0033212996389891695,
+     "lift": 3.260869565217391
+    }
+   }
+  }
+ },
+ "comparisons": {
+  "entry_tp1_vs_logistic_pr_auc": {
+   "bf_1h": {
+    "catboost": 0.19868948698755623,
+    "logistic": 0.1897786408673634
+   },
+   "pooled": {
+    "catboost": 0.19868948698755623,
+    "logistic": 0.1897786408673634
+   }
+  },
+  "rug_models": {
+   "bf_1h": {
+    "rug_cb": {
+     "pr_auc": 0.34815582194749556,
+     "roc_auc": 0.877086781639881,
+     "brier": 0.07671094809545832
+    },
+    "rug_rfgpu": {
+     "pr_auc": null,
+     "roc_auc": null,
+     "brier": null
+    },
+    "rug_rfcpu": {
+     "pr_auc": 0.3489815118972005,
+     "roc_auc": 0.8812294086739333,
+     "brier": 0.07422814864373824
+    },
+    "rug": {
+     "pr_auc": null,
+     "roc_auc": null,
+     "brier": null
+    }
+   },
+   "pooled": {
+    "rug_cb": {
+     "pr_auc": 0.34815582194749556,
+     "roc_auc": 0.877086781639881,
+     "brier": 0.07671094809545832
+    },
+    "rug_rfgpu": {
+     "pr_auc": null,
+     "roc_auc": null,
+     "brier": null
+    },
+    "rug_rfcpu": {
+     "pr_auc": 0.3489815118972005,
+     "roc_auc": 0.8812294086739333,
+     "brier": 0.07422814864373824
+    },
+    "rug": {
+     "pr_auc": null,
+     "roc_auc": null,
+     "brier": null
+    }
+   }
+  }
+ },
+ "importance_top30_pooled": {
+  "entry_bin": [
+   [
+    "wallet_rate_med_60s",
+    7.328
+   ],
+   [
+    "dev_hold_share",
+    6.838
+   ],
+   [
+    "quote_res_sol",
+    4.952
+   ],
+   [
+    "market_vol_10m",
+    4.68
+   ],
+   [
+    "rd_split_max_sol_liq_300s",
+    4.466
+   ],
+   [
+    "price_vs_low300",
+    4.063
+   ],
+   [
+    "vol_60s",
+    4.016
+   ],
+   [
+    "top10_supply_share",
+    3.956
+   ],
+   [
+    "dev_net_sol",
+    3.559
+   ],
+   [
+    "curve_progress",
+    3.39
+   ],
+   [
+    "fee_bps",
+    3.201
+   ],
+   [
+    "attention_share_5m",
+    2.484
+   ],
+   [
+    "repeat_buyer_share_60s",
+    2.138
+   ],
+   [
+    "rd_liq_real_sol",
+    2.044
+   ],
+   [
+    "creator_buy_sol",
+    1.955
+   ],
+   [
+    "rd_split_max_n_300s",
+    1.875
+   ],
+   [
+    "f8_dt_cv20",
+    1.865
+   ],
+   [
+    "cvd_300s",
+    1.682
+   ],
+   [
+    "new_coins_per_min",
+    1.497
+   ],
+   [
+    "price_vs_high300",
+    1.465
+   ],
+   [
+    "mult_since_first",
+    1.355
+   ],
+   [
+    "f1_sol_in_curve",
+    1.345
+   ],
+   [
+    "f6_holders",
+    1.275
+   ],
+   [
+    "buy_sol_15s",
+    1.271
+   ],
+   [
+    "f8_cluster_share20",
+    1.251
+   ],
+   [
+    "median_buy_60s",
+    1.244
+   ],
+   [
+    "buy_sol_5s",
+    1.045
+   ],
+   [
+    "profit_overhang",
+    1.019
+   ],
+   [
+    "rd_dust_sol_60s",
+    0.995
+   ],
+   [
+    "f1_sol_per_trade",
+    0.915
+   ]
+  ],
+  "entry_tp1": [
+   [
+    "rd_split_max_sol_liq_300s",
+    10.25
+   ],
+   [
+    "dev_net_sol",
+    9.651
+   ],
+   [
+    "vol_60s",
+    7.876
+   ],
+   [
+    "creator_buy_sol",
+    6.51
+   ],
+   [
+    "wallet_rate_med_60s",
+    6.298
+   ],
+   [
+    "dev_hold_share",
+    5.228
+   ],
+   [
+    "market_vol_10m",
+    4.423
+   ],
+   [
+    "quote_res_sol",
+    4.142
+   ],
+   [
+    "top10_supply_share",
+    3.638
+   ],
+   [
+    "log_quote_res",
+    3.351
+   ],
+   [
+    "price_vs_high300",
+    3.018
+   ],
+   [
+    "profit_overhang",
+    2.564
+   ],
+   [
+    "median_buy_60s",
+    2.439
+   ],
+   [
+    "price_vs_low300",
+    1.883
+   ],
+   [
+    "f1_sol_per_trade",
+    1.751
+   ],
+   [
+    "new_coins_per_min",
+    1.737
+   ],
+   [
+    "curve_progress",
+    1.494
+   ],
+   [
+    "attention_share_5m",
+    1.187
+   ],
+   [
+    "new_wallet_share_60s",
+    1.067
+   ],
+   [
+    "early_retention",
+    1.064
+   ],
+   [
+    "f1_sol_in_curve",
+    1.018
+   ],
+   [
+    "mult_since_first",
+    0.986
+   ],
+   [
+    "f8_last_dt",
+    0.866
+   ],
+   [
+    "accel",
+    0.817
+   ],
+   [
+    "fee_bps",
+    0.815
+   ],
+   [
+    "buy_sol_5s",
+    0.791
+   ],
+   [
+    "buy_q_60s",
+    0.756
+   ],
+   [
+    "fast_wallet_share_60s",
+    0.739
+   ],
+   [
+    "kyle_lambda_60s",
+    0.668
+   ],
+   [
+    "secs_since_real_buy",
+    0.646
+   ]
+  ],
+  "rug_cb": [
+   [
+    "early20_delay_med_s",
+    10.72
+   ],
+   [
+    "early_retention",
+    7.015
+   ],
+   [
+    "f2_early20_supply_share",
+    5.393
+   ],
+   [
+    "kyle_lambda_60s",
+    4.968
+   ],
+   [
+    "quote_res_sol",
+    4.733
+   ],
+   [
+    "f6_holders",
+    3.214
+   ],
+   [
+    "rd_liq_real_sol",
+    3.051
+   ],
+   [
+    "rd_split_max_n_300s",
+    2.948
+   ],
+   [
+    "p90_sell_60s",
+    2.77
+   ],
+   [
+    "top10_supply_share",
+    2.709
+   ],
+   [
+    "f2_top10_holder_share",
+    2.668
+   ],
+   [
+    "fee_bps",
+    2.263
+   ],
+   [
+    "rd_dust_sol_60s",
+    2.171
+   ],
+   [
+    "hhi_buy_60s",
+    1.898
+   ],
+   [
+    "n_trades_60s",
+    1.872
+   ],
+   [
+    "market_vol_10m",
+    1.82
+   ],
+   [
+    "n_trades_300s",
+    1.772
+   ],
+   [
+    "rd_dust_n_60s",
+    1.689
+   ],
+   [
+    "rd_split_max_sol_liq_300s",
+    1.625
+   ],
+   [
+    "new_wallet_share_60s",
+    1.575
+   ],
+   [
+    "rd_state",
+    1.383
+   ],
+   [
+    "attention_share_5m",
+    1.295
+   ],
+   [
+    "median_sell_60s",
+    1.275
+   ],
+   [
+    "f1_sol_in_curve",
+    1.227
+   ],
+   [
+    "p90_buy_60s",
+    1.211
+   ],
+   [
+    "profit_overhang",
+    1.148
+   ],
+   [
+    "rd_kind_new",
+    1.139
+   ],
+   [
+    "f8_hawkes_slow",
+    1.096
+   ],
+   [
+    "creator_buy_sol",
+    1.081
+   ],
+   [
+    "ewma_slow",
+    1.072
+   ]
+  ],
+  "hold": [
+   [
+    "log_quote_res",
+    6.363
+   ],
+   [
+    "rd_liq_real_sol",
+    4.928
+   ],
+   [
+    "price_vs_high300",
+    4.823
+   ],
+   [
+    "fee_bps",
+    4.225
+   ],
+   [
+    "early_retention",
+    4.037
+   ],
+   [
+    "early20_delay_med_s",
+    3.57
+   ],
+   [
+    "kyle_lambda_60s",
+    3.121
+   ],
+   [
+    "rd_split_max_n_300s",
+    2.97
+   ],
+   [
+    "n_trades_300s",
+    2.966
+   ],
+   [
+    "f6_holders",
+    2.844
+   ],
+   [
+    "top10_supply_share",
+    2.819
+   ],
+   [
+    "dev_hold_share",
+    2.467
+   ],
+   [
+    "rd_split_max_sol_liq_300s",
+    2.437
+   ],
+   [
+    "quote_res_sol",
+    2.425
+   ],
+   [
+    "attention_share_5m",
+    2.189
+   ],
+   [
+    "ewma_slow",
+    2.163
+   ],
+   [
+    "price_vs_low300",
+    2.105
+   ],
+   [
+    "market_vol_10m",
+    2.025
+   ],
+   [
+    "mult_since_first",
+    1.961
+   ],
+   [
+    "on_amm",
+    1.638
+   ],
+   [
+    "rd_decisions_in_state",
+    1.588
+   ],
+   [
+    "f1_trades_since_first",
+    1.576
+   ],
+   [
+    "vol_60s",
+    1.533
+   ],
+   [
+    "age_s",
+    1.305
+   ],
+   [
+    "creator_buy_sol",
+    1.238
+   ],
+   [
+    "repeat_buyer_share_60s",
+    1.201
+   ],
+   [
+    "f2_early20_supply_share",
+    1.175
+   ],
+   [
+    "sell_q_60s",
+    1.156
+   ],
+   [
+    "rd_dust_sol_share_60s",
+    1.087
+   ],
+   [
+    "curve_progress",
+    1.038
+   ]
+  ],
+  "hazard": [
+   [
+    "creator_sold",
+    5.512
+   ],
+   [
+    "on_amm",
+    5.1
+   ],
+   [
+    "rd_cusum_pop",
+    4.613
+   ],
+   [
+    "curve_progress",
+    4.498
+   ],
+   [
+    "dev_ever_sold",
+    4.408
+   ],
+   [
+    "rd_state",
+    3.632
+   ],
+   [
+    "f8_hawkes_slow",
+    3.468
+   ],
+   [
+    "log_quote_res",
+    2.864
+   ],
+   [
+    "creator_sell_sol",
+    2.83
+   ],
+   [
+    "rd_liq_real_sol",
+    2.774
+   ],
+   [
+    "newborn",
+    2.755
+   ],
+   [
+    "rd_secs_in_state",
+    2.687
+   ],
+   [
+    "rd_kind_new",
+    2.556
+   ],
+   [
+    "n_trades_300s",
+    2.318
+   ],
+   [
+    "f1_sol_in_curve",
+    1.99
+   ],
+   [
+    "accel",
+    1.981
+   ],
+   [
+    "flow_imb_60s",
+    1.653
+   ],
+   [
+    "dust_share_60s",
+    1.601
+   ],
+   [
+    "f6_holders",
+    1.579
+   ],
+   [
+    "rd_birth_src",
+    1.559
+   ],
+   [
+    "dev_net_sol",
+    1.52
+   ],
+   [
+    "creator_buy_sol",
+    1.488
+   ],
+   [
+    "quote_res_sol",
+    1.354
+   ],
+   [
+    "early_retention",
+    1.347
+   ],
+   [
+    "rd_decisions_in_state",
+    1.333
+   ],
+   [
+    "early20_delay_med_s",
+    1.323
+   ],
+   [
+    "p90_sell_60s",
+    1.318
+   ],
+   [
+    "f1_sol_per_trade",
+    1.308
+   ],
+   [
+    "f8_cluster_share20",
+    1.272
+   ],
+   [
+    "age_s",
+    1.237
+   ]
+  ]
+ },
+ "timing_s": {
+  "wall": 692.5,
+  "load": 1.2,
+  "train_parallel": 689.1,
+  "sum_task_wall": 1706.4
+ },
+ "utilization": {
+  "n_samples": 654,
+  "period_s": 1.0,
+  "gpu0": {
+   "util_mean": 87.8,
+   "util_p50": 99.0,
+   "util_max": 100.0,
+   "share_ge50": 0.885,
+   "share_ge90": 0.875,
+   "mem_max_mib": 5748.0
+  },
+  "cpu": {
+   "util_mean": 10.5,
+   "util_max": 24.0
+  }
+ },
+ "utilization_samples": [
+  {
+   "t": 0.0,
+   "gpu0": 0,
+   "mem0": 2
+  },
+  {
+   "t": 1.1,
+   "gpu0": 0,
+   "mem0": 2
+  },
+  {
+   "t": 2.1,
+   "gpu0": 0,
+   "mem0": 2
+  },
+  {
+   "t": 3.1,
+   "gpu0": 2,
+   "mem0": 5748
+  },
+  {
+   "t": 4.4,
+   "gpu0": 0,
+   "mem0": 5748
+  },
+  {
+   "t": 5.6,
+   "gpu0": 0,
+   "mem0": 5748
+  },
+  {
+   "t": 6.9,
+   "gpu0": 0,
+   "mem0": 5748
+  },
+  {
+   "t": 8.1,
+   "gpu0": 0,
+   "mem0": 5748
+  },
+  {
+   "t": 9.4,
+   "gpu0": 0,
+   "mem0": 5748
+  },
+  {
+   "t": 10.7,
+   "gpu0": 0,
+   "mem0": 5748
+  },
+  {
+   "t": 12.0,
+   "gpu0": 0,
+   "mem0": 5748
+  },
+  {
+   "t": 13.3,
+   "gpu0": 0,
+   "mem0": 5748
+  },
+  {
+   "t": 14.5,
+   "gpu0": 0,
+   "mem0": 5748
+  },
+  {
+   "t": 15.7,
+   "gpu0": 0,
+   "mem0": 5748
+  },
+  {
+   "t": 17.0,
+   "gpu0": 0,
+   "mem0": 5748
+  },
+  {
+   "t": 18.3,
+   "gpu0": 0,
+   "mem0": 5748
+  },
+  {
+   "t": 19.5,
+   "gpu0": 0,
+   "mem0": 5748
+  },
+  {
+   "t": 20.9,
+   "gpu0": 0,
+   "mem0": 5748
+  },
+  {
+   "t": 22.0,
+   "gpu0": 0,
+   "mem0": 5748
+  },
+  {
+   "t": 23.2,
+   "gpu0": 0,
+   "mem0": 5748
+  },
+  {
+   "t": 24.4,
+   "gpu0": 0,
+   "mem0": 5748
+  },
+  {
+   "t": 25.6,
+   "gpu0": 0,
+   "mem0": 5748
+  },
+  {
+   "t": 26.9,
+   "gpu0": 0,
+   "mem0": 5748
+  },
+  {
+   "t": 28.3,
+   "gpu0": 0,
+   "mem0": 5748
+  },
+  {
+   "t": 29.5,
+   "gpu0": 0,
+   "mem0": 5748
+  },
+  {
+   "t": 30.8,
+   "gpu0": 0,
+   "mem0": 5748
+  },
+  {
+   "t": 32.3,
+   "gpu0": 0,
+   "mem0": 5748
+  },
+  {
+   "t": 33.5,
+   "gpu0": 0,
+   "mem0": 5748
+  },
+  {
+   "t": 34.9,
+   "gpu0": 0,
+   "mem0": 5748
+  },
+  {
+   "t": 36.2,
+   "gpu0": 0,
+   "mem0": 5748
+  },
+  {
+   "t": 37.6,
+   "gpu0": 0,
+   "mem0": 5748
+  },
+  {
+   "t": 38.9,
+   "gpu0": 0,
+   "mem0": 5748
+  },
+  {
+   "t": 40.4,
+   "gpu0": 0,
+   "mem0": 5748
+  },
+  {
+   "t": 41.8,
+   "gpu0": 0,
+   "mem0": 5748
+  },
+  {
+   "t": 43.2,
+   "gpu0": 0,
+   "mem0": 5748
+  },
+  {
+   "t": 44.7,
+   "gpu0": 0,
+   "mem0": 5748
+  },
+  {
+   "t": 46.3,
+   "gpu0": 0,
+   "mem0": 5748
+  },
+  {
+   "t": 47.7,
+   "gpu0": 0,
+   "mem0": 5748
+  },
+  {
+   "t": 49.0,
+   "gpu0": 0,
+   "mem0": 5748
+  },
+  {
+   "t": 50.2,
+   "gpu0": 0,
+   "mem0": 5748
+  },
+  {
+   "t": 51.5,
+   "gpu0": 0,
+   "mem0": 5748
+  },
+  {
+   "t": 52.8,
+   "gpu0": 0,
+   "mem0": 5748
+  },
+  {
+   "t": 54.0,
+   "gpu0": 0,
+   "mem0": 5748
+  },
+  {
+   "t": 55.2,
+   "gpu0": 0,
+   "mem0": 5748
+  },
+  {
+   "t": 56.6,
+   "gpu0": 0,
+   "mem0": 5748
+  },
+  {
+   "t": 57.8,
+   "gpu0": 10,
+   "mem0": 5748
+  },
+  {
+   "t": 58.9,
+   "gpu0": 15,
+   "mem0": 5748
+  },
+  {
+   "t": 60.0,
+   "gpu0": 55,
+   "mem0": 5748
+  },
+  {
+   "t": 61.1,
+   "gpu0": 0,
+   "mem0": 3978
+  },
+  {
+   "t": 62.5,
+   "gpu0": 0,
+   "mem0": 3978
+  },
+  {
+   "t": 63.7,
+   "gpu0": 0,
+   "mem0": 3978
+  },
+  {
+   "t": 64.7,
+   "gpu0": 0,
+   "mem0": 3978
+  },
+  {
+   "t": 66.0,
+   "gpu0": 0,
+   "mem0": 3980
+  },
+  {
+   "t": 67.4,
+   "gpu0": 0,
+   "mem0": 3841
+  },
+  {
+   "t": 68.8,
+   "gpu0": 0,
+   "mem0": 3841
+  },
+  {
+   "t": 70.1,
+   "gpu0": 0,
+   "mem0": 3841
+  },
+  {
+   "t": 71.5,
+   "gpu0": 0,
+   "mem0": 3841
+  },
+  {
+   "t": 73.1,
+   "gpu0": 0,
+   "mem0": 3841
+  },
+  {
+   "t": 74.5,
+   "gpu0": 0,
+   "mem0": 3855
+  },
+  {
+   "t": 76.2,
+   "gpu0": 0,
+   "mem0": 5534
+  },
+  {
+   "t": 77.7,
+   "gpu0": 0,
+   "mem0": 5534
+  },
+  {
+   "t": 79.2,
+   "gpu0": 0,
+   "mem0": 5536
+  },
+  {
+   "t": 80.8,
+   "gpu0": 0,
+   "mem0": 5536
+  },
+  {
+   "t": 82.5,
+   "gpu0": 0,
+   "mem0": 5536
+  },
+  {
+   "t": 83.7,
+   "gpu0": 0,
+   "mem0": 5538
+  },
+  {
+   "t": 84.9,
+   "gpu0": 0,
+   "mem0": 5538
+  },
+  {
+   "t": 86.1,
+   "gpu0": 0,
+   "mem0": 5538
+  },
+  {
+   "t": 87.2,
+   "gpu0": 0,
+   "mem0": 5538
+  },
+  {
+   "t": 88.3,
+   "gpu0": 0,
+   "mem0": 5538
+  },
+  {
+   "t": 89.3,
+   "gpu0": 78,
+   "mem0": 5538
+  },
+  {
+   "t": 90.3,
+   "gpu0": 82,
+   "mem0": 5540
+  },
+  {
+   "t": 91.3,
+   "gpu0": 100,
+   "mem0": 5542
+  },
+  {
+   "t": 92.4,
+   "gpu0": 100,
+   "mem0": 3982
+  },
+  {
+   "t": 93.4,
+   "gpu0": 99,
+   "mem0": 5544
+  },
+  {
+   "t": 94.5,
+   "gpu0": 100,
+   "mem0": 5544
+  },
+  {
+   "t": 95.5,
+   "gpu0": 100,
+   "mem0": 3984
+  },
+  {
+   "t": 96.5,
+   "gpu0": 68,
+   "mem0": 1789
+  },
+  {
+   "t": 97.5,
+   "gpu0": 0,
+   "mem0": 4202
+  },
+  {
+   "t": 98.6,
+   "gpu0": 99,
+   "mem0": 5714
+  },
+  {
+   "t": 99.6,
+   "gpu0": 18,
+   "mem0": 4065
+  },
+  {
+   "t": 100.6,
+   "gpu0": 91,
+   "mem0": 3795
+  },
+  {
+   "t": 101.7,
+   "gpu0": 85,
+   "mem0": 5466
+  },
+  {
+   "t": 102.7,
+   "gpu0": 99,
+   "mem0": 5476
+  },
+  {
+   "t": 103.7,
+   "gpu0": 100,
+   "mem0": 5476
+  },
+  {
+   "t": 104.8,
+   "gpu0": 100,
+   "mem0": 5478
+  },
+  {
+   "t": 105.8,
+   "gpu0": 100,
+   "mem0": 5478
+  },
+  {
+   "t": 106.8,
+   "gpu0": 100,
+   "mem0": 5478
+  },
+  {
+   "t": 107.9,
+   "gpu0": 100,
+   "mem0": 5478
+  },
+  {
+   "t": 108.9,
+   "gpu0": 100,
+   "mem0": 5478
+  },
+  {
+   "t": 109.9,
+   "gpu0": 100,
+   "mem0": 5478
+  },
+  {
+   "t": 111.0,
+   "gpu0": 100,
+   "mem0": 5478
+  },
+  {
+   "t": 112.0,
+   "gpu0": 100,
+   "mem0": 5478
+  },
+  {
+   "t": 113.0,
+   "gpu0": 100,
+   "mem0": 5478
+  },
+  {
+   "t": 114.1,
+   "gpu0": 100,
+   "mem0": 5478
+  },
+  {
+   "t": 115.1,
+   "gpu0": 100,
+   "mem0": 5478
+  },
+  {
+   "t": 116.1,
+   "gpu0": 100,
+   "mem0": 5478
+  },
+  {
+   "t": 117.1,
+   "gpu0": 100,
+   "mem0": 5478
+  },
+  {
+   "t": 118.2,
+   "gpu0": 100,
+   "mem0": 5478
+  },
+  {
+   "t": 119.2,
+   "gpu0": 100,
+   "mem0": 5478
+  },
+  {
+   "t": 120.2,
+   "gpu0": 100,
+   "mem0": 5478
+  },
+  {
+   "t": 121.3,
+   "gpu0": 100,
+   "mem0": 5478
+  },
+  {
+   "t": 122.3,
+   "gpu0": 100,
+   "mem0": 5478
+  },
+  {
+   "t": 123.3,
+   "gpu0": 100,
+   "mem0": 5478
+  },
+  {
+   "t": 124.4,
+   "gpu0": 100,
+   "mem0": 5478
+  },
+  {
+   "t": 125.4,
+   "gpu0": 100,
+   "mem0": 5478
+  },
+  {
+   "t": 126.4,
+   "gpu0": 100,
+   "mem0": 5478
+  },
+  {
+   "t": 127.5,
+   "gpu0": 100,
+   "mem0": 5478
+  },
+  {
+   "t": 128.5,
+   "gpu0": 100,
+   "mem0": 5478
+  },
+  {
+   "t": 129.5,
+   "gpu0": 100,
+   "mem0": 3476
+  },
+  {
+   "t": 130.6,
+   "gpu0": 100,
+   "mem0": 5082
+  },
+  {
+   "t": 131.6,
+   "gpu0": 100,
+   "mem0": 5082
+  },
+  {
+   "t": 132.6,
+   "gpu0": 100,
+   "mem0": 5082
+  },
+  {
+   "t": 133.7,
+   "gpu0": 100,
+   "mem0": 5082
+  },
+  {
+   "t": 134.7,
+   "gpu0": 100,
+   "mem0": 3333
+  },
+  {
+   "t": 135.7,
+   "gpu0": 100,
+   "mem0": 5060
+  },
+  {
+   "t": 136.7,
+   "gpu0": 100,
+   "mem0": 5062
+  },
+  {
+   "t": 137.8,
+   "gpu0": 100,
+   "mem0": 5062
+  },
+  {
+   "t": 138.8,
+   "gpu0": 100,
+   "mem0": 5062
+  },
+  {
+   "t": 139.8,
+   "gpu0": 100,
+   "mem0": 5062
+  },
+  {
+   "t": 140.9,
+   "gpu0": 100,
+   "mem0": 5062
+  },
+  {
+   "t": 141.9,
+   "gpu0": 100,
+   "mem0": 5062
+  },
+  {
+   "t": 142.9,
+   "gpu0": 100,
+   "mem0": 5062
+  },
+  {
+   "t": 144.0,
+   "gpu0": 100,
+   "mem0": 5062
+  },
+  {
+   "t": 145.0,
+   "gpu0": 100,
+   "mem0": 5062
+  },
+  {
+   "t": 146.0,
+   "gpu0": 100,
+   "mem0": 5062
+  },
+  {
+   "t": 147.1,
+   "gpu0": 100,
+   "mem0": 5062
+  },
+  {
+   "t": 148.1,
+   "gpu0": 100,
+   "mem0": 5062
+  },
+  {
+   "t": 149.1,
+   "gpu0": 100,
+   "mem0": 5062
+  },
+  {
+   "t": 150.2,
+   "gpu0": 100,
+   "mem0": 5062
+  },
+  {
+   "t": 151.2,
+   "gpu0": 100,
+   "mem0": 5062
+  },
+  {
+   "t": 152.2,
+   "gpu0": 100,
+   "mem0": 5062
+  },
+  {
+   "t": 153.2,
+   "gpu0": 100,
+   "mem0": 5062
+  },
+  {
+   "t": 154.3,
+   "gpu0": 100,
+   "mem0": 5062
+  },
+  {
+   "t": 155.3,
+   "gpu0": 100,
+   "mem0": 5062
+  },
+  {
+   "t": 156.3,
+   "gpu0": 100,
+   "mem0": 5062
+  },
+  {
+   "t": 157.4,
+   "gpu0": 100,
+   "mem0": 3558
+  },
+  {
+   "t": 158.4,
+   "gpu0": 100,
+   "mem0": 5144
+  },
+  {
+   "t": 159.5,
+   "gpu0": 100,
+   "mem0": 3415
+  },
+  {
+   "t": 160.5,
+   "gpu0": 100,
+   "mem0": 3440
+  },
+  {
+   "t": 161.6,
+   "gpu0": 100,
+   "mem0": 5114
+  },
+  {
+   "t": 162.6,
+   "gpu0": 100,
+   "mem0": 5114
+  },
+  {
+   "t": 163.6,
+   "gpu0": 100,
+   "mem0": 5114
+  },
+  {
+   "t": 164.7,
+   "gpu0": 61,
+   "mem0": 3576
+  },
+  {
+   "t": 165.7,
+   "gpu0": 100,
+   "mem0": 5160
+  },
+  {
+   "t": 166.7,
+   "gpu0": 100,
+   "mem0": 5160
+  },
+  {
+   "t": 167.7,
+   "gpu0": 100,
+   "mem0": 5160
+  },
+  {
+   "t": 168.8,
+   "gpu0": 100,
+   "mem0": 3576
+  },
+  {
+   "t": 169.8,
+   "gpu0": 24,
+   "mem0": 3433
+  },
+  {
+   "t": 170.9,
+   "gpu0": 100,
+   "mem0": 3538
+  },
+  {
+   "t": 171.9,
+   "gpu0": 84,
+   "mem0": 5116
+  },
+  {
+   "t": 173.0,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 174.0,
+   "gpu0": 90,
+   "mem0": 3395
+  },
+  {
+   "t": 175.0,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 176.1,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 177.1,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 178.1,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 179.1,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 180.2,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 181.2,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 182.2,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 183.3,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 184.3,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 185.3,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 186.4,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 187.4,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 188.4,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 189.5,
+   "gpu0": 98,
+   "mem0": 3395
+  },
+  {
+   "t": 190.5,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 191.5,
+   "gpu0": 98,
+   "mem0": 3395
+  },
+  {
+   "t": 192.6,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 193.6,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 194.6,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 195.6,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 196.7,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 197.7,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 198.7,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 199.8,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 200.8,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 201.8,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 202.9,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 203.9,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 204.9,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 205.9,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 207.0,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 208.0,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 209.0,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 210.1,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 211.1,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 212.1,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 213.2,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 214.2,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 215.2,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 216.3,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 217.3,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 218.3,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 219.4,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 220.4,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 221.4,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 222.5,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 223.5,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 224.5,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 225.5,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 226.6,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 227.6,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 228.6,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 229.7,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 230.7,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 231.7,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 232.8,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 233.8,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 234.8,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 235.8,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 236.9,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 237.9,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 238.9,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 240.0,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 241.0,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 242.0,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 243.1,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 244.1,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 245.1,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 246.2,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 247.2,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 248.2,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 249.2,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 250.3,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 251.3,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 252.3,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 253.4,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 254.4,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 255.4,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 256.5,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 257.5,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 258.5,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 259.6,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 260.6,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 261.6,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 262.7,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 263.7,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 264.7,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 265.8,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 266.8,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 267.8,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 268.8,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 269.9,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 270.9,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 271.9,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 273.0,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 274.0,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 275.0,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 276.1,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 277.1,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 278.1,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 279.1,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 280.2,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 281.2,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 282.2,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 283.3,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 284.3,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 285.3,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 286.4,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 287.4,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 288.4,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 289.4,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 290.5,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 291.5,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 292.5,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 293.6,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 294.6,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 295.6,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 296.7,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 297.7,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 298.7,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 299.8,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 300.8,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 301.8,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 302.9,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 303.9,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 304.9,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 306.0,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 307.0,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 308.0,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 309.0,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 310.1,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 311.1,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 312.1,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 313.2,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 314.2,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 315.2,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 316.3,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 317.3,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 318.3,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 319.3,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 320.4,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 321.4,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 322.5,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 323.5,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 324.5,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 325.6,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 326.6,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 327.6,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 328.7,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 329.7,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 330.7,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 331.8,
+   "gpu0": 98,
+   "mem0": 3395
+  },
+  {
+   "t": 332.8,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 333.9,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 334.9,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 336.0,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 337.0,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 338.0,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 339.1,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 340.1,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 341.1,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 342.1,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 343.2,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 344.2,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 345.2,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 346.3,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 347.3,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 348.3,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 349.4,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 350.4,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 351.4,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 352.4,
+   "gpu0": 98,
+   "mem0": 3395
+  },
+  {
+   "t": 353.5,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 354.5,
+   "gpu0": 98,
+   "mem0": 3395
+  },
+  {
+   "t": 355.6,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 356.6,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 357.6,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 358.7,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 359.7,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 360.7,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 361.8,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 362.8,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 363.8,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 364.8,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 365.9,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 366.9,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 367.9,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 369.0,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 370.0,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 371.0,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 372.1,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 373.1,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 374.1,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 375.1,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 376.2,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 377.2,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 378.2,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 379.3,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 380.3,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 381.3,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 382.4,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 383.4,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 384.4,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 385.5,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 386.5,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 387.5,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 388.6,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 389.6,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 390.6,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 391.6,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 392.7,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 393.7,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 394.7,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 395.8,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 396.8,
+   "gpu0": 98,
+   "mem0": 3395
+  },
+  {
+   "t": 397.8,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 398.9,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 399.9,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 400.9,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 401.9,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 403.0,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 404.0,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 405.0,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 406.1,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 407.1,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 408.1,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 409.2,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 410.2,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 411.3,
+   "gpu0": 99,
+   "mem0": 3395
+  },
+  {
+   "t": 412.3,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 413.3,
+   "gpu0": 100,
+   "mem0": 3395
+  },
+  {
+   "t": 414.3,
+   "gpu0": 100,
+   "mem0": 1837
+  },
+  {
+   "t": 415.4,
+   "gpu0": 99,
+   "mem0": 3613
+  },
+  {
+   "t": 416.4,
+   "gpu0": 99,
+   "mem0": 3613
+  },
+  {
+   "t": 417.4,
+   "gpu0": 99,
+   "mem0": 3613
+  },
+  {
+   "t": 418.5,
+   "gpu0": 99,
+   "mem0": 3613
+  },
+  {
+   "t": 419.5,
+   "gpu0": 99,
+   "mem0": 3613
+  },
+  {
+   "t": 420.5,
+   "gpu0": 99,
+   "mem0": 3613
+  },
+  {
+   "t": 421.6,
+   "gpu0": 99,
+   "mem0": 3613
+  },
+  {
+   "t": 422.6,
+   "gpu0": 99,
+   "mem0": 3613
+  },
+  {
+   "t": 423.6,
+   "gpu0": 99,
+   "mem0": 3613
+  },
+  {
+   "t": 424.7,
+   "gpu0": 99,
+   "mem0": 3613
+  },
+  {
+   "t": 425.7,
+   "gpu0": 99,
+   "mem0": 3613
+  },
+  {
+   "t": 426.7,
+   "gpu0": 100,
+   "mem0": 3613
+  },
+  {
+   "t": 427.7,
+   "gpu0": 100,
+   "mem0": 3613
+  },
+  {
+   "t": 428.8,
+   "gpu0": 90,
+   "mem0": 3803
+  },
+  {
+   "t": 429.8,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 430.8,
+   "gpu0": 100,
+   "mem0": 3803
+  },
+  {
+   "t": 431.9,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 432.9,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 433.9,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 435.0,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 436.0,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 437.0,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 438.1,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 439.1,
+   "gpu0": 100,
+   "mem0": 3803
+  },
+  {
+   "t": 440.1,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 441.2,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 442.2,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 443.2,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 444.3,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 445.3,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 446.3,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 447.3,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 448.4,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 449.4,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 450.4,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 451.5,
+   "gpu0": 100,
+   "mem0": 3803
+  },
+  {
+   "t": 452.5,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 453.5,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 454.6,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 455.6,
+   "gpu0": 100,
+   "mem0": 3803
+  },
+  {
+   "t": 456.6,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 457.6,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 458.7,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 459.7,
+   "gpu0": 100,
+   "mem0": 3803
+  },
+  {
+   "t": 460.7,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 461.8,
+   "gpu0": 100,
+   "mem0": 3803
+  },
+  {
+   "t": 462.8,
+   "gpu0": 100,
+   "mem0": 3803
+  },
+  {
+   "t": 463.8,
+   "gpu0": 100,
+   "mem0": 3803
+  },
+  {
+   "t": 464.9,
+   "gpu0": 100,
+   "mem0": 3803
+  },
+  {
+   "t": 465.9,
+   "gpu0": 100,
+   "mem0": 3803
+  },
+  {
+   "t": 466.9,
+   "gpu0": 98,
+   "mem0": 3803
+  },
+  {
+   "t": 468.0,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 469.0,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 470.0,
+   "gpu0": 100,
+   "mem0": 3803
+  },
+  {
+   "t": 471.1,
+   "gpu0": 100,
+   "mem0": 3803
+  },
+  {
+   "t": 472.1,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 473.1,
+   "gpu0": 100,
+   "mem0": 3803
+  },
+  {
+   "t": 474.2,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 475.2,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 476.2,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 477.3,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 478.3,
+   "gpu0": 100,
+   "mem0": 3803
+  },
+  {
+   "t": 479.3,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 480.4,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 481.4,
+   "gpu0": 100,
+   "mem0": 3803
+  },
+  {
+   "t": 482.4,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 483.5,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 484.5,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 485.5,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 486.5,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 487.6,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 488.6,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 489.6,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 490.7,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 491.7,
+   "gpu0": 100,
+   "mem0": 3803
+  },
+  {
+   "t": 492.7,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 493.8,
+   "gpu0": 100,
+   "mem0": 3803
+  },
+  {
+   "t": 494.8,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 495.8,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 496.9,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 497.9,
+   "gpu0": 100,
+   "mem0": 3803
+  },
+  {
+   "t": 498.9,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 499.9,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 501.0,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 502.0,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 503.0,
+   "gpu0": 100,
+   "mem0": 3803
+  },
+  {
+   "t": 504.1,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 505.1,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 506.1,
+   "gpu0": 100,
+   "mem0": 3803
+  },
+  {
+   "t": 507.2,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 508.2,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 509.2,
+   "gpu0": 100,
+   "mem0": 3803
+  },
+  {
+   "t": 510.3,
+   "gpu0": 100,
+   "mem0": 3803
+  },
+  {
+   "t": 511.3,
+   "gpu0": 100,
+   "mem0": 3803
+  },
+  {
+   "t": 512.3,
+   "gpu0": 100,
+   "mem0": 3803
+  },
+  {
+   "t": 513.4,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 514.4,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 515.4,
+   "gpu0": 100,
+   "mem0": 3803
+  },
+  {
+   "t": 516.5,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 517.5,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 518.5,
+   "gpu0": 100,
+   "mem0": 3803
+  },
+  {
+   "t": 519.6,
+   "gpu0": 100,
+   "mem0": 3803
+  },
+  {
+   "t": 520.6,
+   "gpu0": 100,
+   "mem0": 3803
+  },
+  {
+   "t": 521.6,
+   "gpu0": 100,
+   "mem0": 3803
+  },
+  {
+   "t": 522.7,
+   "gpu0": 100,
+   "mem0": 3803
+  },
+  {
+   "t": 523.7,
+   "gpu0": 100,
+   "mem0": 3803
+  },
+  {
+   "t": 524.7,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 525.8,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 526.8,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 527.8,
+   "gpu0": 100,
+   "mem0": 3803
+  },
+  {
+   "t": 528.9,
+   "gpu0": 100,
+   "mem0": 3803
+  },
+  {
+   "t": 529.9,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 530.9,
+   "gpu0": 100,
+   "mem0": 3803
+  },
+  {
+   "t": 531.9,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 533.0,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 534.0,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 535.0,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 536.1,
+   "gpu0": 100,
+   "mem0": 3803
+  },
+  {
+   "t": 537.1,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 538.1,
+   "gpu0": 100,
+   "mem0": 3803
+  },
+  {
+   "t": 539.2,
+   "gpu0": 100,
+   "mem0": 3803
+  },
+  {
+   "t": 540.2,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 541.2,
+   "gpu0": 100,
+   "mem0": 3803
+  },
+  {
+   "t": 542.3,
+   "gpu0": 100,
+   "mem0": 3803
+  },
+  {
+   "t": 543.3,
+   "gpu0": 100,
+   "mem0": 3803
+  },
+  {
+   "t": 544.3,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 545.3,
+   "gpu0": 100,
+   "mem0": 3803
+  },
+  {
+   "t": 546.4,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 547.4,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 548.4,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 549.5,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 550.5,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 551.5,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 552.6,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 553.6,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 554.6,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 555.7,
+   "gpu0": 100,
+   "mem0": 3803
+  },
+  {
+   "t": 556.7,
+   "gpu0": 100,
+   "mem0": 3803
+  },
+  {
+   "t": 557.7,
+   "gpu0": 100,
+   "mem0": 3803
+  },
+  {
+   "t": 558.8,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 559.8,
+   "gpu0": 100,
+   "mem0": 3803
+  },
+  {
+   "t": 560.8,
+   "gpu0": 100,
+   "mem0": 3803
+  },
+  {
+   "t": 561.9,
+   "gpu0": 100,
+   "mem0": 3803
+  },
+  {
+   "t": 562.9,
+   "gpu0": 100,
+   "mem0": 3803
+  },
+  {
+   "t": 563.9,
+   "gpu0": 100,
+   "mem0": 3803
+  },
+  {
+   "t": 565.0,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 566.0,
+   "gpu0": 100,
+   "mem0": 3803
+  },
+  {
+   "t": 567.0,
+   "gpu0": 100,
+   "mem0": 3803
+  },
+  {
+   "t": 568.1,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 569.1,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 570.1,
+   "gpu0": 100,
+   "mem0": 3803
+  },
+  {
+   "t": 571.2,
+   "gpu0": 100,
+   "mem0": 3803
+  },
+  {
+   "t": 572.2,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 573.2,
+   "gpu0": 100,
+   "mem0": 3803
+  },
+  {
+   "t": 574.2,
+   "gpu0": 100,
+   "mem0": 3803
+  },
+  {
+   "t": 575.3,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 576.3,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 577.3,
+   "gpu0": 100,
+   "mem0": 3803
+  },
+  {
+   "t": 578.4,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 579.4,
+   "gpu0": 100,
+   "mem0": 3803
+  },
+  {
+   "t": 580.4,
+   "gpu0": 100,
+   "mem0": 3803
+  },
+  {
+   "t": 581.4,
+   "gpu0": 100,
+   "mem0": 3803
+  },
+  {
+   "t": 582.5,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 583.5,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 584.5,
+   "gpu0": 100,
+   "mem0": 3803
+  },
+  {
+   "t": 585.6,
+   "gpu0": 100,
+   "mem0": 3803
+  },
+  {
+   "t": 586.6,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 587.6,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 588.7,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 589.7,
+   "gpu0": 100,
+   "mem0": 3803
+  },
+  {
+   "t": 590.7,
+   "gpu0": 100,
+   "mem0": 3803
+  },
+  {
+   "t": 591.8,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 592.8,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 593.8,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 594.9,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 595.9,
+   "gpu0": 100,
+   "mem0": 3803
+  },
+  {
+   "t": 596.9,
+   "gpu0": 100,
+   "mem0": 3803
+  },
+  {
+   "t": 598.0,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 599.0,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 600.0,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 601.0,
+   "gpu0": 98,
+   "mem0": 3803
+  },
+  {
+   "t": 602.1,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 603.1,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 604.1,
+   "gpu0": 100,
+   "mem0": 3803
+  },
+  {
+   "t": 605.2,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 606.2,
+   "gpu0": 100,
+   "mem0": 3803
+  },
+  {
+   "t": 607.2,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 608.3,
+   "gpu0": 100,
+   "mem0": 3803
+  },
+  {
+   "t": 609.3,
+   "gpu0": 100,
+   "mem0": 3803
+  },
+  {
+   "t": 610.3,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 611.3,
+   "gpu0": 20,
+   "mem0": 3803
+  },
+  {
+   "t": 612.4,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 613.4,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 614.4,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 615.5,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 616.5,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 617.5,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 618.6,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 619.6,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 620.6,
+   "gpu0": 100,
+   "mem0": 3803
+  },
+  {
+   "t": 621.7,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 622.7,
+   "gpu0": 100,
+   "mem0": 3803
+  },
+  {
+   "t": 623.7,
+   "gpu0": 100,
+   "mem0": 3803
+  },
+  {
+   "t": 624.8,
+   "gpu0": 100,
+   "mem0": 3803
+  },
+  {
+   "t": 625.8,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 626.8,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 627.8,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 628.9,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 629.9,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 630.9,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 632.0,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 633.0,
+   "gpu0": 100,
+   "mem0": 3803
+  },
+  {
+   "t": 634.0,
+   "gpu0": 100,
+   "mem0": 3803
+  },
+  {
+   "t": 635.0,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 636.1,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 637.1,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 638.1,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 639.2,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 640.2,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 641.2,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 642.3,
+   "gpu0": 100,
+   "mem0": 3803
+  },
+  {
+   "t": 643.3,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 644.3,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 645.4,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 646.4,
+   "gpu0": 100,
+   "mem0": 3803
+  },
+  {
+   "t": 647.4,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 648.4,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 649.5,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 650.5,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 651.5,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 652.6,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 653.6,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 654.6,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 655.7,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 656.7,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 657.7,
+   "gpu0": 100,
+   "mem0": 3803
+  },
+  {
+   "t": 658.8,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 659.8,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 660.8,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 661.9,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 662.9,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 663.9,
+   "gpu0": 100,
+   "mem0": 3803
+  },
+  {
+   "t": 664.9,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 666.0,
+   "gpu0": 100,
+   "mem0": 3803
+  },
+  {
+   "t": 667.0,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 668.0,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 669.1,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 670.1,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 671.1,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 672.1,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 673.2,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 674.2,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 675.2,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 676.3,
+   "gpu0": 100,
+   "mem0": 3803
+  },
+  {
+   "t": 677.3,
+   "gpu0": 100,
+   "mem0": 3803
+  },
+  {
+   "t": 678.3,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 679.4,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 680.4,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 681.4,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 682.5,
+   "gpu0": 100,
+   "mem0": 3803
+  },
+  {
+   "t": 683.5,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 684.5,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 685.5,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 686.6,
+   "gpu0": 99,
+   "mem0": 3803
+  },
+  {
+   "t": 687.6,
+   "gpu0": 100,
+   "mem0": 3803
+  },
+  {
+   "t": 688.6,
+   "gpu0": 100,
+   "mem0": 3803
+  },
+  {
+   "t": 689.7,
+   "gpu0": 0,
+   "mem0": 146
+  },
+  {
+   "t": 690.7,
+   "gpu0": 0,
+   "mem0": 2
+  },
+  {
+   "t": 691.8,
+   "gpu0": 0,
+   "mem0": 2
+  }
+ ],
+ "cpu_samples": [
+  15.8,
+  14.9,
+  16.2,
+  14.8,
+  17.8,
+  17.1,
+  17.9,
+  17.4,
+  17.5,
+  18.3,
+  18.8,
+  18.8,
+  22.8,
+  20.7,
+  17.4,
+  17.2,
+  17.5,
+  17.8,
+  17.6,
+  17.6,
+  18.4,
+  16.4,
+  16.3,
+  20.8,
+  18.0,
+  15.9,
+  14.8,
+  16.6,
+  15.4,
+  15.8,
+  15.9,
+  15.9,
+  15.3,
+  19.6,
+  18.9,
+  16.8,
+  17.5,
+  15.5,
+  15.7,
+  16.5,
+  15.8,
+  15.4,
+  17.0,
+  18.3,
+  19.7,
+  17.2,
+  15.8,
+  14.3,
+  11.4,
+  22.6,
+  18.5,
+  15.8,
+  17.0,
+  17.7,
+  17.1,
+  24.0,
+  18.6,
+  17.1,
+  18.6,
+  17.9,
+  17.8,
+  17.7,
+  17.9,
+  18.8,
+  16.9,
+  20.7,
+  19.1,
+  16.6,
+  10.4,
+  9.0,
+  10.8,
+  10.8,
+  13.6,
+  12.7,
+  11.3,
+  10.8,
+  15.2,
+  15.0,
+  16.7,
+  13.5,
+  11.0,
+  10.2,
+  10.8,
+  9.2,
+  9.4,
+  9.9,
+  10.2,
+  9.2,
+  9.7,
+  10.0,
+  13.1,
+  14.8,
+  11.1,
+  10.8,
+  10.0,
+  10.9,
+  9.4,
+  10.1,
+  9.4,
+  9.1,
+  9.9,
+  8.7,
+  9.5,
+  14.6,
+  13.2,
+  9.9,
+  10.5,
+  9.3,
+  9.2,
+  11.9,
+  9.6,
+  9.4,
+  9.7,
+  10.4,
+  9.7,
+  10.0,
+  15.4,
+  10.7,
+  8.9,
+  8.2,
+  8.7,
+  9.2,
+  8.7,
+  9.8,
+  8.5,
+  11.1,
+  9.8,
+  10.5,
+  14.0,
+  13.5,
+  10.7,
+  9.7,
+  9.3,
+  9.2,
+  9.4,
+  12.3,
+  11.2,
+  9.1,
+  11.9,
+  11.3,
+  10.6,
+  12.1,
+  17.3,
+  15.5,
+  11.4,
+  10.1,
+  10.1,
+  14.2,
+  14.8,
+  14.5,
+  12.3,
+  9.0,
+  8.4,
+  9.0,
+  8.6,
+  9.1,
+  8.8,
+  10.1,
+  8.7,
+  9.0,
+  9.1,
+  15.3,
+  12.2,
+  9.7,
+  8.8,
+  9.1,
+  9.1,
+  8.7,
+  9.7,
+  8.8,
+  9.5,
+  9.3,
+  9.9,
+  10.6,
+  15.2,
+  10.6,
+  9.9,
+  9.7,
+  8.3,
+  9.4,
+  8.8,
+  9.0,
+  7.9,
+  8.3,
+  8.3,
+  8.0,
+  15.1,
+  12.2,
+  10.5,
+  8.3,
+  10.2,
+  9.0,
+  9.4,
+  9.5,
+  9.1,
+  9.6,
+  9.6,
+  9.0,
+  10.2,
+  14.9,
+  11.9,
+  9.6,
+  9.6,
+  9.3,
+  11.1,
+  9.5,
+  10.3,
+  9.1,
+  10.0,
+  9.8,
+  9.4,
+  12.8,
+  13.8,
+  10.9,
+  9.4,
+  10.1,
+  10.3,
+  9.7,
+  10.2,
+  10.1,
+  9.1,
+  9.9,
+  9.7,
+  8.7,
+  12.9,
+  11.7,
+  8.5,
+  8.9,
+  8.2,
+  8.8,
+  7.7,
+  8.8,
+  8.2,
+  8.0,
+  8.8,
+  8.5,
+  9.6,
+  13.8,
+  12.1,
+  10.2,
+  9.9,
+  9.3,
+  10.0,
+  9.3,
+  9.6,
+  9.7,
+  8.9,
+  9.9,
+  9.5,
+  13.4,
+  14.1,
+  11.8,
+  11.1,
+  9.2,
+  9.9,
+  8.8,
+  11.2,
+  8.5,
+  9.8,
+  9.0,
+  9.8,
+  10.2,
+  15.3,
+  12.0,
+  8.7,
+  9.5,
+  8.7,
+  10.2,
+  9.6,
+  9.2,
+  8.1,
+  10.0,
+  8.9,
+  10.4,
+  11.3,
+  13.6,
+  10.4,
+  9.1,
+  10.6,
+  10.0,
+  8.8,
+  9.0,
+  10.1,
+  10.0,
+  8.7,
+  9.5,
+  9.1,
+  14.8,
+  12.6,
+  10.4,
+  8.7,
+  9.4,
+  8.9,
+  9.9,
+  8.9,
+  9.0,
+  8.9,
+  8.3,
+  8.4,
+  7.9,
+  10.5,
+  11.1,
+  9.7,
+  8.8,
+  8.0,
+  8.4,
+  11.0,
+  12.2,
+  12.7,
+  9.2,
+  8.1,
+  9.1,
+  9.1,
+  8.4,
+  8.5,
+  9.7,
+  10.2,
+  9.3,
+  9.7,
+  10.4,
+  14.8,
+  12.7,
+  9.9,
+  9.1,
+  9.8,
+  8.8,
+  10.1,
+  9.7,
+  10.4,
+  9.3,
+  9.5,
+  8.5,
+  13.2,
+  13.2,
+  11.4,
+  10.0,
+  8.8,
+  9.7,
+  10.5,
+  9.2,
+  9.9,
+  9.0,
+  9.6,
+  10.4,
+  10.1,
+  15.3,
+  11.3,
+  9.9,
+  10.0,
+  9.3,
+  9.5,
+  8.7,
+  8.3,
+  8.9,
+  9.0,
+  7.8,
+  8.2,
+  11.5,
+  13.1,
+  10.0,
+  8.9,
+  8.4,
+  8.0,
+  8.3,
+  8.3,
+  8.3,
+  8.0,
+  7.8,
+  8.9,
+  8.2,
+  13.8,
+  13.0,
+  11.1,
+  9.2,
+  10.0,
+  8.7,
+  9.1,
+  8.8,
+  9.7,
+  9.8,
+  8.8,
+  9.5,
+  11.0,
+  15.1,
+  10.7,
+  10.3,
+  9.6,
+  10.0,
+  8.9,
+  8.0,
+  9.8,
+  8.6,
+  9.6,
+  7.8,
+  8.5,
+  12.1,
+  13.7,
+  8.8,
+  8.4,
+  7.5,
+  8.2,
+  7.7,
+  8.1,
+  7.6,
+  8.1,
+  8.4,
+  8.9,
+  8.8,
+  13.7,
+  10.3,
+  6.8,
+  6.6,
+  6.8,
+  6.9,
+  6.5,
+  7.9,
+  7.6,
+  7.0,
+  7.8,
+  8.0,
+  10.7,
+  10.6,
+  8.0,
+  7.4,
+  7.0,
+  6.4,
+  6.6,
+  6.9,
+  6.6,
+  7.0,
+  6.8,
+  7.0,
+  8.2,
+  11.5,
+  12.3,
+  17.8,
+  8.9,
+  7.8,
+  7.7,
+  7.7,
+  7.5,
+  7.3,
+  7.6,
+  8.8,
+  7.4,
+  8.5,
+  12.0,
+  8.5,
+  7.2,
+  8.3,
+  7.3,
+  7.7,
+  8.1,
+  7.8,
+  8.5,
+  8.1,
+  7.7,
+  7.9,
+  9.3,
+  10.9,
+  8.7,
+  9.4,
+  7.4,
+  7.5,
+  9.7,
+  9.9,
+  12.2,
+  8.7,
+  8.7,
+  7.7,
+  7.5,
+  7.7,
+  7.2,
+  7.7,
+  7.8,
+  8.3,
+  8.3,
+  7.5,
+  12.1,
+  11.7,
+  8.8,
+  7.7,
+  7.9,
+  6.8,
+  7.3,
+  6.9,
+  6.7,
+  7.8,
+  8.2,
+  7.6,
+  9.9,
+  13.0,
+  10.3,
+  8.5,
+  7.6,
+  7.1,
+  8.9,
+  7.7,
+  7.6,
+  7.3,
+  8.1,
+  7.4,
+  8.5,
+  12.2,
+  11.4,
+  8.9,
+  7.6,
+  8.0,
+  7.7,
+  7.9,
+  7.5,
+  8.1,
+  8.4,
+  8.6,
+  7.7,
+  9.1,
+  14.2,
+  9.6,
+  8.7,
+  7.9,
+  7.8,
+  8.6,
+  7.3,
+  8.1,
+  8.4,
+  8.0,
+  8.4,
+  7.9,
+  12.0,
+  11.4,
+  9.4,
+  8.2,
+  8.4,
+  8.3,
+  7.7,
+  8.4,
+  7.7,
+  8.1,
+  8.1,
+  8.0,
+  9.5,
+  14.5,
+  11.8,
+  9.9,
+  7.5,
+  8.2,
+  7.3,
+  7.6,
+  8.4,
+  7.3,
+  8.5,
+  8.9,
+  8.5,
+  11.9,
+  11.1,
+  10.9,
+  7.8,
+  7.1,
+  8.6,
+  8.6,
+  7.9,
+  8.5,
+  7.1,
+  7.5,
+  8.2,
+  9.0,
+  12.6,
+  10.3,
+  8.1,
+  7.3,
+  8.4,
+  7.5,
+  6.9,
+  7.6,
+  9.0,
+  11.3,
+  9.5,
+  9.2,
+  10.7,
+  14.4,
+  9.7,
+  9.8,
+  8.7,
+  8.8,
+  8.8,
+  7.9,
+  8.1,
+  7.4,
+  7.8,
+  10.3,
+  9.1,
+  15.7,
+  14.0,
+  11.3,
+  9.4,
+  8.5,
+  11.3,
+  9.5,
+  10.7,
+  8.7,
+  8.1,
+  6.6,
+  6.6,
+  11.3,
+  14.1,
+  14.3,
+  10.2,
+  9.2,
+  7.0,
+  7.4,
+  7.5,
+  8.4,
+  8.9,
+  8.9,
+  9.9,
+  8.6,
+  11.5,
+  13.2,
+  9.7,
+  8.3,
+  7.9,
+  8.2,
+  12.0,
+  10.7,
+  12.0,
+  9.4,
+  8.8,
+  8.5,
+  8.9,
+  9.0,
+  9.2,
+  8.9,
+  9.1,
+  8.8,
+  9.0,
+  9.1,
+  15.1,
+  13.2,
+  8.9,
+  8.6,
+  8.4,
+  8.1,
+  8.8,
+  8.1,
+  10.4,
+  8.7,
+  9.6,
+  10.0,
+  11.1,
+  15.0,
+  12.0,
+  10.0,
+  12.0,
+  10.8
+ ]
+}
