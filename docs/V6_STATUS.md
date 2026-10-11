@@ -92,6 +92,15 @@ Status per 2026-10-11 (branch `v6-impl`). Semua hasil di sini dari **paper / bac
      Klaim lama "top 1% benar 50–72%" **salah**.
 5. Nama window Rust vs Python tidak cocok (`v5_` prefix), sehingga backtest ML gagal. Sudah diperbaiki.
 6. Online learning prediksi ulang semua baris setiap update (waktu kuadratik). Sekarang tiap baris diskor sekali.
+7. **Lompatan harga palsu di pool berharga-eksekusi.**
+   - Contoh: delta vault 17,9 SOL melawan 0,33 ORCA, kemungkinan tambah likuiditas yang digabung dengan swap kecil
+     dalam 1 tx. Akibatnya harga ORCA tercetak 2.000x dan muncul **label ≥50x palsu** pada ORCA.
+   - Akibat ke backtest: sistem membeli ORCA 5 kali dan PUMP 1 kali. Semuanya datar, rugi ~4,5% karena biaya, dan
+     memakan slot modal.
+   - Perbaikan: lompatan > 3x dari satu swap ditahan sampai swap berikutnya mengonfirmasi level baru
+     (`EXEC_PRICE_JUMP`, test `dust_exec_trades_do_not_set_price`). Semua window di-decode dan dilatih ulang.
+8. **EV meremehkan moonshot.** Hasil kelas ≥50x di training (+45%, dari 1 trade) lebih rendah dari kelas 10–50x
+   (+308%) karena penyusutan ke rata-rata negatif. Sekarang hasil kelas naik dibuat monoton (`monotone_upside`).
 
 ## 4. Hasil terukur (label bersih)
 
@@ -131,7 +140,7 @@ Status per 2026-10-11 (branch `v6-impl`). Semua hasil di sini dari **paper / bac
 | Arus bersih ÷ likuiditas | 1,0 | 0,1 | 0,75 |
 | Akselerasi pembeli | +8 | −1 | 0,74 |
 
-**Backtest ML 100 USD** (window s02d_14h ±2,5 jam out-of-sample, venue pump saja):
+**Backtest ML 100 USD** (window s02d_14h, waktu keputusan **74 menit**, out-of-sample, venue pump saja):
 
 - $108,9–111,7, dengan hanya **2–4 trade**. Belum bermakna secara statistik.
 - Penolak terbesar:
@@ -153,7 +162,29 @@ trailing; setelan tunggal, BELUM dipilih grid):
 - Exit: time stop 15, data habis 16 (posisi masih terbuka di akhir window, dinilai pada harga pool), adaptive trail 3,
   rug model 2.
 - Kelly lebih sedikit trade karena 628 sinyal punya taruhan Kelly < 0,02 SOL (biaya tx tetap akan dominan).
-- Masih 1 window ±2,5 jam: belum bermakna statistik. Moonshot 10x yang tertangkap ≥5x: 0 dari 83.
+- Masih 1 window dengan **74 menit** waktu keputusan (sebelumnya saya tulis ±2,5 jam; itu termasuk 1 jam perpanjangan
+  khusus label): belum bermakna statistik. Moonshot 10x yang tertangkap ≥5x: 0 dari 83.
+
+**Audit tambahan (2026-10-11 malam)**
+- **Panjang data**: waktu keputusan per window hanya 74 menit (s02d) dan ~37 menit (s04d, s05d, s06d). Total ±3 jam.
+  36 trade terjadi dalam 74 menit, bukan dari ribuan koin selama berhari-hari. Target ≥ 300 trade butuh ±12 jam
+  waktu keputusan. Download paket Helius Free kira-kira 1,7 jam per 37 menit window, jadi ini hambatan utama.
+- **Kenapa moonshot tidak masuk** (103 koin dengan label ≥10x di window 1):
+  - **rug veto** memblokir 19 dari 36 moonshot yang EV-nya ≥ 0. Momen awal moonshot terlihat seperti rug bagi model
+    rug (P(rug) 0,5–0,7). Label rug sendiri benar (berakhir ≤ 20% tanpa pernah 2x).
+  - **price guard**: harga sudah > 10% di atas titik terendah 5 menit.
+  - **EV** terlalu rendah (lihat bug 8).
+  - **pool launch Meteora DBC** dengan SOL nyata < 1 SOL dianggap pool kecil (`pool_unknown` / `low_liquidity`).
+- **Gate honeypot** (`mint_unsafe`) wajar: yang diblokir kebanyakan saham tokenisasi, stablecoin, dan BTC terbungkus
+  (freeze authority / permanent delegate). Bukan memecoin.
+- **Fee** (`python/research/fee_spread.py`, `reports/v6/FEE_SPREAD_s05d_11h.json`):
+  - spread beli/jual di pump.fun dan PumpSwap (116–118 bps) cocok dengan fee yang di-decode (120–125 bps);
+  - di vault Meteora DBC/DAMM v2 hanya 6–25 bps. Simulator memakai 1,25% per sisi.
+  - Fee partner/protokol di luar vault belum terukur, jadi sweep juga dijalankan dengan 3% per sisi sebagai uji
+    ketahanan.
+- **Alat ukur baru**:
+  - funnel per koin di setiap backtest: penghalang terakhir untuk semua koin, koin ≥2x, dan koin ≥10x;
+  - mode `--variants`: sweep komponen nyala/mati dalam satu proses.
 
 ## 5. Yang belum maksimal (jujur)
 
