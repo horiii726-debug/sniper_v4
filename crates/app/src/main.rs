@@ -389,6 +389,11 @@ enum Cmd {
         slots: u64,
         #[arg(long, default_value = "reports/v6/LEG_AUDIT.json")]
         out: PathBuf,
+        /// Audit a recording instead of fetching recent blocks (trade-vs-transfer check).
+        #[arg(long)]
+        rec: Option<PathBuf>,
+        #[arg(long, default_value_t = 3000)]
+        max_blocks: usize,
     },
     /// Mint safety flags (freeze / mint authority, Token-2022 sell-blocking extensions) for every mint of the
     /// recordings, cached in data/mint_safety.csv.
@@ -496,7 +501,11 @@ fn main() -> Result<()> {
             println!("{}", serde_json::to_string_pretty(&c)?);
             Ok(())
         }
-        Cmd::LegAudit { cluster, slots, out } => {
+        Cmd::LegAudit { cluster, slots, out, rec, max_blocks } => {
+            if let Some(r) = rec {
+                let venues = VenueRegistry::load(&cli.venues)?;
+                return leg_audit::run_rec(&r, venues.program_ids(), max_blocks, &out);
+            }
             let settings = Settings::load(&cli.env, cluster.parse()?)?;
             logging::init(Redactor::new(settings.secrets()), None)?;
             let venues = VenueRegistry::load(&cli.venues)?;

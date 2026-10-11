@@ -1,0 +1,153 @@
+{
+  "blocks": 3000,
+  "counts": {
+    "token_legs": 270810,
+    "txs_known_venue_program": 260497,
+    "txs_other_program": 54,
+    "txs_with_token_legs": 260551
+  },
+  "label": "trade-vs-transfer audit of pool legs (recording)",
+  "other_programs_top": [
+    {
+      "legs": 32,
+      "program": "gatorLx9aC1e5ZWAXscv5QRKiLXnLPLXjftVc81h1Hr",
+      "txs": 31
+    },
+    {
+      "legs": 24,
+      "program": "DF1ow4tspfHX9JwWJsAb9epbkA8hmpSEAtxXy1V27QBH",
+      "txs": 23
+    },
+    {
+      "legs": 24,
+      "program": "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4",
+      "txs": 23
+    },
+    {
+      "legs": 22,
+      "program": "BiSoNHVpsVZW2F7rx2eQ59yQwKxzU5NvBcmKshCSUypi",
+      "txs": 20
+    },
+    {
+      "legs": 14,
+      "program": "goonuddtQRrWqqn5nFyczVKaie28f3kDkHWkHtURSLE",
+      "txs": 13
+    },
+    {
+      "legs": 11,
+      "program": "TessVdML9pBGgG9yGks7o4HewRaXVAMuoVj4x83GLQH",
+      "txs": 11
+    },
+    {
+      "legs": 10,
+      "program": "MNFSTqtC93rEfYHB6hF82sKdZpUDFWkViLByLd1k1Ms",
+      "txs": 10
+    },
+    {
+      "legs": 7,
+      "program": "T1TANpTeScyeqVzzgNViGDNrkQ6qHz9KrSBS4aNXvGT",
+      "txs": 7
+    },
+    {
+      "legs": 8,
+      "program": "ALPHAQmeA7bjrVuccPsYPiCvsi428SNwte66Srvs4pHA",
+      "txs": 7
+    },
+    {
+      "legs": 4,
+      "program": "SCoRcH8c2dpjvcJD6FiPbCSQyQgu3PcUAWj2Xxx3mqn",
+      "txs": 4
+    },
+    {
+      "legs": 4,
+      "program": "ojh19ojaKduoJZuaJADhcVGp4xt1TcdAvZmpVsCorch",
+      "txs": 4
+    },
+    {
+      "legs": 3,
+      "program": "AQU1FRd7papthgdrwPTTq5JacJh8YtwEXaBfKU3bTz45",
+      "txs": 3
+    },
+    {
+      "legs": 2,
+      "program": "EpEEdmjbLsZFCaGgHHnwaysW9bKWNcdm3bxs6HXAQwSk",
+      "txs": 2
+    },
+    {
+      "legs": 2,
+      "program": "HpNfyc2Saw7RKkQd8nEL4khUcuPhQ7WwY1B2qjx8jxFq",
+      "txs": 2
+    },
+    {
+      "legs": 1,
+      "program": "Cpe3GQutok52yq3hwTuhnrEaaGPUykq4cGWVvXUU5axd",
+      "txs": 1
+    },
+    {
+      "legs": 1,
+      "program": "jupZ4m2GqUCJ5iueMfzQf8khFfH31d4XAQt3RzCT9Vd",
+      "txs": 1
+    },
+    {
+      "legs": 1,
+      "program": "3i5JeuZuUxeKtVysUnwQNGerJP2bSMX9fTFfS4Nxe3Br",
+      "txs": 1
+    },
+    {
+      "legs": 1,
+      "program": "B3111yJCeHBcA1bizdJjUFPALfhAfSRnAbJzGUtnt56A",
+      "txs": 1
+    },
+    {
+      "legs": 1,
+      "program": "DRVSpZ2YUYYKgZP8XtLhAGtT1zYSCKzeHfb4DgRnrgqD",
+      "txs": 1
+    },
+    {
+      "legs": 1,
+      "program": "jupeiUmn818Jg1ekPURTpr4mFo29p46vygyykFJ3wZC",
+      "txs": 1
+    },
+    {
+      "legs": 1,
+      "program": "24Uqj9JCLxUeoC3hGfh5W3s9FM9uCHDS2SG3LYwBpyTi",
+      "txs": 1
+    },
+    {
+      "legs": 1,
+      "program": "proVF4pMXVaYqmy4NjniPh4pqKNfMmsihgd4wdkCX3u",
+      "txs": 1
+    },
+    {
+      "legs": 1,
+      "program": "SV2EYYJyRz2YhfXwXnhNAevDEui5Q6yrfyo13WtupPF",
+      "txs": 1
+    },
+    {
+      "legs": 1,
+      "program": "Eo7WjKq67rjJQSZxS6z3YkapzY3eMj6Xy8X5EQVn5UaB",
+      "txs": 1
+    },
+    {
+      "legs": 1,
+      "program": "L2TExMFKdjpN9kozasaurPirfHy9P8sbXoAN1qA3S95",
+      "txs": 1
+    },
+    {
+      "legs": 1,
+      "program": "ZERor4xhbUycZ6gb9ntrhqscUcZmAbQDjEAtCf4hbZY",
+      "txs": 1
+    },
+    {
+      "legs": 1,
+      "program": "sattCHvHkM4XHLyadnU4KQtuNWZbWVDKzuPhmJBXCkq",
+      "txs": 1
+    },
+    {
+      "legs": 1,
+      "program": "B72M6nyCLFgWiJtAN4naUTminMiTmyGcEqQHXwVeRdht",
+      "txs": 1
+    }
+  ],
+  "rec": "data/v5_s02d_14h"
+}

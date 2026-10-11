@@ -116,3 +116,55 @@ pub async fn run(rpc_url: String, programs: Vec<String>, slots: u64, out: &std::
     println!("{}", serde_json::to_string_pretty(&rep)?);
     Ok(())
 }
+
+/// Trade-vs-transfer audit on a recording: for every transaction with token pool legs, which programs it invokes.
+/// A leg in a transaction that invokes only infrastructure programs (system, token, ATA, compute budget, memo) would
+/// be a transfer misread as a swap.
+pub fn run_rec(rec: &std::path::Path, programs: Vec<String>, max_blocks: usize, out: &std::path::Path) -> Result<()> {
+    let pset: HashSet<String> = programs.into_iter().collect();
+    let mut c: BTreeMap<&str, u64> = BTreeMap::new();
+    let mut other_prog: HashMap<String, (u64, u64)> = HashMap::new();
+    let mut blocks = 0usize;
+    for m in recorder::Reader::open(rec)? {
+        let m = m?;
+        if m.source != events::Source::Rpc {
+            continue;
+        }
+        let v: Value = serde_json::from_slice(&m.payload)?;
+        let Some(txs) = v["result"]["transactions"].as_array() else { continue };
+        blocks += 1;
+        if blocks > max_blocks {
+            break;
+        }
+        for t in txs {
+            let (legs, _) = pool_legs::legs(t);
+            let token_legs = legs.iter().filter(|l| l.kind != LegKind::Price).count() as u64;
+            if token_legs == 0 {
+                continue;
+            }
+            let inv = invoked(t);
+            *c.entry("txs_with_token_legs").or_default() += 1;
+            *c.entry("token_legs").or_default() += token_legs;
+            if inv.is_empty() {
+                *c.entry("txs_INFRA_ONLY_possible_transfer").or_default() += 1;
+                *c.entry("legs_INFRA_ONLY_possible_transfer").or_default() += token_legs;
+            } else if inv.iter().any(|p| pset.contains(p)) {
+                *c.entry("txs_known_venue_program").or_default() += 1;
+            } else {
+                *c.entry("txs_other_program").or_default() += 1;
+                for p in inv {
+                    let e = other_prog.entry(p).or_default();
+                    e.0 += 1;
+                    e.1 += token_legs;
+                }
+            }
+        }
+    }
+    let mut progs: Vec<(String, (u64, u64))> = other_prog.into_iter().collect();
+    progs.sort_by(|a, b| b.1 .0.cmp(&a.1 .0));
+    let rep = json!({"label": "trade-vs-transfer audit of pool legs (recording)", "rec": rec, "blocks": blocks.min(max_blocks), "counts": c,
+        "other_programs_top": progs.iter().take(30).map(|(p, (t, l))| json!({"program": p, "txs": t, "legs": l})).collect::<Vec<_>>()});
+    std::fs::write(out, serde_json::to_string_pretty(&rep)?)?;
+    println!("{}", serde_json::to_string_pretty(&rep)?);
+    Ok(())
+}
