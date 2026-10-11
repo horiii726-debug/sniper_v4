@@ -29,11 +29,21 @@ pub async fn confirmed_blocks(rpc: &Rpc, start: u64, end: u64, c: &FetchCounters
     let mut from = start;
     while from <= end {
         let to = end.min(from + 499_999);
-        c.get_blocks_calls.fetch_add(1, Ordering::Relaxed);
-        let v = rpc.call("getBlocks", json!([from, to, {"commitment": "finalized"}])).await?;
-        if let Some(e) = v.get("error") {
-            return Err(anyhow!("getBlocks: {e}"));
-        }
+        // transient failures (rate limit pages, timeouts) are retried with backoff; a JSON-RPC error is final
+        let mut attempt = 0u32;
+        let v = loop {
+            c.get_blocks_calls.fetch_add(1, Ordering::Relaxed);
+            match rpc.call("getBlocks", json!([from, to, {"commitment": "finalized"}])).await {
+                Ok(v) if v.get("error").is_none() => break v,
+                Ok(v) if ![-32004, -32014, -32016, -32429, -32005].contains(&v["error"]["code"].as_i64().unwrap_or(0)) => {
+                    return Err(anyhow!("getBlocks: {}", v["error"]));
+                }
+                r if attempt >= 8 => return Err(r.err().unwrap_or_else(|| anyhow!("getBlocks: retries exhausted"))),
+                _ => {}
+            }
+            attempt += 1;
+            tokio::time::sleep(Duration::from_millis(500 * 2u64.pow(attempt.min(5)))).await;
+        };
         out.extend(v["result"].as_array().ok_or_else(|| anyhow!("getBlocks: no result"))?.iter().filter_map(Value::as_u64));
         from = to + 1;
     }
