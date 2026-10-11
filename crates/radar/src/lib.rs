@@ -166,6 +166,8 @@ pub struct Params {
     pub newborn_auto_hot: bool,
     /// New-coin path while age <= this (None = forever).
     pub new_max_age_s: Option<i64>,
+    /// New-coin path: unique real buying clusters needed (None = min_buyers).
+    pub new_min_buyers: Option<usize>,
     /// Creator trades do not count as real buyers / buy SOL / buy arrivals.
     pub exclude_creator: bool,
     /// Count buyers per cluster (true) or per wallet (false).
@@ -222,6 +224,7 @@ impl Default for Params {
             proxy_max_progress: 0.05,
             newborn_auto_hot: false,
             new_max_age_s: Some(1800),
+            new_min_buyers: None,
             exclude_creator: true,
             count_clusters: true,
             old_max_median_buy_sol: None,
@@ -462,7 +465,8 @@ fn fast_rule(m: &Metrics, p: &Params, max_med: Option<f64>, max_bs: Option<f64>,
 
 /// NEW-coin path (strict, no auto-HOT): fast rule WITH the median and buy/sell filters (file 01 §2.4).
 fn new_rule(c: &Coin, m: &Metrics, now: i64, p: &Params) -> bool {
-    fast_rule(m, p, Some(p.max_median_buy_sol), Some(p.max_buy_sell_ratio), accel_ok(c, now, p))
+    let q = Params { min_buyers: p.new_min_buyers.unwrap_or(p.min_buyers), ..*p };
+    fast_rule(m, &q, Some(p.max_median_buy_sol), Some(p.max_buy_sell_ratio), accel_ok(c, now, p))
 }
 
 /// OLD-coin path: awakening rules without the median block, plus the flow / liquidity rule.

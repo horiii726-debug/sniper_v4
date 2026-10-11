@@ -3,14 +3,15 @@
     "data/bf_1h",
     "data/h1d"
   ],
-  "grid_size": 224,
-  "objective": "newborns HOT by rule; awakening rules maximize summed mean recall(2x,5x) on pre-existing coins s.t. precision_2x >= naive on every dev recording",
+  "tested_on": [
+    "data/v5_s02d_14h"
+  ],
   "params": {
     "demote_idle_s": 300,
     "lift": 1.15,
     "lift_min_buyers": 2,
-    "max_buy_sell_ratio": 4.0,
-    "max_median_buy_sol": 1.0,
+    "max_buy_sell_ratio": 1000000000.0,
+    "max_median_buy_sol": 1000000000.0,
     "min_accel": 2.0,
     "min_buy_sol": 1.0,
     "min_buyers": 4,
@@ -20,6 +21,17 @@
     "slow_win_s": 300,
     "tau_fast_s": 10.0,
     "tau_slow_s": 120.0,
-    "win_s": 60
+    "win_s": 60,
+    "exclude_creator": false,
+    "new_min_buyers": 3
+  },
+  "grid_size": 16,
+  "objective": "new-coin path grid (buy/sell cap, median cap, creator counted, new_min_buyers) chosen on dev windows bf_1h+h1d: maximize median recall of new-coin >=5x runners HOT before +10% s.t. hot_per_min <= 30 and precision_2x >= 0.95 x base on each dev window; old-coin fields frozen from the V4 tune",
+  "test_result_v5_s02d_14h": {
+    "new_5x_hot_before_10": "64/128 (base 16/128)",
+    "old_5x_hot_before_10": "84/92 (base 84/92)",
+    "hot_per_min": 23.1,
+    "precision_2x": 0.259,
+    "naive_precision_2x": 0.239
   }
 }
