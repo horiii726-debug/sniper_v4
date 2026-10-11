@@ -28,8 +28,18 @@ fn snap_every(since_hot: i64) -> i64 {
         30
     }
 }
-/// V5 §3: label horizon (= max_hold_s) and label latency.
+/// V5 §3: default label horizon (= max_hold_s) and label latency.
 pub const H_S: i64 = 36_000;
+static LABEL_H: std::sync::OnceLock<i64> = std::sync::OnceLock::new();
+
+/// Label horizon used by labels, censoring and walk-forward purges (set once from `--label-horizon-s`).
+pub fn set_label_horizon(h: i64) {
+    let _ = LABEL_H.set(h.max(1));
+}
+
+pub fn label_h() -> i64 {
+    *LABEL_H.get_or_init(|| H_S)
+}
 const LABEL_LAT_S: i64 = 1;
 /// Smart wallet: shrunk mean log return per closed trip above this (non-bot). Sniper: >= this many newborn snipes.
 const SMART_THETA: f32 = 0.1;
@@ -1215,7 +1225,7 @@ pub fn labels(path: &[(i64, f64)], t: i64, deaths: &[i64], cover_end: i64) -> Op
     if p0 <= 0.0 {
         return None;
     }
-    let end = (t + H_S).min(cover_end);
+    let end = (t + label_h()).min(cover_end);
     let (mut tp1, mut hold): (Option<u8>, Option<u8>) = (None, None);
     let (mut barrier, mut peak_b, mut mx, mut last, mut t2) = (false, f64::NAN, 1.0f64, 1.0f64, -1.0f32);
     for &(tt, p) in &path[i0 + 1..] {
@@ -1284,7 +1294,7 @@ pub fn barrier_path(path: &[(i64, f64)], t: i64, cover_end: i64) -> Option<Barri
     if p0 <= 0.0 {
         return None;
     }
-    let end = (t + H_S).min(cover_end);
+    let end = (t + label_h()).min(cover_end);
     let (mut peak, mut t_peak, mut min_run, mut min_before_peak) = (1.0f64, 0i64, 1.0f64, 1.0f64);
     let mut hit = [false; 4];
     let mut pb = [f64::NAN; 4];
@@ -1311,7 +1321,7 @@ pub fn barrier_path(path: &[(i64, f64)], t: i64, cover_end: i64) -> Option<Barri
 
 /// V5 §3.2 censoring: the label window [t, t + H] is covered by data, or the coin died inside the data first.
 pub fn label_covered(t: i64, deaths: &[i64], cover_end: i64) -> bool {
-    cover_end >= t + H_S || deaths.iter().any(|&d| d > t && d <= cover_end)
+    cover_end >= t + label_h() || deaths.iter().any(|&d| d > t && d <= cover_end)
 }
 
 /// Death times per coin (V5 §3.2): a real-trade gap of >= DEAD_IDLE_S during which, at last_real + DEAD_IDLE_S,

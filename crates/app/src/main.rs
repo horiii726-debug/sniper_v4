@@ -39,6 +39,10 @@ struct Cli {
     /// Display-only SOL/USD rate for USD fields in reports (never fetched; absent = null).
     #[arg(long, global = true)]
     sol_usd: Option<f64>,
+    /// Label horizon, seconds (labels, censoring, purge). 36000 = 10 h (needs follow-up data); 3600 with a
+    /// one-hour extension backfill (decision_window.json).
+    #[arg(long, global = true, default_value_t = ml_sim::H_S)]
+    label_horizon_s: i64,
     #[command(subcommand)]
     cmd: Cmd,
 }
@@ -346,6 +350,15 @@ enum Cmd {
         #[arg(long, default_value_t = 600)]
         horizon_s: i64,
     },
+    /// Append an extension backfill (the slots right after a window, separate `backfill --out EXT`) to a window:
+    /// moves EXT's raw segments into REC, writes decision_window.json (decisions only in the original window) and
+    /// removes REC's decoded caches so the next load decodes window + extension (all coins, all venues).
+    ExtendWindow {
+        #[arg(long)]
+        rec: PathBuf,
+        #[arg(long)]
+        ext: PathBuf,
+    },
     /// Component ablation: each radar / strategy component switched off alone on the same windows.
     Ablate {
         #[arg(long, required = true)]
@@ -376,6 +389,7 @@ enum Cmd {
 fn main() -> Result<()> {
     let cli = Cli::parse();
     units::set(units::Units { start_sol: cli.start_sol, sol_usd: cli.sol_usd });
+    ml_sim::set_label_horizon(cli.label_horizon_s);
     let _ = rustls::crypto::ring::default_provider().install_default();
     let rt = tokio::runtime::Builder::new_multi_thread().enable_all().build()?;
     match cli.cmd {
@@ -454,6 +468,35 @@ fn main() -> Result<()> {
             }).collect::<Result<Vec<()>>>()?;
             Ok(())
         }
+        Cmd::ExtendWindow { rec, ext } => {
+            if rec.join("decision_window.json").exists() {
+                bail!("{}: already extended", rec.display());
+            }
+            let ev = backtest::load_window(&rec)?;
+            let (es, rs) = (read_summary(&ext)?, read_summary(&rec)?);
+            let (r_end, e_start) = (rs["end_slot"].as_u64().unwrap_or(0), es["start_slot"].as_u64().unwrap_or(0));
+            if e_start != r_end + 1 {
+                bail!("extension starts at slot {e_start}, window ends at {r_end}: not contiguous");
+            }
+            let mut segs: Vec<PathBuf> = std::fs::read_dir(&ext)?.flatten().map(|e| e.path())
+                .filter(|p| p.file_name().and_then(|n| n.to_str()).is_some_and(|n| n.starts_with("raw-") && n.ends_with(".zst"))).collect();
+            segs.sort();
+            if segs.is_empty() {
+                bail!("{}: no raw segments", ext.display());
+            }
+            for (i, s) in segs.iter().enumerate() {
+                std::fs::rename(s, rec.join(format!("raw-{:06}.zst", 100_000 + i)))?;
+            }
+            std::fs::write(rec.join("decision_window.json"), serde_json::to_string_pretty(&serde_json::json!({
+                "decision_end": ev.window.1, "decision_start": ev.window.0, "window_end_slot": r_end,
+                "extension_slots": es["slots_in_range"], "extension_end_slot": es["end_slot"] }))?)?;
+            std::fs::copy(ext.join("summary.json"), rec.join("extension_summary.json"))?;
+            for f in [backtest::CACHE_V3, backtest::CREATIONS_FILE, "pump_events_v2.bin", "venue_decode_stats.json"] {
+                let _ = std::fs::remove_file(rec.join(f));
+            }
+            println!("{}: decision window {:?}, {} extension segments moved; decode with export-events", rec.display(), ev.window, segs.len());
+            Ok(())
+        }
         Cmd::Ablate { rec, radar_params, strategy, out } => {
             let rp = radar_feed::load_params(&radar_params)?;
             let st: strategy_v5::StratV5 = match strategy { Some(p) => serde_json::from_str(&std::fs::read_to_string(p)?)?, None => Default::default() };
@@ -529,7 +572,7 @@ fn main() -> Result<()> {
                 let (n_w, n_sol) = (ctx.wallets.iter().filter(|w| w.is_some()).count(), ctx.sol_usd.len());
                 let st = ml_sim::write_snapshots(&ev, rp, ctx, &r.join("snapshots_v5.csv.zst"))?;
                 let v = serde_json::json!({ "stats": st, "wallets_with_scores": n_w, "sol_usd_minutes": n_sol,
-                    "window": ev.window, "data_end": ev.data_end(), "horizon_s": ml_sim::H_S });
+                    "window": ev.window, "data_end": ev.data_end(), "horizon_s": ml_sim::label_h() });
                 std::fs::write(r.join("snapshots_v5_stats.json"), serde_json::to_string_pretty(&v)?)?;
                 println!("{}: {}", r.display(), serde_json::to_string(&v)?);
                 Ok(())
@@ -1180,4 +1223,9 @@ fn verify_backfill(rec: &Path) -> Result<()> {
     });
     println!("{}", serde_json::to_string_pretty(&v)?);
     Ok(())
+}
+
+fn read_summary(rec: &Path) -> Result<serde_json::Value> {
+    let p = rec.join("summary.json");
+    Ok(serde_json::from_str(&std::fs::read_to_string(&p).with_context(|| format!("read {}", p.display()))?)?)
 }

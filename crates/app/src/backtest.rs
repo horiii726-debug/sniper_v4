@@ -236,7 +236,27 @@ fn attach_creations(ev: &mut Events, rec: &Path) -> Result<()> {
 pub fn load_window(rec: &Path) -> Result<Events> {
     let mut ev = load_window_events(rec)?;
     attach_creations(&mut ev, rec)?;
+    apply_decision_window(&mut ev, rec)?;
     Ok(ev)
+}
+
+/// Optional `<rec>/decision_window.json` `{"decision_end": unix_s}`: the recording continues past the decision
+/// window (an extension backfill of the following slots, every coin and venue). Decisions only up to decision_end;
+/// every coin's data covers the whole recording (labels without follow-up selection).
+fn apply_decision_window(ev: &mut Events, rec: &Path) -> Result<()> {
+    let p = rec.join("decision_window.json");
+    if !p.exists() {
+        return Ok(());
+    }
+    let v: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(&p)?)?;
+    let de = v["decision_end"].as_i64().ok_or_else(|| anyhow!("{}: no decision_end", p.display()))?;
+    let data_end = ev.window.1;
+    if de < ev.window.0 || de > data_end {
+        return Err(anyhow!("{}: decision_end {de} outside the recording {:?}", p.display(), ev.window));
+    }
+    ev.window.1 = de;
+    ev.cover_end = vec![data_end; ev.mints.len()];
+    Ok(())
 }
 
 /// Decoded-event cache present (any version)?

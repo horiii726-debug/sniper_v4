@@ -6,7 +6,7 @@
 //! trained only on earlier windows (purged by H); <models>/fold_<W>/entry_bin.meta.json lists those training
 //! windows. R_k for W is measured on exactly those training windows.
 
-use crate::ml_sim::{self, H_S};
+use crate::ml_sim::{self, label_h};
 use crate::strategy_v5::{self as s5, CostsV5, FileScores, ReportV5, StratV5, WindowData};
 use anyhow::{anyhow, Result};
 use radar::Params as RadarParams;
@@ -68,7 +68,7 @@ pub fn run_walk_forward(all: &[Loaded], data: &[WindowData], tests: &[usize], mo
         let train: Vec<&WindowData> = data.iter().filter(|d| train_names.contains(&d.name)).collect();
         // Purge check (defensive): no training window may end within H of the test window start.
         for d in &train {
-            if d.ev.data_end() > w.ev.window.0 - H_S {
+            if d.ev.data_end() > w.ev.window.0 - label_h() {
                 return Err(anyhow!("fold {}: training window {} ends within H of the test start", w.name, d.name));
             }
         }
