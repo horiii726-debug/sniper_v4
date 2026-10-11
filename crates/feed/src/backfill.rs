@@ -1,5 +1,6 @@
 //! Historical backfill (HISTORICAL-FIRST mode, G0.H1–H3): fetch every slot of a range with getBlock,
-//! keep only transactions touching the venue programs, and emit RawMsgs in the live recorder format
+//! keep transactions touching the venue programs OR trading a token against any pool (program-agnostic pool legs,
+//! `decoder::pool_legs`: unknown venues, routes), and emit RawMsgs in the live recorder format
 //! (`Source::Rpc`, method `getBlock`) so the same replay/pipeline code reads both.
 
 use crate::rpc::Rpc;
@@ -39,7 +40,7 @@ pub async fn confirmed_blocks(rpc: &Rpc, start: u64, end: u64, c: &FetchCounters
     Ok(out)
 }
 
-fn tx_touches(t: &Value, programs: &HashSet<String>) -> bool {
+pub fn tx_touches(t: &Value, programs: &HashSet<String>) -> bool {
     let keys = t["transaction"]["message"]["accountKeys"].as_array();
     let hit = |a: Option<&Vec<Value>>| a.is_some_and(|a| a.iter().any(|k| k.as_str().is_some_and(|k| programs.contains(k))));
     hit(keys) || hit(t["meta"]["loadedAddresses"]["writable"].as_array()) || hit(t["meta"]["loadedAddresses"]["readonly"].as_array())
@@ -75,7 +76,7 @@ async fn fetch_slot(rpc: Rpc, slot: u64, programs: Arc<HashSet<String>>, c: Arc<
                     let txs = r["transactions"].take();
                     let all = txs.as_array().cloned().unwrap_or_default();
                     let n_all = all.len() as u64;
-                    let kept: Vec<Value> = all.into_iter().filter(|t| tx_touches(t, &programs)).collect();
+                    let kept: Vec<Value> = all.into_iter().filter(|t| tx_touches(t, &programs) || decoder::pool_legs::has_token_leg(t)).collect();
                     c.txs_total.fetch_add(n_all, Ordering::Relaxed);
                     c.txs_kept.fetch_add(kept.len() as u64, Ordering::Relaxed);
                     r["transactions"] = Value::Array(kept);
@@ -92,7 +93,7 @@ async fn fetch_slot(rpc: Rpc, slot: u64, programs: Arc<HashSet<String>>, c: Arc<
 fn wrap(slot: u64, result: Value, error: Value, block_tx_count: u64) -> RawMsg {
     let v = json!({
         "method": "getBlock",
-        "params": { "slot": slot, "filtered": "venue_programs", "block_tx_count": block_tx_count },
+        "params": { "slot": slot, "filtered": "venue_programs_or_pool_legs", "block_tx_count": block_tx_count },
         "result": result, "error": error
     });
     RawMsg { source: Source::Rpc, recv_wall_ns: latency::wall_ns(), recv_mono_ns: latency::mono_ns(), payload: v.to_string().into_bytes() }

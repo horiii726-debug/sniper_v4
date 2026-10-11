@@ -28,6 +28,10 @@ pub mod code {
     pub const METEORA_DBC: u8 = 8;
     pub const ORCA_WHIRLPOOL: u8 = 9;
     pub const MOONSHOT: u8 = 10;
+    /// Program-agnostic pool leg (`pool_legs`) on a pool not seen in a single-venue trade (unknown program or route).
+    pub const OTHER_VENUE: u8 = 11;
+    /// Program-agnostic pool leg quoted in USDC / USDT, converted to SOL with the on-chain SOL/USD price legs.
+    pub const STABLE_QUOTED: u8 = 12;
     pub const UNKNOWN: u8 = 255;
 
     /// Code of a `config/venues.toml` venue name.
@@ -61,6 +65,8 @@ pub mod code {
             METEORA_DBC => "meteora_dbc",
             ORCA_WHIRLPOOL => "orca_whirlpool",
             MOONSHOT => "moonshot",
+            OTHER_VENUE => "other_venue",
+            STABLE_QUOTED => "stable_quoted",
             _ => "unknown",
         }
     }

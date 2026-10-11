@@ -289,6 +289,11 @@ fn load_window_events(rec: &Path) -> Result<Events> {
     let reg = config::VenueRegistry::load(Path::new("config/venues.toml"))?;
     let mut vdec = decoder::venue_pool::VenueDecoder::new(reg.venue.iter().map(|v| (v.name.as_str(), v.program_id.as_str())));
     let mut creations: Vec<CreationRec> = Vec::new();
+    let mut vault_venue: FxHashMap<String, u8> = FxHashMap::default();
+    let mut leg_stats: std::collections::BTreeMap<String, u64> = Default::default();
+    // on-chain SOL/USD from SOL-stable price legs: last price (stable-quote conversion), per-minute medians (file)
+    let mut sol_usd_last = 0.0f64;
+    let mut sol_usd_min: std::collections::BTreeMap<i64, Vec<f64>> = Default::default();
     let (mut s0, mut s1) = (u64::MAX, 0u64);
     let mut mints: FxHashMap<String, u32> = FxHashMap::default();
     let mut users: FxHashMap<String, u32> = FxHashMap::default();
@@ -318,7 +323,9 @@ fn load_window_events(rec: &Path) -> Result<Events> {
                     amm: cr.venue == Venue::Amm, migration: cr.migration, price: cr.price,
                 });
             }
+            let mut pump_mints: Vec<String> = Vec::new();
             for (k, e) in dec.decode(&tx).into_iter().enumerate() {
+                pump_mints.push(e.mint.clone());
                 let n = mints.len() as u32;
                 let coin = *mints.entry(e.mint).or_insert(n);
                 let n = users.len() as u32;
@@ -346,7 +353,91 @@ fn load_window_events(rec: &Path) -> Result<Events> {
                 });
             }
             // Other venues (Raydium, Meteora, Orca, ...): generic SOL-quoted trades; the creator is unknown there.
-            if let Some(p) = vdec.decode(t) {
+            let decoded = vdec.decode(t);
+            if let Some(p) = &decoded {
+                vault_venue.insert(p.pool.clone(), p.venue);
+            }
+            if decoded.is_none() {
+                // Not a clean single-venue trade: program-agnostic pool legs (routes, unknown venues, stable
+                // quotes). Pump mints of this transaction stay with the pump decoder (no double counting).
+                let (legs, skips) = decoder::pool_legs::legs(t);
+                for s in skips {
+                    *leg_stats.entry(format!("skip_{s:?}")).or_default() += 1;
+                }
+                for (j, l) in legs.iter().enumerate().take(0x7F) {
+                    use decoder::pool_legs::{LegKind, Quote};
+                    use decoder::venue_pool::code;
+                    if l.kind == LegKind::Price {
+                        // SOL against USDC/USDT, pool received SOL when side == Buy; only legs >= 0.5 SOL
+                        if l.quote == Quote::Sol && l.quote_amt >= 500_000_000 && l.token_amt > 0 {
+                            let usd = l.token_amt as f64 / 10f64.powi(l.decimals as i32);
+                            let px = usd / (l.quote_amt as f64 / 1e9);
+                            if px.is_finite() && px > 0.0 {
+                                sol_usd_last = px;
+                                sol_usd_min.entry(time.div_euclid(60) * 60 + 60).or_default().push(px);
+                            }
+                        }
+                        *leg_stats.entry("price_legs".into()).or_default() += 1;
+                        continue;
+                    }
+                    if pump_mints.iter().any(|m| m == &l.mint) {
+                        *leg_stats.entry("skip_pump_mint".into()).or_default() += 1;
+                        continue;
+                    }
+                    let to_lamports = |amt: u128| -> Option<u128> {
+                        match l.quote {
+                            Quote::Sol => Some(amt),
+                            // stablecoins: 6 decimals
+                            _ => (sol_usd_last > 0.0).then(|| (amt as f64 / 1e6 / sol_usd_last * 1e9) as u128),
+                        }
+                    };
+                    let (Some(sol), Some(qres)) = (to_lamports(l.quote_amt), to_lamports(l.quote_post)) else {
+                        *leg_stats.entry("skip_no_sol_usd_yet".into()).or_default() += 1;
+                        continue;
+                    };
+                    if sol == 0 || l.token_amt == 0 {
+                        continue;
+                    }
+                    let venue = if l.quote != Quote::Sol {
+                        code::STABLE_QUOTED
+                    } else {
+                        vault_venue.get(&l.token_vault).copied().unwrap_or(code::OTHER_VENUE)
+                    };
+                    let token_res = if code::cpmm_vaults(venue) && l.kind == LegKind::Vault {
+                        l.token_post
+                    } else {
+                        (qres as f64 * l.token_amt as f64 / sol as f64) as u128
+                    };
+                    let n = mints.len() as u32;
+                    let coin = *mints.entry(l.mint.clone()).or_insert(n);
+                    let payer = t["transaction"]["message"]["accountKeys"].get(0).and_then(|x| x.as_str()).unwrap_or("").to_string();
+                    let n = users.len() as u32;
+                    let user = *users.entry(payer).or_insert(n);
+                    let n = users.len() as u32;
+                    let creator = *users.entry(UNKNOWN_CREATOR.to_string()).or_insert(n);
+                    *leg_stats.entry(format!("decoded_{}", code::name(venue))).or_default() += 1;
+                    evs.push(Ev {
+                        slot,
+                        order: (slot << 24) | ((i as u64) << 8) | (0x80 + j as u64),
+                        time,
+                        coin,
+                        amm: true,
+                        buy: l.side == decoder::balance_delta::Side::Buy,
+                        sol: sol.min(u64::MAX as u128) as u64,
+                        tokens: l.token_amt.min(u64::MAX as u128) as u64,
+                        user,
+                        creator,
+                        quote_res: qres,
+                        token_res,
+                        real_quote: qres.min(u64::MAX as u128) as u64,
+                        real_token: token_res.min(u64::MAX as u128) as u64,
+                        fee_bps: 0,
+                        complete: false,
+                        venue,
+                    });
+                }
+            }
+            if let Some(p) = decoded {
                 let n = mints.len() as u32;
                 let coin = *mints.entry(p.trade.mint.clone()).or_insert(n);
                 let n = users.len() as u32;
@@ -395,7 +486,16 @@ fn load_window_events(rec: &Path) -> Result<Events> {
     std::fs::write(rec.join("venue_decode_stats.json"), serde_json::to_string_pretty(&serde_json::json!({
         "events_by_venue": by,
         "generic_skipped": vdec.skipped.iter().map(|(k, v)| (format!("{k:?}"), *v)).collect::<std::collections::BTreeMap<_, _>>(),
+        "pool_legs": leg_stats,
     }))?)?;
+    let mut csv = String::new();
+    for (t, mut v) in sol_usd_min {
+        v.sort_by(|a, b| a.total_cmp(b));
+        csv.push_str(&format!("{t},{}\n", v[v.len() / 2]));
+    }
+    if !csv.is_empty() {
+        std::fs::write(rec.join("sol_usd_1m.csv"), csv)?;
+    }
     Ok(Events::new(out.evs, out.mints, out.window, out.users))
 }
 

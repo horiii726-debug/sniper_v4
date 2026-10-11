@@ -5,6 +5,7 @@ mod census;
 mod diagnose;
 mod follow;
 mod label_diag;
+mod leg_audit;
 mod pump_check;
 mod radar_eval;
 mod radar_feed;
@@ -379,6 +380,15 @@ enum Cmd {
         #[arg(long, default_value = "reports/V5_9_BARRIER.json")]
         out: PathBuf,
     },
+    /// Coverage audit: recent blocks fetched unfiltered; pool legs kept vs dropped by the venue-program filter.
+    LegAudit {
+        #[arg(long, default_value = "mainnet")]
+        cluster: String,
+        #[arg(long, default_value_t = 40)]
+        slots: u64,
+        #[arg(long, default_value = "reports/v6/LEG_AUDIT.json")]
+        out: PathBuf,
+    },
     /// G0.H1 check on a backfill recording: every slot fetched or confirmed skipped.
     VerifyBackfill {
         #[arg(long)]
@@ -456,6 +466,12 @@ fn main() -> Result<()> {
             rt.block_on(backfill(settings, cluster, venues.program_ids(), out, end_slot, slots, concurrency, skipped_spot_checks))
         }
         Cmd::VerifyBackfill { rec } => verify_backfill(&rec),
+        Cmd::LegAudit { cluster, slots, out } => {
+            let settings = Settings::load(&cli.env, cluster.parse()?)?;
+            logging::init(Redactor::new(settings.secrets()), None)?;
+            let venues = VenueRegistry::load(&cli.venues)?;
+            rt.block_on(leg_audit::run(settings.rpc_url.clone(), venues.program_ids(), slots, &out))
+        }
         Cmd::SnapshotsShort { rec, radar_params, horizon_s } => {
             use rayon::prelude::*;
             let rp = radar_feed::load_params(&radar_params)?;

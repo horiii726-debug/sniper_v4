@@ -1,0 +1,150 @@
+{
+  "blocks": 40,
+  "bytes_new_filter": 73453133,
+  "bytes_nonvote": 94108792,
+  "bytes_old_filter": 73263580,
+  "counts": {
+    "legs_native": 168,
+    "legs_vault_sol": 2664,
+    "legs_vault_usdc": 265,
+    "legs_vault_usdt": 10,
+    "nonvote_txs": 11124,
+    "skip_ambiguous": 358,
+    "skip_failed": 2227,
+    "skip_native_mismatch": 235,
+    "token_leg_txs_DROPPED_by_old_filter": 18,
+    "token_leg_txs_kept_by_old_filter": 2985,
+    "token_legs_DROPPED_by_old_filter": 25,
+    "token_legs_kept_by_old_filter": 3082,
+    "txs_with_price_leg": 228,
+    "txs_with_token_legs": 3003,
+    "vote_txs": 26572
+  },
+  "dropped_tx_programs_top": [
+    {
+      "legs": 11,
+      "program": "HpNfyc2Saw7RKkQd8nEL4khUcuPhQ7WwY1B2qjx8jxFq",
+      "txs": 6
+    },
+    {
+      "legs": 6,
+      "program": "REALQqNEomY6cQGZJUGwywTBD2UmDT32rZcNnfxQ5N2",
+      "txs": 5
+    },
+    {
+      "legs": 7,
+      "program": "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4",
+      "txs": 5
+    },
+    {
+      "legs": 4,
+      "program": "REALp6iMBDTctQqpmhBo4PumwJGcybbnDpxtax3ara3",
+      "txs": 4
+    },
+    {
+      "legs": 8,
+      "program": "BoobsBSMpFRBA91sNwKLYShRRQPH5GjoCH4NhLUt4yRo",
+      "txs": 4
+    },
+    {
+      "legs": 4,
+      "program": "MNFSTqtC93rEfYHB6hF82sKdZpUDFWkViLByLd1k1Ms",
+      "txs": 3
+    },
+    {
+      "legs": 5,
+      "program": "ojh19ojaKduoJZuaJADhcVGp4xt1TcdAvZmpVsCorch",
+      "txs": 3
+    },
+    {
+      "legs": 5,
+      "program": "SCoRcH8c2dpjvcJD6FiPbCSQyQgu3PcUAWj2Xxx3mqn",
+      "txs": 3
+    },
+    {
+      "legs": 1,
+      "program": "24Uqj9JCLxUeoC3hGfh5W3s9FM9uCHDS2SG3LYwBpyTi",
+      "txs": 1
+    },
+    {
+      "legs": 2,
+      "program": "proVF4pMXVaYqmy4NjniPh4pqKNfMmsihgd4wdkCX3u",
+      "txs": 1
+    },
+    {
+      "legs": 1,
+      "program": "Eo7WjKq67rjJQSZxS6z3YkapzY3eMj6Xy8X5EQVn5UaB",
+      "txs": 1
+    },
+    {
+      "legs": 1,
+      "program": "FLUXubRmkEi2q6K3Y9kBPg9248ggaZVsoSFhtJHSrm1X",
+      "txs": 1
+    },
+    {
+      "legs": 2,
+      "program": "TessVdML9pBGgG9yGks7o4HewRaXVAMuoVj4x83GLQH",
+      "txs": 1
+    },
+    {
+      "legs": 2,
+      "program": "goonuddtQRrWqqn5nFyczVKaie28f3kDkHWkHtURSLE",
+      "txs": 1
+    },
+    {
+      "legs": 1,
+      "program": "T1TANpTeScyeqVzzgNViGDNrkQ6qHz9KrSBS4aNXvGT",
+      "txs": 1
+    },
+    {
+      "legs": 1,
+      "program": "QuaNtZsgYRe5Z9Bk4LZ4cTD9tbkVoyCNf1R2BN9bBDv",
+      "txs": 1
+    },
+    {
+      "legs": 1,
+      "program": "fUSioN9YKKSa3CUC2YUc4tPkHJ5Y6XW1yz8y6F7qWz9",
+      "txs": 1
+    },
+    {
+      "legs": 1,
+      "program": "MEXkeo4BPUCZuEJ4idUUwMPu4qvc9nkqtLn3yAyZLxg",
+      "txs": 1
+    },
+    {
+      "legs": 1,
+      "program": "9H6tua7jkLhdm3w8BvgpTn5LZNU7g4ZynDmCiNN3q6Rp",
+      "txs": 1
+    },
+    {
+      "legs": 1,
+      "program": "BiSoNHVpsVZW2F7rx2eQ59yQwKxzU5NvBcmKshCSUypi",
+      "txs": 1
+    },
+    {
+      "legs": 1,
+      "program": "GYeioE6bHaRPkupXvnKQf8kaM2g839uouE6cteUTuUK6",
+      "txs": 1
+    },
+    {
+      "legs": 1,
+      "program": "BSwp6bEBihVLdqJRKGgzjcGLHkcTuzmSo1TQkHepzH8p",
+      "txs": 1
+    },
+    {
+      "legs": 1,
+      "program": "9VFiimgx8hReh6TqamMFXFRXrtsZUfFGuoBTcW3jb7n8",
+      "txs": 1
+    },
+    {
+      "legs": 2,
+      "program": "HBVw6bZtcCaezhcBrmfyXBSBRWCdv72271xQ4GPvms2z",
+      "txs": 1
+    }
+  ],
+  "label": "recording-filter coverage audit (recent unfiltered blocks)",
+  "mints_only_in_dropped_txs": 7,
+  "mints_seen_kept": 328,
+  "slots": 40,
+  "tip_slot": 455666793
+}
