@@ -181,6 +181,20 @@ struct Coin {
     early_first: Vec<i64>,
     /// Cost basis (lamports) of each wallet's current balance (average-cost method).
     cost: FxHashMap<u32, f64>,
+    /// V5-8: creator-family token accounting from observed trades (creator + linked wallets of `Context::dev_family`).
+    fam_bal: i64,
+    fam_peak: i64,
+    fam_sold: u64,
+}
+
+/// Cumulative creator-family sell fraction: tokens sold / max(peak observed holdings, tokens sold). Unknown prior
+/// holdings (sells above observed buys) count as 1.0, like the V5 single-sell rule with balance <= 0.
+fn cum_sell_frac(c: &Coin) -> f64 {
+    if c.fam_sold == 0 {
+        0.0
+    } else {
+        c.fam_sold as f64 / (c.fam_peak.max(0) as f64).max(c.fam_sold as f64)
+    }
 }
 
 fn ewma(e: &mut (f64, f64), t: f64, tau: f64) {
@@ -209,6 +223,9 @@ pub struct WalletInfo {
 pub struct Context {
     pub wallets: Vec<Option<WalletInfo>>,
     pub sol_usd: Vec<(i64, f64)>,
+    /// V5-8: (creator id, linked wallet id) -> unix time the link became known (optional `<rec>/dev_family.csv`,
+    /// built from SOL transfers; must be causal). None = creator only.
+    pub dev_family: Option<FxHashMap<(u32, u32), i64>>,
 }
 
 /// Live, causal per-wallet activity across all coins (trader speed).
@@ -250,6 +267,10 @@ pub struct Step {
     pub dev_sell: bool,
     /// Fraction of the creator's token balance sold in this event (0 if not a creator sell).
     pub dev_sell_frac: f64,
+    /// V5-8: a sell by the creator or a linked wallet (creator family) in this event.
+    pub dev_family_sell: bool,
+    /// V5-8: cumulative family tokens sold / peak observed family holdings, after this event.
+    pub dev_cum_sell_frac: f64,
 }
 
 impl Engine {
@@ -368,7 +389,21 @@ impl Engine {
             w.n += 1;
             w.last_t = e.time;
         }
+        let fam = e.user == e.creator
+            || self.ctx.dev_family.as_ref().is_some_and(|m| m.get(&(e.creator, e.user)).is_some_and(|since| *since <= e.time));
         let c = &mut self.coins[ci];
+        let mut dev_family_sell = false;
+        if fam && e.tokens > 0 {
+            if e.buy {
+                c.fam_bal += e.tokens as i64;
+                c.fam_peak = c.fam_peak.max(c.fam_bal);
+            } else {
+                c.fam_sold += e.tokens;
+                c.fam_bal -= e.tokens as i64;
+                dev_family_sell = true;
+            }
+        }
+        let dev_cum_sell_frac = cum_sell_frac(c);
         if c.first_time == 0 {
             c.first_time = e.time;
             c.first_price = pool.price();
@@ -531,7 +566,7 @@ impl Engine {
         } else {
             None
         };
-        Step { snapshot, signal, dev_sell, dev_sell_frac }
+        Step { snapshot, signal, dev_sell, dev_sell_frac, dev_family_sell, dev_cum_sell_frac }
     }
 
     pub fn pool_value(&self, coin: u32, tokens: u64, default_fee: u64) -> f64 {
@@ -589,6 +624,11 @@ impl Engine {
 
     pub fn quote_res_sol(&self, coin: u32) -> f64 {
         self.pools[coin as usize].quote_res as f64 / 1e9
+    }
+
+    /// V5-8: cumulative creator-family sell fraction (entry veto input).
+    pub fn dev_cum_sell_frac(&self, coin: u32) -> f64 {
+        cum_sell_frac(&self.coins[coin as usize])
     }
 
     pub fn dev_sold_within(&self, coin: u32, now: i64, secs: i64) -> bool {
@@ -1248,12 +1288,31 @@ pub fn write_snapshots(ev: &Events, rp: RadarParams, ctx: Context, out: &std::pa
     Ok(st)
 }
 
+/// `dev_family.csv`: header `creator,wallet[,since]` (base58; `since` = unix seconds the link became known, absent ->
+/// always known). Addresses not in this window are skipped.
+fn parse_dev_family(text: &str, ids: &FxHashMap<&str, u32>) -> anyhow::Result<FxHashMap<(u32, u32), i64>> {
+    let mut lines = text.lines();
+    let hdr: Vec<&str> = lines.next().unwrap_or("").split(',').map(str::trim).collect();
+    let col = |n: &str| hdr.iter().position(|h| *h == n).ok_or_else(|| anyhow::anyhow!("dev_family.csv: no column {n}"));
+    let (ic, iw) = (col("creator")?, col("wallet")?);
+    let is = hdr.iter().position(|h| *h == "since");
+    let mut m = FxHashMap::default();
+    for l in lines {
+        let v: Vec<&str> = l.split(',').map(str::trim).collect();
+        let (Some(c), Some(w)) = (v.get(ic).and_then(|x| ids.get(x)), v.get(iw).and_then(|x| ids.get(x))) else { continue };
+        let since = is.and_then(|i| v.get(i)).and_then(|x| x.parse::<i64>().ok()).unwrap_or(i64::MIN);
+        let e = m.entry((*c, *w)).or_insert(since);
+        *e = (*e).min(since);
+    }
+    Ok(m)
+}
+
 /// Per-window context: `wallet_scores.csv` (offline, causal) and the optional local SOL/USD 1-minute closes.
 pub fn load_context(rec: &std::path::Path, ev: &Events) -> anyhow::Result<Context> {
-    let mut ctx = Context { wallets: vec![None; ev.users.len()], sol_usd: Vec::new() };
+    let mut ctx = Context { wallets: vec![None; ev.users.len()], ..Default::default() };
+    let ids: FxHashMap<&str, u32> = ev.users.iter().enumerate().map(|(i, u)| (u.as_str(), i as u32)).collect();
     let wp = rec.join("wallet_scores.csv");
     if wp.exists() {
-        let ids: FxHashMap<&str, u32> = ev.users.iter().enumerate().map(|(i, u)| (u.as_str(), i as u32)).collect();
         let text = std::fs::read_to_string(&wp)?;
         let mut lines = text.lines();
         let hdr: Vec<&str> = lines.next().unwrap_or("").split(',').collect();
@@ -1274,6 +1333,10 @@ pub fn load_context(rec: &std::path::Path, ev: &Events) -> anyhow::Result<Contex
         }
     }
     ctx.sol_usd = crate::units::read_sol_usd_series(rec)?;
+    let fp = rec.join("dev_family.csv");
+    if fp.exists() {
+        ctx.dev_family = Some(parse_dev_family(&std::fs::read_to_string(&fp)?, &ids)?);
+    }
     Ok(ctx)
 }
 
@@ -1853,7 +1916,7 @@ mod tests {
         let full = Events::new(evs.clone(), vec!["a".into(), "b".into(), "c".into()], (0, 1000), users.clone());
         let rp = RadarParams { min_buyers: 3, min_buy_sol: 0.5, ..RadarParams::default() };
         let snaps = |ev: &Events| -> Vec<(u64, Vec<f32>)> {
-            let mut eng = Engine::new(ev, rp).with_ctx(Context { wallets: vec![Some(WalletInfo { score: 0.5, n_closed: 3, ..Default::default() }); 1000], sol_usd: vec![] });
+            let mut eng = Engine::new(ev, rp).with_ctx(Context { wallets: vec![Some(WalletInfo { score: 0.5, n_closed: 3, ..Default::default() }); 1000], ..Default::default() });
             ev.evs.iter().filter_map(|e| eng.apply(e).snapshot.map(|s| (e.order, s))).collect()
         };
         let all = snaps(&full);
@@ -1870,6 +1933,63 @@ mod tests {
             }
         }
         assert_eq!(all[0].1.len(), FEATURES.len());
+    }
+
+    fn dev_ev(slot: u64, user: u32, buy: bool, tokens: u64) -> Ev {
+        let mut e = mk(slot, slot as i64, 0, user, buy, 50_000_000, 100_000_000_000, 1_000_000_000_000);
+        e.tokens = tokens;
+        e
+    }
+
+    /// V5-8: repeated 49% creator sells accumulate (0.49, then 0.739) although each single sell is < 50%.
+    #[test]
+    fn dev_cumulative_sell_frac_creator() {
+        let events = Events::new(vec![], vec!["m".into()], (0, 0), vec![]);
+        let mut eng = Engine::new(&events, RadarParams::default());
+        eng.apply(&dev_ev(1, 999, true, 1_000_000));
+        let s1 = eng.apply(&dev_ev(2, 999, false, 490_000));
+        assert!(s1.dev_sell && s1.dev_family_sell && (s1.dev_sell_frac - 0.49).abs() < 1e-12 && (s1.dev_cum_sell_frac - 0.49).abs() < 1e-12);
+        let s2 = eng.apply(&dev_ev(3, 999, false, 249_000));
+        assert!(s2.dev_sell_frac < 0.5, "single sell {}", s2.dev_sell_frac);
+        assert!((s2.dev_cum_sell_frac - 0.739).abs() < 1e-12, "{}", s2.dev_cum_sell_frac);
+        assert!((eng.dev_cum_sell_frac(0) - 0.739).abs() < 1e-12);
+    }
+
+    /// V5-8: a linked wallet (dev_family) selling counts for the family; a link known only later does not.
+    #[test]
+    fn dev_family_from_context() {
+        let events = Events::new(vec![], vec!["m".into()], (0, 0), vec![]);
+        for (since, want) in [(0i64, true), (10_000, false)] {
+            let mut m = FxHashMap::default();
+            m.insert((999u32, 7u32), since);
+            let mut eng = Engine::new(&events, RadarParams::default()).with_ctx(Context { dev_family: Some(m), ..Default::default() });
+            eng.apply(&dev_ev(1, 999, true, 1000));
+            eng.apply(&dev_ev(2, 7, true, 1000));
+            let s = eng.apply(&dev_ev(3, 7, false, 1000));
+            assert!(!s.dev_sell);
+            assert_eq!(s.dev_family_sell, want);
+            if want {
+                assert!((s.dev_cum_sell_frac - 0.5).abs() < 1e-12);
+            }
+        }
+    }
+
+    /// V5-8: creator sells with no observed buys (old coin) count as selling everything.
+    #[test]
+    fn dev_unknown_holdings_count_as_full() {
+        let events = Events::new(vec![], vec!["m".into()], (0, 0), vec![]);
+        let mut eng = Engine::new(&events, RadarParams::default());
+        assert_eq!(eng.apply(&dev_ev(1, 999, false, 5000)).dev_cum_sell_frac, 1.0);
+    }
+
+    #[test]
+    fn dev_family_csv_parsing() {
+        let users = ["C", "W1", "W2"];
+        let ids: FxHashMap<&str, u32> = users.iter().enumerate().map(|(i, u)| (*u, i as u32)).collect();
+        let m = parse_dev_family("creator,wallet,since\nC,W1,50\nC,W2,\nC,ZZ,1\nC,W1,40\n", &ids).unwrap();
+        assert_eq!(m.len(), 2);
+        assert_eq!(m[&(0, 1)], 40);
+        assert_eq!(m[&(0, 2)], i64::MIN);
     }
 
     /// V5-14: price_vs_vwap60 is SOL-weighted (1 SOL at price 1, 9 SOL at price 2 -> VWAP 1.9).

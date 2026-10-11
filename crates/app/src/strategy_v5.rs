@@ -44,6 +44,7 @@ pub struct StratV5 {
     pub bag_trail: f64,
     pub trail_k: f64,
     pub hold_min: f32,
+    /// DevSell exit: cumulative tokens sold by the creator family >= this fraction of its peak observed holdings.
     pub dev_kill_min_frac: f64,
     pub lp_drop_frac: f64,
     pub dead_exit: f32,
@@ -442,7 +443,7 @@ pub fn simulate(w: &WindowData, rp: RadarParams, scorer: &mut dyn Scorer, st: &S
             }
             let lp_drop = is_amm && p.q_hist.front().is_some_and(|(_, q0)| *q0 > 0.0 && qres < (1.0 - st.lp_drop_frac) * q0);
             let mut sell: Option<(u64, &'static str, bool)> = None;
-            if step.dev_sell && step.dev_sell_frac >= st.dev_kill_min_frac {
+            if step.dev_family_sell && step.dev_cum_sell_frac >= st.dev_kill_min_frac {
                 sell = Some((p.tokens, "DevSell", true));
             } else if pred.is_some_and(|q| q.rug >= st.rug_veto) {
                 sell = Some((p.tokens, "RugModel", true));
@@ -712,6 +713,61 @@ mod tests {
         assert!(t.pnl_sol > 0.0 && t.max_mult >= 5.0);
         assert!((t.tx_sol - 4.0 * c.tx_sol()).abs() < 1e-12, "1 buy + 3 sell legs pay their own tx");
         assert!((r.final_sol - (r.start_sol + t.pnl_sol)).abs() < 1e-9, "cash accounting");
+    }
+
+    /// Runner stream of `ladder_on_a_runner` (steady buying 0-40 s, then +1.2%/s until 400 s).
+    fn runner_events() -> Vec<Ev> {
+        let mut evs = Vec::new();
+        let tk: u128 = 1_000_000_000_000_000;
+        let mut slot = 100;
+        for s in 0..40i64 {
+            for u in 0..3u32 {
+                slot += 1;
+                evs.push(mk(slot, s, (s as u32) * 3 + u, true, 300_000_000, 50_000_000_000 + (s as u128) * 100_000_000, tk));
+            }
+        }
+        let mut q: u128 = 54_000_000_000;
+        for s in 40..400i64 {
+            slot += 1;
+            q = (q as f64 * 1.012) as u128;
+            evs.push(mk(slot, s, 10_000 + s as u32, true, 300_000_000, q, tk));
+        }
+        evs
+    }
+
+    /// V5-8: two creator sells of 49% and 24.9% of the original holdings (each < 50% of the balance at the time)
+    /// trigger DevSell once the cumulative family fraction reaches 0.739 >= 0.5; the old single-sell rule did not.
+    #[test]
+    fn devsell_kill_is_cumulative() {
+        let mut evs = runner_events();
+        let creator = 999_999u32;
+        let dev = |slot: u64, t: i64, buy: bool, tokens: u64| {
+            let mut e = mk(slot, t, creator, buy, 10_000_000, 0, 1_000_000_000_000_000);
+            e.tokens = tokens;
+            e.order = (slot << 24) | (0xFFFF << 8) | 1;
+            e
+        };
+        // Creator events reuse the pool state of the surrounding events (price unaffected).
+        let at = |evs: &Vec<Ev>, t: i64| evs.iter().rposition(|x| x.time <= t).unwrap();
+        for (t, buy, tokens) in [(0i64, true, 1_000_000u64), (60, false, 490_000), (70, false, 249_000)] {
+            let i = at(&evs, t);
+            let mut e = dev(evs[i].slot, evs[i].time, buy, tokens);
+            e.quote_res = evs[i].quote_res;
+            e.token_res = evs[i].token_res;
+            evs.insert(i + 1, e);
+        }
+        let mut ev = Events::new(evs, vec!["M".into()], (0, 120), vec![]);
+        ev.cover_end = vec![100_000];
+        let rp = RadarParams { min_buyers: 5, min_buy_sol: 1.0, max_median_buy_sol: 1.0, ..RadarParams::default() };
+        let w = WindowData::new("t".into(), &ev, Context::default(), 200.0);
+        let pr = Pred { bin: [0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0], tp1: 0.9, rug: 0.0, hold: 0.0, dead: 0.0 };
+        let c = CostsV5 { buy_fail_prob: 0.0, ..Default::default() };
+        let st = StratV5 { max_ret_60s_entry: 10.0, max_top10_share: 1.0, max_bundle_share: 1.0, ..Default::default() };
+        let r = simulate(&w, rp, &mut Fixed(pr), &st, &c, &[0.0, 0.0, 0.0, 0.0, 0.0, 3.0, 0.0], false);
+        assert_eq!(r.trades, 1, "{:?}", r.blocked);
+        let t = &r.trades_list[0];
+        assert_eq!(t.final_reason, "DevSell", "{t:?}");
+        assert!(t.exit_t >= 70 && t.exit_t < 90, "{t:?}");
     }
 
     /// EV gate: same runner, but the model says bin 1 with negative R -> no entry.
