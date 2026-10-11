@@ -497,3 +497,83 @@ pub fn compare(recs: &[PathBuf], rp: RadarParams, v4: &crate::backtest::Strategy
     }
     Ok(())
 }
+
+/// One component variant: (name, radar params, strategy).
+type Variant = (String, RadarParams, StratV5);
+
+/// Component ablation (user rule + prediction spec Bagian 18.4): every radar / strategy component is switched off (or
+/// replaced) alone, on the same windows and costs, and compared with the base. Radar variants are scored with
+/// radar_eval (recall before +10% / at +30%, HOT per minute, precision vs naive); strategy variants with the no-model
+/// simulator (entries are not ranked without a model, so strategy results are direction only until models exist).
+pub fn ablate(recs: &[PathBuf], rp: RadarParams, st: &StratV5, out: &Path) -> Result<()> {
+    let all = load_windows(recs)?;
+    let data: Vec<WindowData> = all.iter().map(wd).collect::<Result<_>>()?;
+    let legacy = crate::radar_feed::load_params(Path::new("config/radar_params_v4_legacy.json"))?;
+    let radar_variants: Vec<(String, RadarParams)> = vec![
+        ("base".into(), rp),
+        ("legacy_v4_radar".into(), legacy),
+        ("no_cusum".into(), RadarParams { cusum: radar::CusumParams { enabled: false, ..rp.cusum }, ..rp }),
+        ("no_flow_rule".into(), RadarParams { old_flow_rule: false, ..rp }),
+        ("no_watch".into(), RadarParams { watch: false, ..rp }),
+        ("old_median_block_1.0".into(), RadarParams { old_max_median_buy_sol: Some(1.0), ..rp }),
+        ("no_old_buy_sell_cap".into(), RadarParams { old_max_buy_sell_ratio: None, ..rp }),
+        ("wallets_not_clusters".into(), RadarParams { count_clusters: false, ..rp }),
+        ("creator_counted".into(), RadarParams { exclude_creator: false, ..rp }),
+        ("no_new_coin_age_limit".into(), RadarParams { new_max_age_s: None, ..rp }),
+    ];
+    let radar_rows: Vec<serde_json::Value> = radar_variants
+        .par_iter()
+        .map(|(n, p)| {
+            let per: Vec<serde_json::Value> = all.iter().map(|l| {
+                let ds = crate::radar_eval::from_events(&l.ev, p);
+                let prep = crate::radar_eval::prepare(&ds);
+                let e = crate::radar_eval::evaluate(&ds, &prep, *p);
+                let t5 = |v: &[crate::radar_eval::TierResult]| v.iter().find(|t| t.tier == 5.0).map(|t| serde_json::json!({
+                    "n": t.runners, "hot_before_10": t.caught_hot_before_10, "hot_at_30": t.caught, "armed_before_10": t.caught_armed_before_10 }));
+                serde_json::json!({ "window": l.name, "hot_per_min": e.hot_per_min, "watch_per_min": e.watch_per_min, "precision_2x": e.precision_2x,
+                    "naive_precision_2x": e.naive_precision_2x, "new_5x": t5(&e.tiers_newborn), "old_5x": t5(&e.tiers_existing),
+                    "cusum_alarmed_before_10": e.cusum.alarmed_before_10, "cusum_runners_5x": e.cusum.runners_5x, "cusum_false_per_coin_hour": e.cusum.alarms_per_coin_hour })
+            }).collect();
+            serde_json::json!({ "variant": n, "windows": per })
+        })
+        .collect();
+    use s5::ExitMode;
+    let strat_variants: Vec<Variant> = vec![
+        ("base".into(), rp, *st),
+        ("exit_fade_and_drawdown".into(), rp, StratV5 { exit_mode: ExitMode::FadeAndDrawdown, ..*st }),
+        ("exit_trail".into(), rp, StratV5 { exit_mode: ExitMode::Trail, ..*st }),
+        ("exit_ladder".into(), rp, StratV5 { exit_mode: ExitMode::Ladder, ..*st }),
+        ("no_price_guard".into(), rp, StratV5 { max_entry_ret: None, ..*st }),
+        ("promote_rows_only".into(), rp, StratV5 { decision_rows: false, ..*st }),
+        ("tick_per_slot".into(), rp, StratV5 { decision_tick_s: 0, ..*st }),
+        ("no_time_stop".into(), rp, StratV5 { time_stop_s: 0, ..*st }),
+        ("no_entries_per_min_cap".into(), rp, StratV5 { max_entries_per_min: 1_000_000, ..*st }),
+        ("no_reentry_cooldown".into(), rp, StratV5 { reentry_cooldown_s: 0, ..*st }),
+        ("legacy_v4_radar".into(), legacy, *st),
+    ];
+    let strat_rows: Vec<serde_json::Value> = strat_variants
+        .par_iter()
+        .map(|(n, p, s)| {
+            let c5 = CostsV5::default();
+            let reps: Vec<WindowResult> = data.iter().map(|d| WindowResult {
+                window: d.name.clone(), rk: [1.0; 7], rk_trades: [0; 7], hold: None,
+                report: s5::simulate(d, *p, &mut s5::NoScores, s, &c5, &[1.0; 7], None, false),
+            }).collect();
+            let sum = summarize(&reps);
+            serde_json::json!({ "variant": n, "summary": sum,
+                "windows": reps.iter().map(|r| serde_json::json!({ "window": r.window, "pnl_sol": r.report.final_sol - r.report.start_sol,
+                    "trades": r.report.trades, "held_to_5x": r.report.trades_list.iter().filter(|t| t.max_mult >= 5.0).count(),
+                    "final_exits": r.report.final_reasons })).collect::<Vec<_>>() })
+        })
+        .collect();
+    let rep = serde_json::json!({
+        "label": "EXPLORATORY component ablation (paper only). Strategy rows run WITHOUT a model (direction only); a component is kept only if it improves out-of-sample expectancy after costs on most test windows.",
+        "windows": all.iter().map(|l| &l.name).collect::<Vec<_>>(), "radar": radar_rows, "strategy": strat_rows,
+    });
+    if let Some(d) = out.parent() {
+        std::fs::create_dir_all(d)?;
+    }
+    std::fs::write(out, serde_json::to_string_pretty(&rep)?)?;
+    println!("written {}", out.display());
+    Ok(())
+}

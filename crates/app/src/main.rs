@@ -337,6 +337,26 @@ enum Cmd {
         #[arg(long)]
         v5_strategy: Option<PathBuf>,
     },
+    /// Snapshots with short-horizon labels (model-family tests on windows without follow-up data).
+    SnapshotsShort {
+        #[arg(long, required = true)]
+        rec: Vec<PathBuf>,
+        #[arg(long, default_value = "config/radar_params.json")]
+        radar_params: PathBuf,
+        #[arg(long, default_value_t = 600)]
+        horizon_s: i64,
+    },
+    /// Component ablation: each radar / strategy component switched off alone on the same windows.
+    Ablate {
+        #[arg(long, required = true)]
+        rec: Vec<PathBuf>,
+        #[arg(long, default_value = "config/radar_params.json")]
+        radar_params: PathBuf,
+        #[arg(long)]
+        strategy: Option<PathBuf>,
+        #[arg(long, default_value = "reports/v6/ABLATION.json")]
+        out: PathBuf,
+    },
     /// V5-9 diagnostic: how often runners touch the -65% y_bin barrier (and wider ones) before their peak.
     LabelDiag {
         #[arg(long, required = true)]
@@ -422,6 +442,23 @@ fn main() -> Result<()> {
             rt.block_on(backfill(settings, cluster, venues.program_ids(), out, end_slot, slots, concurrency, skipped_spot_checks))
         }
         Cmd::VerifyBackfill { rec } => verify_backfill(&rec),
+        Cmd::SnapshotsShort { rec, radar_params, horizon_s } => {
+            use rayon::prelude::*;
+            let rp = radar_feed::load_params(&radar_params)?;
+            rec.par_iter().map(|r| -> Result<()> {
+                let ev = backtest::load(r)?;
+                let ctx = ml_sim::load_context(r, &ev)?;
+                let (rows, dropped) = ml_sim::write_snapshots_short(&ev, rp, ctx, &r.join(format!("snapshots_short_{horizon_s}.csv.zst")), horizon_s)?;
+                println!("{}: rows {rows} dropped_uncovered {dropped} horizon {horizon_s}s", r.display());
+                Ok(())
+            }).collect::<Result<Vec<()>>>()?;
+            Ok(())
+        }
+        Cmd::Ablate { rec, radar_params, strategy, out } => {
+            let rp = radar_feed::load_params(&radar_params)?;
+            let st: strategy_v5::StratV5 = match strategy { Some(p) => serde_json::from_str(&std::fs::read_to_string(p)?)?, None => Default::default() };
+            v5_eval::ablate(&rec, rp, &st, &out)
+        }
         Cmd::LabelDiag { rec, radar_params, out } => {
             let rp = radar_feed::load_params(&radar_params)?;
             label_diag::run(&rec, rp, &out)

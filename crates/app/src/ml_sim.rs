@@ -1450,6 +1450,68 @@ fn parse_dev_family(text: &str, ids: &FxHashMap<&str, u32>) -> anyhow::Result<Fx
     Ok(m)
 }
 
+/// Short-horizon labels for model-family tests on windows without follow-up data: from p0 (first path price >= t + 1 s)
+/// over (t, t + h], only when the data covers t + h (no censoring). (max multiple, reached 2x, reached 5x, fell to
+/// <= 0.5x before 2x.)
+pub fn short_labels(path: &[(i64, f64)], t: i64, cover_end: i64, h: i64) -> Option<(f64, u8, u8, u8)> {
+    if cover_end < t + h {
+        return None;
+    }
+    let i0 = path.partition_point(|x| x.0 < t + LABEL_LAT_S);
+    let p0 = path.get(i0)?.1;
+    if p0 <= 0.0 {
+        return None;
+    }
+    let (mut mx, mut dump) = (1.0f64, None::<bool>);
+    for &(tt, p) in &path[i0 + 1..] {
+        if tt > t + h {
+            break;
+        }
+        let m = p / p0;
+        mx = mx.max(m);
+        if dump.is_none() {
+            if m >= 2.0 {
+                dump = Some(false);
+            } else if m <= 0.5 {
+                dump = Some(true);
+            }
+        }
+    }
+    Some((mx, (mx >= 2.0) as u8, (mx >= 5.0) as u8, dump.unwrap_or(false) as u8))
+}
+
+/// Snapshot rows (same Engine, same cadence) with short-horizon labels: columns coin, order, time, is_signal,
+/// in_window, FEATURES, y_s_logmax, y_s_2x, y_s_5x, y_s_dump. Returns (rows, dropped uncovered).
+pub fn write_snapshots_short(ev: &Events, rp: RadarParams, ctx: Context, out: &std::path::Path, h: i64) -> anyhow::Result<(usize, usize)> {
+    let mut eng = Engine::new(ev, rp).with_ctx(ctx);
+    let pth = paths(ev);
+    let file = std::fs::File::create(out)?;
+    let mut f = std::io::BufWriter::with_capacity(1 << 22, zstd::stream::write::Encoder::new(file, 3)?.auto_finish());
+    write!(f, "coin,order,time,is_signal,in_window")?;
+    for n in FEATURES {
+        write!(f, ",{n}")?;
+    }
+    writeln!(f, ",y_s_logmax,y_s_2x,y_s_5x,y_s_dump")?;
+    let (mut rows, mut dropped) = (0usize, 0usize);
+    for e in &ev.evs {
+        let step = eng.apply(e);
+        let Some(x) = step.snapshot else { continue };
+        let ci = e.coin as usize;
+        let Some((mx, y2, y5, yd)) = short_labels(&pth[ci], e.time, ev.cover_end[ci], h) else {
+            dropped += 1;
+            continue;
+        };
+        write!(f, "{},{},{},{},{}", e.coin, e.order, e.time - ev.window.0, step.decision as u8, (e.time <= ev.window.1) as u8)?;
+        for v in &x {
+            write!(f, ",{v}")?;
+        }
+        writeln!(f, ",{},{y2},{y5},{yd}", mx.ln())?;
+        rows += 1;
+    }
+    f.flush()?;
+    Ok((rows, dropped))
+}
+
 /// Per-window context: `wallet_scores.csv` (offline, causal) and the optional local SOL/USD 1-minute closes.
 pub fn load_context(rec: &std::path::Path, ev: &Events) -> anyhow::Result<Context> {
     let mut ctx = Context { wallets: vec![None; ev.users.len()], ..Default::default() };
@@ -2092,6 +2154,15 @@ mod tests {
         assert_eq!((b.peak, b.t_peak, b.min_before_peak), (12.0, 200, 0.3));
         assert_eq!(b.peak_before, [0.3, 12.0, 12.0, 12.0]);
         assert_eq!(b.peak_before.map(bin_of), [0, 5, 5, 5]);
+    }
+
+    #[test]
+    fn short_labels_rule() {
+        let p = [(101, 1.0), (150, 0.45), (200, 2.5), (900, 9.0)];
+        assert_eq!(short_labels(&p, 100, 10_000, 600).map(|x| (x.1, x.2, x.3)), Some((1, 0, 1)), "dump before 2x; 9x is after t + h");
+        assert!(short_labels(&p, 100, 650, 600).is_none(), "not covered");
+        let q = [(101, 1.0), (120, 2.1), (130, 0.4)];
+        assert_eq!(short_labels(&q, 100, 10_000, 600).map(|x| x.3), Some(0), "2x first: not a dump");
     }
 
     #[test]
