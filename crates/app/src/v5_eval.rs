@@ -141,14 +141,47 @@ fn median(sorted: &[f64]) -> f64 {
     }
 }
 
-/// V5 §9 grid: 3 x 2 x 2 x 2 = 24 points over ev_min, bag_trail, tp1_mult, pre_tp_stop.
+/// Strategy grid (24 points, file 01 §9.3) for the base strategy's exit mode, always 3 ev_min values x 8:
+/// Momentum Fade: fade_persist_s x fade_rate_frac x idle_s; Fade+drawdown: fade_persist_s x trail_k x fade_rate_frac;
+/// Trail: trail_fixed (4) x price guard on/off; Ladder (V5 §9): bag_trail x tp1_mult x pre_tp_stop.
 pub fn grid(base: &StratV5) -> Vec<StratV5> {
+    use s5::ExitMode;
     let mut g = Vec::new();
     for &ev_min in &[0.05, 0.15, 0.30] {
-        for &bag_trail in &[0.40, 0.55] {
-            for &tp1_mult in &[2.0, 3.0] {
-                for &pre_tp_stop in &[0.35, 0.50] {
-                    g.push(StratV5 { ev_min, bag_trail, tp1_mult, pre_tp_stop, ..*base });
+        let b = StratV5 { ev_min, ..*base };
+        match base.exit_mode {
+            ExitMode::MomentumFade => {
+                for &fade_persist_s in &[5i64, 15] {
+                    for &fade_rate_frac in &[0.25, 0.40] {
+                        for &idle_s in &[60i64, 180] {
+                            g.push(StratV5 { fade_persist_s, fade_rate_frac, idle_s, ..b });
+                        }
+                    }
+                }
+            }
+            ExitMode::FadeAndDrawdown => {
+                for &fade_persist_s in &[5i64, 15] {
+                    for &trail_k in &[2.0, 4.0] {
+                        for &fade_rate_frac in &[0.25, 0.40] {
+                            g.push(StratV5 { fade_persist_s, trail_k, fade_rate_frac, ..b });
+                        }
+                    }
+                }
+            }
+            ExitMode::Trail => {
+                for &trail_fixed in &[0.20, 0.30, 0.45, 0.60] {
+                    for &max_entry_ret in &[Some(0.10), None] {
+                        g.push(StratV5 { trail_fixed, max_entry_ret, ..b });
+                    }
+                }
+            }
+            ExitMode::Ladder => {
+                for &bag_trail in &[0.40, 0.55] {
+                    for &tp1_mult in &[2.0, 3.0] {
+                        for &pre_tp_stop in &[0.35, 0.50] {
+                            g.push(StratV5 { bag_trail, tp1_mult, pre_tp_stop, ..b });
+                        }
+                    }
                 }
             }
         }
@@ -389,6 +422,17 @@ pub fn compare(recs: &[PathBuf], rp: RadarParams, v4: &crate::backtest::Strategy
         // V5 without a model: every signal has EV = 1 >= ev_min, rug/hold/hazard models silent.
         let c5 = CostsV5 { latency_slots: c4.latency_slots, buy_fail_prob: c4.buy_fail_prob, default_fee_bps: c4.default_fee_bps, ..Default::default() };
         let r5 = s5::simulate(&d, rp, &mut s5::NoScores, st, &c5, &[1.0; 7], None, false);
+        // Exit variants A-D (prediction spec Bagian 16) on the same window, same entries, no model.
+        let variants: Vec<serde_json::Value> = [s5::ExitMode::MomentumFade, s5::ExitMode::FadeAndDrawdown, s5::ExitMode::Trail, s5::ExitMode::Ladder]
+            .iter()
+            .map(|m| {
+                let r = s5::simulate(&d, rp, &mut s5::NoScores, &StratV5 { exit_mode: *m, ..*st }, &c5, &[1.0; 7], None, false);
+                serde_json::json!({ "exit_mode": m, "pnl_sol": r.final_sol - r.start_sol, "trades": r.trades, "win_rate": r.win_rate,
+                    "profit_factor": r.profit_factor, "expectancy_excl_top1pct_sol": r.expectancy_excl_top1pct_sol,
+                    "held_to_5x": r.trades_list.iter().filter(|t| t.max_mult >= 5.0).count(), "runners_caught_5x": r.runners_10x_captured_5x,
+                    "runners_10x": r.runners_10x, "final_exits": r.final_reasons })
+            })
+            .collect();
         // Runners: peak multiple after the coin's FIRST in-window signal (labels over the available data).
         let mut first_sig: rustc_hash::FxHashMap<u32, i64> = Default::default();
         {
@@ -435,10 +479,11 @@ pub fn compare(recs: &[PathBuf], rp: RadarParams, v4: &crate::backtest::Strategy
                     "profit_factor": r5.profit_factor, "max_drawdown_pct": r5.max_drawdown_pct, "exits": r5.exits_by_reason, "final_exits": r5.final_reasons,
                     "held_to_5x": r5.trades_list.iter().filter(|t| t.max_mult >= 5.0).count(), "runners_caught_5x": r5.runners_10x_captured_5x,
                     "signals": r5.signals_in_window, "blocked": r5.blocked, "replacements": r5.replacements, "merged_in_tick": r5.merged_in_tick },
+            "v5_exit_variants": variants,
             "runners_10x": runners.len(), "runners": runners,
         }))
     }).collect::<Result<_>>()?;
-    let rep = serde_json::json!({ "label": "EXPLORATORY comparison V4 rule strategy vs V5 corrections without ML (pre-gate, paper only)", "windows": rows });
+    let rep = serde_json::json!({ "label": "EXPLORATORY comparison V4 rule strategy vs V6 strategy without ML, plus exit variants A-D (pre-gate, paper only)", "windows": rows });
     if let Some(d) = out.parent() {
         std::fs::create_dir_all(d)?;
     }

@@ -20,8 +20,26 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use serde::{Deserialize, Serialize};
 use std::collections::VecDeque;
 
+const REAL_MIN_SOL: f64 = 0.01;
+
 /// Minimum real exit liquidity (SOL) to enter (curve: real quote reserve, V5-13).
 const MIN_EXIT_LIQ_SOL: f64 = 0.5;
+
+/// Normal exit policy (always-on exits apply to every mode). User decision: sell 100%, on crowd momentum.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum ExitMode {
+    /// A: Momentum Fade (prediction spec Bagian 16): sellers dominate AND (quiet OR smaller sizes OR crowd shrinking)
+    /// for fade_persist_s, or no real buy for idle_s; sells 100%.
+    #[default]
+    MomentumFade,
+    /// B: Momentum Fade AND drawdown from the post-entry peak >= adaptive d_t = clamp(1 - exp(-trail_k sigma_60), d_min, d_max).
+    FadeAndDrawdown,
+    /// C: fixed trailing stop from the post-entry peak (trail_fixed), sells 100%.
+    Trail,
+    /// D: V5 TP1 / TP2 partial ladder + bag trail (comparison baseline only).
+    Ladder,
+}
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
 #[serde(default)]
@@ -57,6 +75,31 @@ pub struct StratV5 {
     pub decision_rows: bool,
     /// No re-entry into a coin within this many seconds of closing a position on it.
     pub reentry_cooldown_s: i64,
+    pub exit_mode: ExitMode,
+    /// P5 price guard: enter only while price <= 5-minute low x (1 + this) ("buy before the rise"); None = off.
+    pub max_entry_ret: Option<f64>,
+    /// Momentum Fade: buy-arrival EWMA time constant, s.
+    pub fade_tau_s: f64,
+    /// Quiet: buy-arrival EWMA < this x its peak since entry.
+    pub fade_rate_frac: f64,
+    /// Smaller sizes: mean real buy over 30 s < this x its peak since entry.
+    pub fade_size_frac: f64,
+    /// The fade condition must hold this long.
+    pub fade_persist_s: i64,
+    /// No fade exit in the first seconds after the fill.
+    pub fade_min_hold_s: i64,
+    /// Dead: no real buy for this long.
+    pub idle_s: i64,
+    /// Time stop: no gain of time_stop_gain within time_stop_s after entry (0 = off).
+    pub time_stop_s: i64,
+    pub time_stop_gain: f64,
+    /// B: adaptive drawdown bounds.
+    pub d_min: f64,
+    pub d_max: f64,
+    /// C: fixed trailing distance.
+    pub trail_fixed: f64,
+    /// Optional wide disaster stop for non-ladder modes (value <= (1 - this) x cost after stop_grace_s).
+    pub disaster_stop: Option<f64>,
 }
 
 impl Default for StratV5 {
@@ -70,6 +113,20 @@ impl Default for StratV5 {
             decision_tick_s: 2,
             decision_rows: true,
             reentry_cooldown_s: 300,
+            exit_mode: ExitMode::MomentumFade,
+            max_entry_ret: Some(0.10),
+            fade_tau_s: 10.0,
+            fade_rate_frac: 0.25,
+            fade_size_frac: 0.5,
+            fade_persist_s: 10,
+            fade_min_hold_s: 10,
+            idle_s: 120,
+            time_stop_s: 300,
+            time_stop_gain: 0.10,
+            d_min: 0.15,
+            d_max: 0.60,
+            trail_fixed: 0.30,
+            disaster_stop: None,
         }
     }
 }
@@ -197,6 +254,55 @@ struct Pos {
     last_hold: Option<f32>,
     /// V5-7 (oracle runs only): (P(hold) bucket, liquidation value, legs sold so far) at held snapshots.
     marks: Vec<(u8, f64, u32)>,
+    fade: Fade,
+}
+
+/// Crowd-momentum state of a held position, from real trades after the fill.
+#[derive(Debug, Clone, Default)]
+struct Fade {
+    rate: f64,
+    rate_t: i64,
+    peak_rate: f64,
+    /// (time, buy, SOL) of real trades within 30 s
+    w30: VecDeque<(i64, bool, f64)>,
+    peak_size: f64,
+    since: Option<i64>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+struct FadeNow {
+    quiet: bool,
+    smaller: bool,
+    sellers: bool,
+}
+
+impl Fade {
+    fn rate_at(&self, t: i64, tau: f64) -> f64 {
+        self.rate * (-((t - self.rate_t) as f64) / tau).exp()
+    }
+
+    /// Feed a real trade of the coin; returns the instantaneous signals.
+    fn on_trade(&mut self, t: i64, buy: bool, sol: f64, tau: f64, st: &StratV5) -> FadeNow {
+        self.rate = self.rate_at(t, tau) + if buy { 1.0 / tau } else { 0.0 };
+        self.rate_t = t;
+        self.peak_rate = self.peak_rate.max(self.rate);
+        self.w30.push_back((t, buy, sol));
+        while self.w30.front().is_some_and(|x| x.0 <= t - 30) {
+            self.w30.pop_front();
+        }
+        let (mut b, mut s, mut nb) = (0.0, 0.0, 0usize);
+        for &(_, by, v) in &self.w30 {
+            if by {
+                b += v;
+                nb += 1;
+            } else {
+                s += v;
+            }
+        }
+        let size = if nb > 0 { b / nb as f64 } else { 0.0 };
+        self.peak_size = self.peak_size.max(size);
+        FadeNow { quiet: self.rate < st.fade_rate_frac * self.peak_rate, smaller: nb == 0 || size < st.fade_size_frac * self.peak_size, sellers: s > b }
+    }
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -460,11 +566,12 @@ struct Idx {
     top10: usize,
     bundle: usize,
     vol: usize,
+    low300: usize,
 }
 
 fn idx() -> Idx {
     let f = |n: &str| FEATURES.iter().position(|x| *x == n).unwrap_or_else(|| panic!("feature {n}"));
-    Idx { ret_60s: f("ret_60s"), top10: f("top10_supply_share"), bundle: f("f2_bundle_buy_share"), vol: f("vol_60s") }
+    Idx { ret_60s: f("ret_60s"), top10: f("top10_supply_share"), bundle: f("f2_bundle_buy_share"), vol: f("vol_60s"), low300: f("price_vs_low300") }
 }
 
 /// Simulate one window. `rk` = net return per entry bin (from `estimate_rk`). `oracle` = enter every
@@ -631,6 +738,7 @@ pub fn simulate(w: &WindowData, rp: RadarParams, scorer: &mut dyn Scorer, st: &S
                         tokens0: toks as u64, tokens: toks as u64, cost: size, entry_t: cur_t, entry_px: lamports as f64 / toks as f64, peak_px: px, max_mult: 1.0,
                         stage: Stage::PreTp, proceeds: 0.0, tx_paid: txc, legs: Vec::new(), last: Pred::default(), last_vol: 0.0, entry_ev: e_ev,
                         entry_label: label, q_hist: VecDeque::new(), last_hold: None, marks: Vec::new(),
+                        fade: Fade { rate_t: cur_t, ..Default::default() },
                     });
                 }
             }
@@ -657,10 +765,15 @@ pub fn simulate(w: &WindowData, rp: RadarParams, scorer: &mut dyn Scorer, st: &S
             let ids: Vec<u32> = pos.keys().copied().filter(|c| !busy.contains(c)).collect();
             for coin in ids {
                 let p = &pos[&coin];
+                let normal = st.exit_mode != ExitMode::Ladder;
                 let reason = if e.time - p.entry_t >= st.max_hold_s {
                     Some("MaxHold")
                 } else if e.time > ev.cover_end[coin as usize] {
                     Some("DataEnd")
+                } else if normal && matches!(st.exit_mode, ExitMode::MomentumFade | ExitMode::FadeAndDrawdown) && eng.secs_since_real_buy(coin, e.time) > st.idle_s {
+                    Some("Dead")
+                } else if normal && st.time_stop_s > 0 && e.time - p.entry_t >= st.time_stop_s && p.max_mult < 1.0 + st.time_stop_gain {
+                    Some("TimeStop")
                 } else {
                     None
                 };
@@ -716,6 +829,32 @@ pub fn simulate(w: &WindowData, rp: RadarParams, scorer: &mut dyn Scorer, st: &S
                 sell = Some((p.tokens, "Hazard", true));
             } else if lp_drop {
                 sell = Some((p.tokens, "LpDrop", true));
+            } else if st.exit_mode != ExitMode::Ladder {
+                let held_s = e.time - p.entry_t;
+                let fnow = (e.sol >= (REAL_MIN_SOL * 1e9) as u64).then(|| p.fade.on_trade(e.time, e.buy, e.sol as f64 / 1e9, st.fade_tau_s, st));
+                if st.disaster_stop.is_some_and(|d| held_s >= st.stop_grace_s && val <= (1.0 - d) * p.cost) {
+                    sell = Some((p.tokens, "DisasterStop", true));
+                } else if st.exit_mode == ExitMode::Trail {
+                    if price <= p.peak_px * (1.0 - st.trail_fixed.min(0.99)) {
+                        sell = Some((p.tokens, "Trail", true));
+                    }
+                } else if let Some(f) = fnow {
+                    let crowd_down = f.sellers && !(f.quiet || f.smaller) && eng.radar().view(e.coin, e.time).is_some_and(|v| v.metrics.growth < 1.0);
+                    let mut cond = f.sellers && (f.quiet || f.smaller || crowd_down) && held_s >= st.fade_min_hold_s;
+                    if cond && st.exit_mode == ExitMode::FadeAndDrawdown {
+                        let sigma_h = p.last_vol * 60f64.sqrt();
+                        let d = (1.0 - (-st.trail_k * sigma_h).exp()).clamp(st.d_min, st.d_max);
+                        cond = p.peak_px > 0.0 && price <= p.peak_px * (1.0 - d);
+                    }
+                    if cond {
+                        let since = *p.fade.since.get_or_insert(e.time);
+                        if e.time - since >= st.fade_persist_s {
+                            sell = Some((p.tokens, "MomentumFade", true));
+                        }
+                    } else {
+                        p.fade.since = None;
+                    }
+                }
             } else {
                 match p.stage {
                     Stage::PreTp => {
@@ -796,6 +935,8 @@ pub fn simulate(w: &WindowData, rp: RadarParams, scorer: &mut dyn Scorer, st: &S
                 Some("ev_below_min")
             } else if pr.rug >= st.rug_veto {
                 Some("rug_veto")
+            } else if st.max_entry_ret.is_some_and(|r| x[ix.low300] as f64 > 1.0 + r) {
+                Some("price_guard")
             } else if x[ix.ret_60s] > st.max_ret_60s_entry {
                 Some("ret_60s_too_high")
             } else if x[ix.top10] > st.max_top10_share {
@@ -936,7 +1077,7 @@ mod tests {
         let pr = Pred { bin: [0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0], tp1: 0.9, rug: 0.0, hold: 0.0, dead: 0.0 };
         let rk = [0.0, 0.0, 0.0, 0.0, 0.0, 3.0, 0.0];
         let c = CostsV5 { buy_fail_prob: 0.0, ..Default::default() };
-        let st = StratV5 { max_ret_60s_entry: 10.0, max_top10_share: 1.0, max_bundle_share: 1.0, ..Default::default() };
+        let st = StratV5 { max_ret_60s_entry: 10.0, max_top10_share: 1.0, max_bundle_share: 1.0, exit_mode: ExitMode::Ladder, max_entry_ret: None, ..Default::default() };
         let r = simulate(&w, rp, &mut Fixed(pr), &st, &c, &rk, None, false);
         assert!(r.signals_in_window >= 1, "{r:?}");
         assert_eq!(r.trades, 1, "{:?}", r.blocked);
@@ -1174,12 +1315,74 @@ mod tests {
         let w = WindowData::new("t".into(), &ev, Context::default(), f64::NAN);
         let pr = Pred { bin: [0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0], ..Default::default() };
         let c = CostsV5 { buy_fail_prob: 0.0, ..Default::default() };
-        let base = StratV5 { max_ret_60s_entry: 10.0, max_top10_share: 1.0, max_bundle_share: 1.0, stop_grace_s: 5, ..Default::default() };
+        let base = StratV5 { max_ret_60s_entry: 10.0, max_top10_share: 1.0, max_bundle_share: 1.0, stop_grace_s: 5, exit_mode: ExitMode::Ladder, max_entry_ret: None, ..Default::default() };
         let r = simulate(&w, rp, &mut Fixed(pr), &base, &c, &[0.0, 0.0, 0.0, 0.0, 0.0, 3.0, 0.0], None, false);
         assert!(r.trades >= 1 && r.trades_list[0].final_reason == "Stop", "{:?}", r.trades_list);
         let exit = r.trades_list[0].exit_t;
         assert!(r.blocked.get("reentry_cooldown").copied().unwrap_or(0) > 0, "{:?}", r.blocked);
         assert!(r.trades_list.iter().skip(1).all(|t| t.entry_t >= exit + base.reentry_cooldown_s), "{:?}", r.trades_list);
+    }
+
+    fn runner_with_dump() -> Events {
+        let mut evs = runner_events();
+        let mut q = evs.last().unwrap().quote_res;
+        let mut slot = evs.last().unwrap().slot;
+        for s in 400..500i64 {
+            slot += 1;
+            q = (q as f64 * 0.97) as u128;
+            evs.push(mk(slot, s, 20_000 + s as u32, false, 300_000_000, q, 1_000_000_000_000_000));
+        }
+        let mut ev = Events::new(evs, vec!["M".into()], (0, 120), vec![]);
+        ev.cover_end = vec![100_000];
+        ev
+    }
+
+    /// User decision: one 100% exit on crowd momentum. The runner is held through the pump (only buyers) and sold
+    /// in one leg once sellers dominate for fade_persist_s.
+    #[test]
+    fn momentum_fade_holds_runner_then_sells_all() {
+        let ev = runner_with_dump();
+        let rp = RadarParams { min_buyers: 5, min_buy_sol: 1.0, max_median_buy_sol: 1.0, ..RadarParams::default() };
+        let w = WindowData::new("t".into(), &ev, Context::default(), f64::NAN);
+        let pr = Pred { bin: [0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0], ..Default::default() };
+        let c = CostsV5 { buy_fail_prob: 0.0, ..Default::default() };
+        let rk = [0.0, 0.0, 0.0, 0.0, 0.0, 3.0, 0.0];
+        for mode in [ExitMode::MomentumFade, ExitMode::FadeAndDrawdown, ExitMode::Trail] {
+            let st = StratV5 { max_ret_60s_entry: 10.0, max_top10_share: 1.0, max_bundle_share: 1.0, exit_mode: mode, ..Default::default() };
+            let r = simulate(&w, rp, &mut Fixed(pr), &st, &c, &rk, None, false);
+            assert_eq!(r.trades, 1, "{mode:?} {:?}", r.blocked);
+            let t = &r.trades_list[0];
+            assert_eq!(t.legs.len(), 1, "{mode:?}: one 100% exit, no partial sells: {t:?}");
+            assert!((t.legs[0].tokens_frac - 1.0).abs() < 1e-12);
+            assert!(t.max_mult > 20.0 && t.pnl_sol > 0.0, "{mode:?}: held through the pump: {t:?}");
+            assert!(t.exit_t >= 400, "{mode:?}: not sold during the pump: {t:?}");
+            let want = if mode == ExitMode::Trail { "Trail" } else { "MomentumFade" };
+            assert_eq!(t.final_reason, want, "{t:?}");
+        }
+    }
+
+    /// P5: no entry once the price is > max_entry_ret above its 5-minute low.
+    #[test]
+    fn price_guard_blocks_late_entries() {
+        let mut evs = Vec::new();
+        let tk: u128 = 1_000_000_000_000_000;
+        let mut slot = 100;
+        for s in 0..60i64 {
+            for u in 0..3u32 {
+                slot += 1;
+                let q: u128 = if s == 0 && u == 0 { 50_000_000_000 } else { 70_000_000_000 }; // +40% at once
+                evs.push(mk(slot, s, (s as u32) * 3 + u, true, 300_000_000, q, tk));
+            }
+        }
+        let mut ev = Events::new(evs, vec!["M".into()], (0, 60), vec![]);
+        ev.cover_end = vec![100_000];
+        let rp = RadarParams { min_buyers: 5, min_buy_sol: 1.0, max_median_buy_sol: 1.0, ..RadarParams::default() };
+        let w = WindowData::new("t".into(), &ev, Context::default(), f64::NAN);
+        let pr = Pred { bin: [0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0], ..Default::default() };
+        let st = StratV5 { max_ret_60s_entry: 10.0, max_top10_share: 1.0, max_bundle_share: 1.0, ..Default::default() };
+        let r = simulate(&w, rp, &mut Fixed(pr), &st, &CostsV5 { buy_fail_prob: 0.0, ..Default::default() }, &[0.0, 0.0, 0.0, 0.0, 0.0, 3.0, 0.0], None, false);
+        assert_eq!(r.trades, 0, "{:?}", r.trades_list);
+        assert!(r.blocked.get("price_guard").copied().unwrap_or(0) > 0, "{:?}", r.blocked);
     }
 
     /// EV gate: same runner, but the model says bin 1 with negative R -> no entry.
