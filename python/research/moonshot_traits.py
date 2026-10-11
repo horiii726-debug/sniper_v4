@@ -6,7 +6,8 @@ Per coin (trades.csv, every venue, price from the coin's active pool = same rule
 always updates, another pool takes over from the curve or when at least as deep):
   takeoff t0  = first time inside the decision window, after the coin traded --min-age s with >= --min-pre-trades
                 trades in the previous 5 min, that the price is >= 1.10 x its 5-minute low (the base);
-  outcome     = max price within 1 h after t0 / base: moonshot >= 10x, runner 2-10x, fizzle < 1.5x (rose 10 % then died);
+  outcome     = max price within 1 h / ENTRY price (first price >= t0 + 2 s, after latency): moonshot >= 10x, runner
+                2-10x, fizzle < 1.5x (rose 10 % then died);
   traits      = computed only from trades in [t0 - 300 s, t0) of that coin (causal: known before the takeoff).
 Report: median trait per outcome class, univariate ROC-AUC moonshot vs fizzle (0.5 = no signal, > 0.5 = higher in
 moonshots), counts per venue. Univariate AUC is a screening statistic, not a model: traits overlap, and ML combines them.
@@ -37,7 +38,9 @@ def active_paths(df):
             amm = venue[i] != "pumpfun_curve"
             same = (pool[i] == a_pool) if (pool[i] != NO_POOL and a_pool not in (None, NO_POOL)) else (venue[i] == a_venue)
             cur_amm = known and a_venue != "pumpfun_curve"
-            if (not known) or same or (not cur_amm and amm) or (amm and cur_amm and q[i] >= a_q):
+            # same rule as the engine: < 1 SOL pools and unknown-program / stable-quoted legs never set the price
+            tiny = amm and (q[i] < 1e9 or venue[i] in ("other_venue", "stable_quoted"))
+            if (known and same) or (not tiny and ((not known) or (not cur_amm and amm) or (amm and cur_amm and q[i] >= a_q))):
                 known, a_pool, a_venue, a_q = True, pool[i], venue[i], q[i]
                 keep[i] = tk[i] > 0
         yield mint, g, keep, t[keep], (q[keep] / tk[keep]), q[keep] / 1e9
@@ -98,9 +101,15 @@ def main():
             if len(hit) == 0:
                 continue
             i0 = hit[0]
-            t0, base = t[i0], run_min[i0]
-            after = (t > t0) & (t <= t0 + 3600)
-            mx = p[after].max() / base if after.any() else p[i0] / base
+            t0 = t[i0]
+            # catchable upside: from the first price >= 2 s after the signal (realistic entry after latency), not from
+            # the base (same-slot jumps such as a 4,000 SOL buy at migration cannot be bought before)
+            ie = np.searchsorted(t, t0 + 2)
+            if ie >= len(t):
+                continue
+            entry = p[ie]
+            after = (t > t[ie]) & (t <= t0 + 3600)
+            mx = p[after].max() / entry if after.any() else 1.0
             cls = "moonshot_10x" if mx >= 10 else "runner_2_10x" if mx >= 2 else "fizzle_lt_1.5x" if mx < 1.5 else "mid_1.5_2x"
             pre = g[(g["block_time"] >= t0 - 300) & (g["block_time"] < t0)]
             if len(pre) < a.min_pre_trades:

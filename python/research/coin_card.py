@@ -2,7 +2,7 @@
 
 usage: python3 python/research/coin_card.py data/v5_X [--mints M1,M2] [--auto 3] [--sol-usd 118.59] [--minutes 20]
 
-Per minute (all venues of the coin): buys / sells (count), buy / sell volume in SOL and USD, median buy size (USD),
+Per minute (all venues of the coin): REAL buys / sells (>= 0.01 SOL, count), buy / sell volume in SOL and USD, median buy size (USD),
 distinct buyers / sellers, NEW buyers (first trade of the wallet in this window), buyer acceleration (distinct buyers
 this minute - previous minute), dust buys (< 0.01 SOL), price (last trade of the coin's deepest pool, as a multiple of
 the first minute's price) and liquidity (SOL in that pool). `--auto N` picks N coins of each outcome
@@ -19,7 +19,8 @@ NO_POOL = 4294967295
 
 def card(g, sol_usd, minutes, t_from):
     # price / liquidity from the coin's deepest pool (largest median SOL reserve); counts from every venue
-    main = g.groupby("pool")["q"].median().idxmax()
+    real_all = g[g["sol_lamports"] >= 10_000_000]
+    main = (real_all if len(real_all) else g)["pool"].value_counts().idxmax()   # pool with the most real trades
     g = g[(g["block_time"] >= t_from) & (g["block_time"] < t_from + 60 * minutes)].copy()
     g["m"] = ((g["block_time"] - t_from) // 60).astype(int)
     rows, prev_buyers, seen = [], 0, set()
@@ -27,6 +28,9 @@ def card(g, sol_usd, minutes, t_from):
     for m in range(minutes):
         x = g[g["m"] == m]
         b, s = x[x["side"] == "buy"], x[x["side"] == "sell"]
+        dust_b = b[b["sol_lamports"] < 10_000_000]
+        b = b[b["sol_lamports"] >= 10_000_000]          # real buys (>= 0.01 SOL); dust shown separately
+        s = s[s["sol_lamports"] >= 10_000_000]
         buyers = set(b["trader"]) - {"arb_roundtrip"}
         new = len(buyers - seen)
         seen |= buyers
@@ -39,7 +43,7 @@ def card(g, sol_usd, minutes, t_from):
                      "sell_usd": round(s["sol_lamports"].sum() / 1e9 * sol_usd, 1),
                      "med_buy_usd": round(float(np.median(b["sol_lamports"])) / 1e9 * sol_usd, 2) if len(b) else 0.0,
                      "buyers": len(buyers), "sellers": s["trader"].nunique(), "new_buyers": new, "accel": len(buyers) - prev_buyers,
-                     "dust_buys": int((b["sol_lamports"] < 10_000_000).sum()), "price_x": round(px / p_first, 2) if p_first and np.isfinite(px) else np.nan,
+                     "dust_buys": len(dust_b), "dust_wallets": dust_b["trader"].nunique(), "price_x": round(px / p_first, 2) if p_first and np.isfinite(px) else np.nan,
                      "liq_sol": round(xm["q"].iloc[-1] / 1e9, 1) if len(xm) else np.nan})
         prev_buyers = len(buyers)
     return pd.DataFrame(rows)
@@ -61,7 +65,7 @@ def main():
     T = pd.read_csv(tf) if os.path.exists(tf) else None
     if not picks and T is not None:
         for cls in ("moonshot_10x", "runner_2_10x", "fizzle_lt_1.5x"):
-            x = T[T["class"] == cls].sort_values("trades_5m", ascending=False).head(a.auto)
+            x = T[T["class"] == cls].sort_values("buy_sol_5m", ascending=False).head(a.auto)
             picks += [(m, cls) for m in x["mint"]]
     df = df[df["mint"].isin([m for m, _ in picks])].sort_values("order", kind="stable")
     df["q"] = df["quote_reserve_after"].astype(np.float64)

@@ -81,7 +81,8 @@ pub mod code {
     /// venues (median pred/actual 0.985-1.000, >= 95 % within +-10 %). Raydium CPMM / LaunchLab failed (vault balances
     /// include unclaimed protocol fees / curve state) and stable-quoted pools need a USDC route: not included.
     pub fn fill_validated(c: u8) -> bool {
-        matches!(c, PUMP_CURVE | PUMPSWAP | RAYDIUM_AMM_V4 | RAYDIUM_CLMM | METEORA_DLMM | METEORA_DAMM_V2 | METEORA_DBC | ORCA_WHIRLPOOL | OTHER_VENUE)
+        // OTHER_VENUE removed after the per-pool price / reserve consistency check (6.8 % of its pools inconsistent)
+        matches!(c, PUMP_CURVE | PUMPSWAP | RAYDIUM_AMM_V4 | RAYDIUM_CLMM | METEORA_DLMM | METEORA_DAMM_V2 | METEORA_DBC | ORCA_WHIRLPOOL)
     }
 
     /// Constant-product pools whose vault balances are the reserves.

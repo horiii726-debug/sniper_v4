@@ -129,7 +129,11 @@ impl ActivePool {
         let same = if e.pool != NO_POOL && self.pool != NO_POOL { e.pool == self.pool } else { e.venue == self.venue };
         // An AMM pool with < 1 SOL never BECOMES the price source (empty / dust pools carry absurd prices: a 0-SOL
         // DAMM v2 pool showed a fake 58x); the active pool itself keeps updating when it is drained (rugs stay visible).
-        let tiny = e.amm && e.quote_res < MIN_PRICE_POOL_LAMPORTS;
+        // Program-agnostic legs of unknown programs and stable-quoted legs never become the price source either:
+        // 6.8 % / 3.8 % of their pools move price far beyond what their SOL reserve allows (reports/v6, C3e); they still
+        // count as trades for flow / crowd features.
+        let tiny = e.amm && (e.quote_res < MIN_PRICE_POOL_LAMPORTS
+            || matches!(e.venue, decoder::venue_pool::code::OTHER_VENUE | decoder::venue_pool::code::STABLE_QUOTED));
         let take = (self.known && same) || (!tiny && (!self.known || (!self.amm() && e.amm) || (e.amm && self.amm() && e.quote_res >= self.quote)));
         if take {
             *self = ActivePool { known: true, venue: e.venue, quote: e.quote_res, pool: e.pool };
@@ -1265,6 +1269,11 @@ mod tests {
         assert!(a.accept(&p(21, 50)));
         assert!(!a.accept(&p(20, 0)), "still empty");
         assert!(a.accept(&p(21, 0)), "active pool drained by a rug: still the price source");
+        // unknown-program / stable-quoted legs never set the price
+        let mut a = ActivePool::default();
+        assert!(!a.accept(&Ev { pool: 30, ..e(decoder::venue_pool::code::OTHER_VENUE, 500) }));
+        assert!(!a.accept(&Ev { pool: 31, ..e(decoder::venue_pool::code::STABLE_QUOTED, 500) }));
+        assert!(a.accept(&Ev { pool: 32, ..e(7, 5) }));
         // events without pool ids fall back to the venue rule
         let mut a = ActivePool::default();
         assert!(a.accept(&p(NO_POOL, 500)));
