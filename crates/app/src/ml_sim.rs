@@ -2445,9 +2445,10 @@ mod tests {
     /// V5-14: price_vs_vwap60 is SOL-weighted (1 SOL at price 1, 9 SOL at price 2 -> VWAP 1.9).
     #[test]
     fn vwap_is_sol_weighted() {
-        let mut a = mk(1, 100, 0, 1, true, 1_000_000_000, 1_000, 1_000);
+        // reserves of 1000 / 2000 SOL (a pool < 1 SOL never becomes the price source)
+        let mut a = mk(1, 100, 0, 1, true, 1_000_000_000, 1_000_000_000_000, 1_000_000_000_000);
         a.tokens = 1_000;
-        let mut b = mk(2, 101, 0, 2, true, 9_000_000_000, 2_000, 1_000);
+        let mut b = mk(2, 101, 0, 2, true, 9_000_000_000, 2_000_000_000_000, 1_000_000_000_000);
         b.tokens = 1_000;
         let events = Events::new(vec![a.clone(), b.clone()], vec!["m".into()], (0, 1000), vec![]);
         let mut eng = Engine::new(&events, RadarParams::default());

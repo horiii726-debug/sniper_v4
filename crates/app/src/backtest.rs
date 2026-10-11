@@ -44,6 +44,8 @@ pub struct Ev {
 }
 
 pub const NO_POOL: u32 = u32::MAX;
+/// Minimum SOL in an AMM pool for it to become a coin's price source (see `ActivePool::accept`).
+pub const MIN_PRICE_POOL_LAMPORTS: u128 = 1_000_000_000;
 
 /// Event layout of the V6 v3 caches (`pump_events_v3.bin`): venue, no pool id.
 #[derive(Deserialize)]
@@ -125,7 +127,10 @@ impl ActivePool {
     /// absurd price never sets the price.
     pub fn accept(&mut self, e: &Ev) -> bool {
         let same = if e.pool != NO_POOL && self.pool != NO_POOL { e.pool == self.pool } else { e.venue == self.venue };
-        let take = !self.known || same || (!self.amm() && e.amm) || (e.amm && self.amm() && e.quote_res >= self.quote);
+        // An AMM pool with < 1 SOL never BECOMES the price source (empty / dust pools carry absurd prices: a 0-SOL
+        // DAMM v2 pool showed a fake 58x); the active pool itself keeps updating when it is drained (rugs stay visible).
+        let tiny = e.amm && e.quote_res < MIN_PRICE_POOL_LAMPORTS;
+        let take = (self.known && same) || (!tiny && (!self.known || (!self.amm() && e.amm) || (e.amm && self.amm() && e.quote_res >= self.quote)));
         if take {
             *self = ActivePool { known: true, venue: e.venue, quote: e.quote_res, pool: e.pool };
         }
@@ -1238,7 +1243,7 @@ mod tests {
     #[test]
     fn active_pool_rule() {
         let e = |venue: u8, q: u128| Ev { slot: 1, order: 1, time: 1, coin: 0, amm: venue != 0, buy: true, sol: 1, tokens: 1, user: 0, creator: 0,
-            quote_res: q, token_res: 1, real_quote: 0, real_token: 0, fee_bps: 0, complete: false, venue, pool: venue as u32 };
+            quote_res: q * 1_000_000_000, token_res: 1, real_quote: 0, real_token: 0, fee_bps: 0, complete: false, venue, pool: venue as u32 };
         let mut a = ActivePool::default();
         assert!(a.accept(&e(0, 30)));
         assert!(a.accept(&e(1, 80)), "migration to PumpSwap");
@@ -1254,6 +1259,12 @@ mod tests {
         assert!(!a.accept(&p(11, 3)), "thin pool of the same venue");
         assert!(a.accept(&p(10, 100)), "the active pool drained: still the price source");
         assert!(a.accept(&p(11, 120)), "the other pool is now deeper");
+        // a near-empty pool never becomes the price source; a drained active pool keeps updating
+        let mut a = ActivePool::default();
+        assert!(!a.accept(&p(20, 0)), "empty pool ignored");
+        assert!(a.accept(&p(21, 50)));
+        assert!(!a.accept(&p(20, 0)), "still empty");
+        assert!(a.accept(&p(21, 0)), "active pool drained by a rug: still the price source");
         // events without pool ids fall back to the venue rule
         let mut a = ActivePool::default();
         assert!(a.accept(&p(NO_POOL, 500)));
