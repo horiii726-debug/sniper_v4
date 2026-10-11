@@ -134,13 +134,28 @@ Status per 2026-10-11 (branch `v6-impl`). Semua hasil di sini dari **paper / bac
 6. **Holdout s03d_21h belum dievaluasi.** Itu ujian akhir yang wajib sebelum klaim apa pun.
 7. **Live trading tetap mati.** Shadow/live baru setelah full-system validation lolos.
 
-## 6. Yang sedang berjalan / langkah berikutnya
+## 6. Yang sedang berjalan / langkah berikutnya (urut prioritas)
 
-- `run2w`: backtest 3 mode exit × {venue C18 + taruhan tetap, venue C18 + Kelly ¼} dengan grid EV 0–30%.
-- `run4w`: training dan backtest pada 4 window (s02d, s04d, s05d, s06d). Hasilnya per window, untuk melihat stabil
-  atau tidaknya di rezim berbeda.
-- Download window tambahan, lalu ulangi run.
-- Holdout s03d_21h di akhir.
+1. `run2w`:
+   - sampel cepat (`QUICK_fixed` / `QUICK_kelly25`): venue C18 dibuka, EV ≥ 0;
+   - grid 3 mode exit × {venue C18 + taruhan tetap, venue C18 + Kelly ¼}.
+
+   Laporkan modal akhir, jumlah trade, win rate, drawdown, PF, dan penolak per alasan.
+2. `run4w` (4 window: s02d, s04d, s05d, s06d): training, online learning, dan 9 backtest. Hasilnya dilaporkan per
+   window, supaya terlihat apakah sistem cuan di rezim/hari berbeda.
+3. Target **≥ 300 trade out-of-sample**:
+   - decode s08d_08h dan s09d_15h (download sudah jalan);
+   - tambah window, ulangi run dengan `MIN_TRAIN=2` di semua window;
+   - kumpulkan trade semua window uji.
+4. **Gate C17 online learning**: bandingkan ML yang belajar tiap 10 koin dengan walk-forward dan model statis
+   (`ONLINE_LEARN.json`). Jika tidak menang di ≥ 60% window, tidak dipakai. Model online perlu dibatasi ukurannya,
+   karena saat ini bertambah 20 pohon per update.
+5. **Kalibrasi (C9)**: isotonic per window. Kelly hanya sah di sistem final kalau kalibrasi lolos.
+6. **Laporan gate per komponen C1–C18** (PASS/FAIL + diagnosis: desain jelek, setelan, atau data kurang). Ditambah
+   learning curve (akurasi vs jumlah window) untuk memisahkan "data kurang" dari "desain jelek".
+7. Wallet scores / cluster debu pada window V6.
+8. Holdout s03d_21h: satu kali, di akhir, dengan setelan yang sudah dibekukan.
+9. Unggah raw segment (~18 GB) ke release, dipecah per window.
 
 ## 7. Cara reproduksi
 
