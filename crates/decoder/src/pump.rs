@@ -41,6 +41,9 @@ pub struct MarketEvent {
     pub fee_bps: u64,
     /// Curve finished (all real tokens sold) after this trade.
     pub complete: bool,
+    /// Curve in pump.fun Mayhem mode: an agent wallet trades fee-free and rewrites the virtual SOL reserve
+    /// at each of its trades, so the virtual-reserve price is not backed by real SOL (out of scope for now).
+    pub mayhem: bool,
     /// Raw decoded event (diagnostics).
     pub raw: Value,
 }
@@ -50,10 +53,23 @@ pub struct PumpDecoder {
     amm: Idl,
     pub skipped_non_sol_quote: u64,
     pub undecodable: u64,
+    /// Decoded but a required field is missing/mistyped or the payload is truncated: quarantined.
+    pub malformed: u64,
 }
 
+/// Optional numeric field (absent in older event versions): 0 when missing.
 fn u(v: &Value, k: &str) -> u64 {
     v[k].as_u64().unwrap_or(0)
+}
+
+/// Required numeric field: None when missing or mistyped (the event is quarantined, never defaulted).
+fn ur(v: &Value, k: &str) -> Option<u64> {
+    v[k].as_u64()
+}
+
+/// Required non-empty string field.
+fn sr(v: &Value, k: &str) -> Option<String> {
+    v[k].as_str().filter(|x| !x.is_empty() && *x != DEFAULT_KEY).map(String::from)
 }
 
 fn s(v: &Value, k: &str) -> String {
@@ -62,7 +78,7 @@ fn s(v: &Value, k: &str) -> String {
 
 impl PumpDecoder {
     pub fn new(pump_idl: &str, amm_idl: &str) -> Result<Self, String> {
-        Ok(Self { pump: Idl::from_json(pump_idl)?, amm: Idl::from_json(amm_idl)?, skipped_non_sol_quote: 0, undecodable: 0 })
+        Ok(Self { pump: Idl::from_json(pump_idl)?, amm: Idl::from_json(amm_idl)?, skipped_non_sol_quote: 0, undecodable: 0, malformed: 0 })
     }
 
     /// Market events of one successful transaction, in execution order.
@@ -90,29 +106,11 @@ impl PumpDecoder {
                             let idx = def.accounts.iter().position(|a| a == "bonding_curve")?;
                             tx.account(pe, idx).map(String::from)
                         });
-                        let real_token = u(&v, "real_token_reserves");
-                        // sol_amount is what entered/left the curve; fees are charged on top (buy) / deducted (sell).
-                        let fees = u(&v, "fee") + u(&v, "creator_fee");
-                        let is_buy = v["is_buy"].as_bool().unwrap_or(false);
-                        let net = u(&v, "sol_amount");
-                        out.push(MarketEvent {
-                            venue: Venue::Curve,
-                            mint: s(&v, "mint"),
-                            pool: parent_pool.unwrap_or_default(),
-                            buy: is_buy,
-                            sol: if is_buy { net + fees } else { net.saturating_sub(fees) },
-                            curve_quote: net,
-                            tokens: u(&v, "token_amount"),
-                            user: s(&v, "user"),
-                            creator: s(&v, "creator"),
-                            quote_res: u(&v, "virtual_sol_reserves") as u128,
-                            token_res: u(&v, "virtual_token_reserves") as u128,
-                            real_quote: u(&v, "real_sol_reserves"),
-                            real_token,
-                            fee_bps: u(&v, "fee_basis_points") + u(&v, "creator_fee_basis_points"),
-                            complete: real_token == 0,
-                            raw: v.clone(),
-                        });
+                        let ev = curve_event(&v, parent_pool);
+                        match ev {
+                            Some(e) => out.push(e),
+                            None => self.malformed += 1,
+                        }
                     }
                     Some(_) => {}
                     None => self.undecodable += 1,
@@ -148,8 +146,11 @@ impl PumpDecoder {
                 }
                 let pb = u(&v, "pool_base_token_reserves") as u128;
                 // Pools may carry virtual quote liquidity: pricing uses real + virtual quote reserves.
-                let vq = v["virtual_quote_reserves"].as_str().and_then(|x| x.parse::<i128>().ok()).unwrap_or(0).max(0) as u128;
-                let pq = u(&v, "pool_quote_token_reserves") as u128 + vq;
+                // The virtual quote reserve is signed (i128) and can be negative: never clamp it to 0.
+                let Some(pq) = effective_quote(&v) else {
+                    self.malformed += 1;
+                    continue;
+                };
                 let (tokens, sol, token_res, quote_res) = if buy {
                     let base_out = u(&v, "base_amount_out");
                     let q_in = u(&v, "quote_amount_in_with_lp_fee");
@@ -177,12 +178,70 @@ impl PumpDecoder {
                     real_token: 0,
                     fee_bps: u(&v, "lp_fee_basis_points") + u(&v, "protocol_fee_basis_points") + u(&v, "coin_creator_fee_basis_points"),
                     complete: false,
+                    mayhem: false,
                     raw: v.clone(),
                 });
             }
         }
         out
     }
+}
+
+/// PumpSwap pricing quote reserve: real pool quote + signed virtual quote (absent in older events = 0).
+/// None when the field is mistyped or the sum is not positive.
+fn effective_quote(v: &Value) -> Option<u128> {
+    let real = ur(v, "pool_quote_token_reserves")? as i128;
+    let vq = match &v["virtual_quote_reserves"] {
+        Value::Null => 0,
+        Value::String(x) => x.parse::<i128>().ok()?,
+        x => x.as_i64()? as i128,
+    };
+    u128::try_from(real.checked_add(vq)?).ok().filter(|q| *q > 0)
+}
+
+/// One curve TradeEvent; None (quarantine) when a required field is missing/mistyped or the payload is truncated.
+fn curve_event(v: &Value, parent_pool: Option<String>) -> Option<MarketEvent> {
+    if v.get("_truncated").is_some() {
+        return None;
+    }
+    let real_token = ur(v, "real_token_reserves")?;
+    // sol_amount is what entered/left the curve; every fee is charged on top (buy) /
+    // deducted (sell): protocol, creator, cashback, buyback, holder rewards.
+    let fees = u(v, "fee")
+        + u(v, "creator_fee")
+        + u(v, "cashback")
+        + u(v, "buyback_fee")
+        + u(v, "holder_rewards");
+    let is_buy = v["is_buy"].as_bool()?;
+    let net = ur(v, "sol_amount")?;
+    let tokens = ur(v, "token_amount")?;
+    let (qr, tr) = (ur(v, "virtual_sol_reserves")?, ur(v, "virtual_token_reserves")?);
+    if tokens == 0 || qr == 0 || tr == 0 {
+        return None;
+    }
+    Some(MarketEvent {
+        venue: Venue::Curve,
+        mint: sr(v, "mint")?,
+        pool: parent_pool.unwrap_or_default(),
+        buy: is_buy,
+        sol: if is_buy { net + fees } else { net.saturating_sub(fees) },
+        curve_quote: net,
+        tokens,
+        user: sr(v, "user")?,
+        creator: s(v, "creator"),
+        quote_res: qr as u128,
+        token_res: tr as u128,
+        real_quote: ur(v, "real_sol_reserves")?,
+        real_token,
+        fee_bps: u(v, "fee_basis_points")
+            + u(v, "creator_fee_basis_points")
+            + u(v, "cashback_fee_basis_points")
+            + u(v, "buyback_fee_basis_points")
+            + u(v, "holder_rewards_bps"),
+        complete: real_token == 0,
+        mayhem: v["mayhem_mode"].as_bool().unwrap_or(false),
+        raw: v.clone(),
+    })
 }
 
 /// Tokens received for spending `paid` lamports in total (fee taken from the input, exact-quote-in),
@@ -199,4 +258,83 @@ pub fn buy_tokens_out(quote_res: u128, token_res: u128, paid: u64, fee_bps: u64)
 pub fn sell_quote_out(quote_res: u128, token_res: u128, tokens: u64, fee_bps: u64) -> u128 {
     let gross = quote_res * tokens as u128 / (token_res + tokens as u128);
     gross - (gross * fee_bps as u128).div_ceil(10_000)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    fn trade() -> Value {
+        json!({"mint": "M1", "user": "U1", "creator": "C1", "is_buy": true, "sol_amount": 1_000_000_000u64,
+               "token_amount": 30_000_000_000_000u64, "virtual_sol_reserves": 31_000_000_000u64,
+               "virtual_token_reserves": 1_043_000_000_000_000u64, "real_sol_reserves": 1_000_000_000u64,
+               "real_token_reserves": 763_000_000_000_000u64, "fee": 9_500_000u64, "fee_basis_points": 95u64,
+               "creator_fee": 3_000_000u64, "creator_fee_basis_points": 30u64, "mayhem_mode": false})
+    }
+
+    #[test]
+    fn curve_event_valid() {
+        let e = curve_event(&trade(), None).unwrap();
+        assert!(e.buy && !e.mayhem && !e.complete);
+        assert_eq!(e.sol, 1_012_500_000);
+        assert_eq!(e.fee_bps, 125);
+    }
+
+    #[test]
+    fn missing_required_field_is_quarantined_not_defaulted() {
+        for k in ["is_buy", "sol_amount", "token_amount", "virtual_sol_reserves", "virtual_token_reserves", "real_sol_reserves", "real_token_reserves", "mint", "user"] {
+            let mut v = trade();
+            v.as_object_mut().unwrap().remove(k);
+            assert!(curve_event(&v, None).is_none(), "missing {k} must quarantine");
+            let mut v = trade();
+            v[k] = json!("bad");
+            if k != "mint" && k != "user" {
+                assert!(curve_event(&v, None).is_none(), "mistyped {k} must quarantine");
+            }
+        }
+        let mut v = trade();
+        v["mint"] = json!("");
+        assert!(curve_event(&v, None).is_none());
+        let mut v = trade();
+        v["_truncated"] = json!(true);
+        assert!(curve_event(&v, None).is_none());
+        let mut v = trade();
+        v["token_amount"] = json!(0);
+        assert!(curve_event(&v, None).is_none());
+    }
+
+    #[test]
+    fn extra_fees_and_mayhem_flag() {
+        let mut v = trade();
+        v["cashback"] = json!(1_000u64);
+        v["buyback_fee"] = json!(2_000u64);
+        v["holder_rewards"] = json!(3_000u64);
+        v["mayhem_mode"] = json!(true);
+        let e = curve_event(&v, None).unwrap();
+        assert_eq!(e.sol, 1_012_506_000);
+        assert!(e.mayhem);
+        v["is_buy"] = json!(false);
+        assert_eq!(curve_event(&v, None).unwrap().sol, 1_000_000_000 - 12_506_000);
+    }
+}
+
+#[cfg(test)]
+mod amm_tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn negative_virtual_quote_is_subtracted_not_clamped() {
+        let v = json!({"pool_quote_token_reserves": 175_445_274_980u64, "virtual_quote_reserves": "-9019950071"});
+        assert_eq!(effective_quote(&v), Some(175_445_274_980 - 9_019_950_071));
+        let v = json!({"pool_quote_token_reserves": 100u64, "virtual_quote_reserves": "50"});
+        assert_eq!(effective_quote(&v), Some(150));
+        let v = json!({"pool_quote_token_reserves": 100u64});
+        assert_eq!(effective_quote(&v), Some(100));
+        let v = json!({"pool_quote_token_reserves": 100u64, "virtual_quote_reserves": "-100"});
+        assert_eq!(effective_quote(&v), None);
+        let v = json!({"pool_quote_token_reserves": 100u64, "virtual_quote_reserves": "x"});
+        assert_eq!(effective_quote(&v), None);
+    }
 }

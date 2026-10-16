@@ -57,19 +57,31 @@ pub fn run(rec: &Path, dump: Option<&Path>, max_blocks: usize) -> Result<()> {
             for e in &evs {
                 let key = format!("{:?}:{}", e.venue, if e.venue == Venue::Curve { &e.mint } else { &e.pool });
                 if let Some(prev) = last.get(&key) {
-                    let tag = if e.venue == Venue::Curve { "curve" } else { "amm" };
-                    let ent = pred.entry(tag).or_insert((0, 0, Vec::new()));
-                    // Curve buys: tokens from the net SOL into the curve (fee 0).
-                    // PumpSwap sells: SOL out (after fees) from the tokens sold.
-                    let check = match (e.venue, e.buy) {
-                        (Venue::Curve, true) if !prev.complete && e.curve_quote > 0 => {
-                            Some((decoder::pump::buy_tokens_out(prev.quote_res, prev.token_res, e.curve_quote, 0) as f64, e.tokens as f64))
-                        }
-                        (Venue::Amm, false) if e.tokens > 0 => {
-                            Some((decoder::pump::sell_quote_out(prev.quote_res, prev.token_res, e.tokens, e.fee_bps) as f64, e.sol as f64))
-                        }
-                        _ => None,
+                    // All four paths, each predicted from the previous post-trade state of the same pool.
+                    let (tag, check) = match (e.venue, e.buy) {
+                        // Curve buy: tokens from the net SOL into the curve (fees on top).
+                        (Venue::Curve, true) if !prev.complete && e.curve_quote > 0 => (
+                            "curve_buy",
+                            Some((decoder::pump::buy_tokens_out(prev.quote_res, prev.token_res, e.curve_quote, 0) as f64, e.tokens as f64)),
+                        ),
+                        // Curve sell: net SOL out of the curve (fees deducted afterwards).
+                        (Venue::Curve, false) if !prev.complete && e.tokens > 0 => (
+                            "curve_sell",
+                            Some((decoder::pump::sell_quote_out(prev.quote_res, prev.token_res, e.tokens, 0) as f64, e.curve_quote as f64)),
+                        ),
+                        // PumpSwap buy: tokens for the total SOL paid (fees taken from the input).
+                        (Venue::Amm, true) if e.sol > 0 => (
+                            "amm_buy",
+                            Some((decoder::pump::buy_tokens_out(prev.quote_res, prev.token_res, e.sol, e.fee_bps) as f64, e.tokens as f64)),
+                        ),
+                        // PumpSwap sell: SOL out (after fees) from the tokens sold.
+                        (Venue::Amm, false) if e.tokens > 0 => (
+                            "amm_sell",
+                            Some((decoder::pump::sell_quote_out(prev.quote_res, prev.token_res, e.tokens, e.fee_bps) as f64, e.sol as f64)),
+                        ),
+                        _ => ("", None),
                     };
+                    let ent = pred.entry(tag).or_insert((0, 0, Vec::new()));
                     if let Some((p, actual)) = check {
                         let err = (p - actual).abs() / actual.max(1.0);
                         ent.0 += 1;
@@ -135,9 +147,9 @@ pub fn run(rec: &Path, dump: Option<&Path>, max_blocks: usize) -> Result<()> {
         .collect::<serde_json::Map<_, _>>()
         .into();
     let out = serde_json::json!({
-        "events_decoded": events_total, "undecodable_events": dec.undecodable, "skipped_non_sol_quote": dec.skipped_non_sol_quote,
+        "events_decoded": events_total, "undecodable_events": dec.undecodable, "malformed_events": dec.malformed, "skipped_non_sol_quote": dec.skipped_non_sol_quote,
         "vs_reference": { "compared": n_single, "side_match_pct": pct(side_ok, n_single), "amount_match_pct": pct(amt_ok, n_single), "per_venue": venues },
-        "pool_math_next_buy_prediction": pred_out, "mismatch_examples": mismatches,
+        "pool_math_next_trade_prediction": pred_out, "mismatch_examples": mismatches,
     });
     println!("{}", serde_json::to_string_pretty(&out)?);
     Ok(())

@@ -47,12 +47,22 @@ pub struct Events {
 }
 
 /// Decode a recording into pump/PumpSwap events, cached as `<rec>/pump_events.bin`.
+/// Bump whenever decoding or event semantics change: the cache file name carries it plus the IDL hash.
+const DECODER_VERSION: u32 = 3;
+
 pub fn load(rec: &Path) -> Result<Events> {
-    let cache = rec.join("pump_events_v2.bin");
+    use std::hash::{Hash, Hasher};
+    let mut h = std::collections::hash_map::DefaultHasher::new();
+    for f in ["config/idl/pump.json", "config/idl/pump_amm.json"] {
+        std::fs::read(f).map_err(|e| anyhow!("{f}: {e}"))?.hash(&mut h);
+    }
+    let cache = rec.join(format!("pump_events_v{DECODER_VERSION}_{:016x}.bin", h.finish()));
     if cache.exists() {
         return Ok(bincode::deserialize(&std::fs::read(&cache)?)?);
     }
     let mut dec = crate::pump_check::load_decoder()?;
+    // Mints ever seen in Mayhem mode: their curve price is agent-set, not backed by real SOL -> excluded.
+    let mut mayhem: FxHashSet<u32> = FxHashSet::default();
     let mut mints: FxHashMap<String, u32> = FxHashMap::default();
     let mut users: FxHashMap<String, u32> = FxHashMap::default();
     let mut evs = Vec::new();
@@ -68,7 +78,11 @@ pub fn load(rec: &Path) -> Result<Events> {
             continue;
         }
         let slot = v["params"]["slot"].as_u64().ok_or_else(|| anyhow!("no slot"))?;
-        let time = r["blockTime"].as_i64().unwrap_or(0);
+        // A block without blockTime would corrupt the window start and every age/horizon: skip it, never 0.
+        let Some(time) = r["blockTime"].as_i64().filter(|t| *t > 0) else {
+            eprintln!("slot {slot}: no blockTime, block skipped");
+            continue;
+        };
         t0 = t0.min(time);
         t1 = t1.max(time);
         for (i, t) in r["transactions"].as_array().map(|a| a.as_slice()).unwrap_or(&[]).iter().enumerate() {
@@ -76,6 +90,9 @@ pub fn load(rec: &Path) -> Result<Events> {
             for (k, e) in dec.decode(&tx).into_iter().enumerate() {
                 let n = mints.len() as u32;
                 let coin = *mints.entry(e.mint).or_insert(n);
+                if e.mayhem {
+                    mayhem.insert(coin);
+                }
                 let n = users.len() as u32;
                 let user = *users.entry(e.user).or_insert(n);
                 let n = users.len() as u32;
@@ -101,6 +118,9 @@ pub fn load(rec: &Path) -> Result<Events> {
             }
         }
     }
+    let before = evs.len();
+    evs.retain(|e| !mayhem.contains(&e.coin));
+    eprintln!("mayhem mints excluded: {} ({} events); malformed events quarantined: {}", mayhem.len(), before - evs.len(), dec.malformed);
     evs.sort_by_key(|e| e.order);
     let mut names = vec![String::new(); mints.len()];
     for (m, i) in mints {
