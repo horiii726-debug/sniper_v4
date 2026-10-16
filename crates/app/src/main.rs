@@ -236,6 +236,18 @@ enum Cmd {
         #[arg(long)]
         rec: PathBuf,
     },
+    /// Copy the getBlock messages of slots [from_slot, to_slot] of a backfill recording into a new recording
+    /// (chronological dev/test splits of one continuous backfill).
+    SplitRec {
+        #[arg(long)]
+        rec: PathBuf,
+        #[arg(long)]
+        out: PathBuf,
+        #[arg(long)]
+        from_slot: u64,
+        #[arg(long)]
+        to_slot: u64,
+    },
 }
 
 fn main() -> Result<()> {
@@ -306,6 +318,28 @@ fn main() -> Result<()> {
             rt.block_on(backfill(settings, cluster, venues.program_ids(), out, end_slot, slots, concurrency, skipped_spot_checks))
         }
         Cmd::VerifyBackfill { rec } => verify_backfill(&rec),
+        Cmd::SplitRec { rec, out, from_slot, to_slot } => {
+            std::fs::create_dir_all(&out)?;
+            let mut w = recorder::Recorder::create(&out, 0, u64::MAX / 2_000_000_000, 1_000)?.with_compression(9, 8 << 20);
+            let (mut n, mut lo, mut hi) = (0u64, u64::MAX, 0u64);
+            for m in recorder::Reader::open(&rec)? {
+                let m = m?;
+                if m.source != events::Source::Rpc {
+                    continue;
+                }
+                let v: serde_json::Value = serde_json::from_slice(&m.payload)?;
+                let Some(slot) = v["params"]["slot"].as_u64() else { continue };
+                if (from_slot..=to_slot).contains(&slot) {
+                    w.write(&m)?;
+                    n += 1;
+                    lo = lo.min(slot);
+                    hi = hi.max(slot);
+                }
+            }
+            w.close(0)?;
+            println!("{}", serde_json::json!({"messages": n, "first_slot": lo, "last_slot": hi}));
+            Ok(())
+        }
         Cmd::Census { rec, out } => census::run(&rec, &out),
         Cmd::Backtest { dev, test, radar_params, out, latency_slots, tx_cost_lamports, buy_fail_prob } => {
             let v: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(&radar_params)?)?;
