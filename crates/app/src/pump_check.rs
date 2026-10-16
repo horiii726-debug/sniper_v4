@@ -28,6 +28,16 @@ pub fn run(rec: &Path, dump: Option<&Path>, max_blocks: usize) -> Result<()> {
     let mut last: FxHashMap<String, MarketEvent> = FxHashMap::default();
     let mut pred: FxHashMap<&'static str, (u64, u64, Vec<f64>)> = FxHashMap::default();
     let mut events_total = 0u64;
+    // 1B.1 venue coverage: successful txs invoking each registry venue (top-level or CPI), and how many yielded a decoded event.
+    let registry: Vec<(String, String)> = std::fs::read_to_string("config/venues.toml")?
+        .split("[[venue]]")
+        .filter_map(|b| {
+            let f = |k: &str| b.lines().find_map(|l| l.trim().strip_prefix(k).map(|r| r.trim_start_matches([' ', '=']).trim_matches('"').to_string()));
+            Some((f("name ")?, f("program_id ")?))
+        })
+        .collect();
+    let mut coverage: FxHashMap<String, (u64, u64)> = FxHashMap::default();
+    let mut txs_failed = 0u64;
     for m in recorder::Reader::open(rec)? {
         let m = m?;
         if m.source != events::Source::Rpc {
@@ -46,6 +56,21 @@ pub fn run(rec: &Path, dump: Option<&Path>, max_blocks: usize) -> Result<()> {
             let Some(tx) = TxView::parse(t) else { continue };
             let evs = dec.decode(&tx);
             events_total += evs.len() as u64;
+            if tx.failed {
+                txs_failed += 1;
+            } else {
+                for (name, pid) in &registry {
+                    if tx.exec.iter().any(|e| tx.program_id(e) == pid) {
+                        let c = coverage.entry(name.clone()).or_default();
+                        c.0 += 1;
+                        let decoded_here = evs.iter().any(|e| match e.venue {
+                            Venue::Curve => pid == decoder::pump::PUMP,
+                            Venue::Amm => pid == decoder::pump::PUMP_AMM,
+                        });
+                        c.1 += decoded_here as u64;
+                    }
+                }
+            }
             if let Some(f) = dumpf.as_mut() {
                 use std::io::Write;
                 for e in &evs {
@@ -150,6 +175,8 @@ pub fn run(rec: &Path, dump: Option<&Path>, max_blocks: usize) -> Result<()> {
         "events_decoded": events_total, "undecodable_events": dec.undecodable, "malformed_events": dec.malformed, "skipped_non_sol_quote": dec.skipped_non_sol_quote,
         "vs_reference": { "compared": n_single, "side_match_pct": pct(side_ok, n_single), "amount_match_pct": pct(amt_ok, n_single), "per_venue": venues },
         "pool_math_next_trade_prediction": pred_out, "mismatch_examples": mismatches,
+        "venue_coverage": coverage.iter().map(|(k, (n, d))| (k.clone(), serde_json::json!({"txs": n, "txs_with_decoded_event": d}))).collect::<serde_json::Map<_, _>>(),
+        "txs_failed": txs_failed,
     });
     println!("{}", serde_json::to_string_pretty(&out)?);
     Ok(())
