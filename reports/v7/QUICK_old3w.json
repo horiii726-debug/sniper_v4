@@ -1,0 +1,859 @@
+{
+ "label": "EXPLORATORY v7 per-family + combined evaluation, chronological split",
+ "train": [
+  "data/q_s06d_18h",
+  "data/q_s05d_11h"
+ ],
+ "test": [
+  "data/q_s04d_04h"
+ ],
+ "train_rows": 131723,
+ "test_decision_rows": 33318,
+ "test_coins": 1084,
+ "features": 130,
+ "kalman": {
+  "q_level": 3.6902870223321735e-06,
+  "q_slope": 3.690287022332173e-08,
+  "r": 1.4761148089328694e-05
+ },
+ "hmm_means": [
+  [
+   0.01799379553428863,
+   0.16438382077546845,
+   0.17573454510284844,
+   0.9908943241551392,
+   2.0314809304475347
+  ],
+  [
+   7.152630730501578e-05,
+   0.10246247752567314,
+   -0.3622023774720657,
+   0.06301222689983216,
+   -0.0872897974188686
+  ],
+  [
+   0.0003328170466127779,
+   0.12309738163745489,
+   -0.3744098507626858,
+   0.7622764279160192,
+   0.002825063502554669
+  ],
+  [
+   0.00035381429271802596,
+   -0.10175202457315417,
+   1.2754757817681615,
+   -0.07713322712691592,
+   0.38758559318911273
+  ]
+ ],
+ "results": {
+  "y_2x": {
+   "prior": {
+    "rows": 33318,
+    "positives": 3416,
+    "positive_coins": 138,
+    "base_rate": 0.10252716249474758,
+    "auc": 0.5,
+    "pr_auc": 0.10252716249474758,
+    "brier": 0.0962184815049679,
+    "precision_top1pct": 0.6936936936936937,
+    "precision_top5pct": 0.4657863145258103,
+    "coin_first_row_recall_top5pct": 0.08536585365853659,
+    "coin_first_row_positives": 82,
+    "pr_auc_ci90": [
+     0.07967351605743474,
+     0.12546729394876302
+    ],
+    "seconds": 1.8
+   },
+   "qfv_radar": {
+    "rows": 33318,
+    "positives": 3416,
+    "positive_coins": 138,
+    "base_rate": 0.10252716249474758,
+    "auc": 0.6712516498077953,
+    "pr_auc": 0.1941197486218066,
+    "brier": 0.20385679616505784,
+    "precision_top1pct": 0.06306306306306306,
+    "precision_top5pct": 0.27611044417767105,
+    "coin_first_row_recall_top5pct": 0.024390243902439025,
+    "coin_first_row_positives": 82,
+    "pr_auc_ci90": [
+     0.12495450058246439,
+     0.2810004719547201
+    ],
+    "seconds": 2.3
+   },
+   "markov_state": {
+    "rows": 33318,
+    "positives": 3416,
+    "positive_coins": 138,
+    "base_rate": 0.10252716249474758,
+    "auc": 0.8073796092606653,
+    "pr_auc": 0.25137466718729484,
+    "brier": 0.08476755957744318,
+    "precision_top1pct": 0.2672672672672673,
+    "precision_top5pct": 0.4009603841536615,
+    "coin_first_row_recall_top5pct": 0.17073170731707318,
+    "coin_first_row_positives": 82,
+    "pr_auc_ci90": [
+     0.1912477927571595,
+     0.3225810356226785
+    ],
+    "seconds": 2.0
+   },
+   "hmm_filter": {
+    "error": "ValueError('assignment destination is read-only')"
+   },
+   "kalman_trend": {
+    "error": "ValueError('assignment destination is read-only')"
+   },
+   "logistic": {
+    "rows": 33318,
+    "positives": 3416,
+    "positive_coins": 138,
+    "base_rate": 0.10252716249474758,
+    "auc": 0.876971310809691,
+    "pr_auc": 0.3789780497136446,
+    "brier": 0.07606644257218145,
+    "precision_top1pct": 0.43543543543543545,
+    "precision_top5pct": 0.468187274909964,
+    "coin_first_row_recall_top5pct": 0.2073170731707317,
+    "coin_first_row_positives": 82,
+    "pr_auc_ci90": [
+     0.2888453710708031,
+     0.4740234046832216
+    ],
+    "seconds": 27.4
+   },
+   "pca20_logistic": {
+    "rows": 33318,
+    "positives": 3416,
+    "positive_coins": 138,
+    "base_rate": 0.10252716249474758,
+    "auc": 0.8131085452916688,
+    "pr_auc": 0.33130969673112487,
+    "brier": 0.08211287359972573,
+    "precision_top1pct": 0.4444444444444444,
+    "precision_top5pct": 0.4375750300120048,
+    "coin_first_row_recall_top5pct": 0.024390243902439025,
+    "coin_first_row_positives": 82,
+    "pr_auc_ci90": [
+     0.24342420548129143,
+     0.4263154474716372
+    ],
+    "seconds": 9.6
+   },
+   "quantum_kernel": {
+    "rows": 33318,
+    "positives": 3416,
+    "positive_coins": 138,
+    "base_rate": 0.10252716249474758,
+    "auc": 0.7264370793146762,
+    "pr_auc": 0.21447176677295676,
+    "brier": 0.09233637298605767,
+    "precision_top1pct": 0.3123123123123123,
+    "precision_top5pct": 0.27911164465786314,
+    "coin_first_row_recall_top5pct": 0.07317073170731707,
+    "coin_first_row_positives": 82,
+    "pr_auc_ci90": [
+     0.17318516605497472,
+     0.2582709337057163
+    ],
+    "seconds": 22.1
+   },
+   "random_forest": {
+    "rows": 33318,
+    "positives": 3416,
+    "positive_coins": 138,
+    "base_rate": 0.10252716249474758,
+    "auc": 0.8891298029456725,
+    "pr_auc": 0.3774198514842298,
+    "brier": 0.07384410107294448,
+    "precision_top1pct": 0.4294294294294294,
+    "precision_top5pct": 0.4015606242496999,
+    "coin_first_row_recall_top5pct": 0.15853658536585366,
+    "coin_first_row_positives": 82,
+    "pr_auc_ci90": [
+     0.2819478706920263,
+     0.47916331205841345
+    ],
+    "seconds": 37.7
+   },
+   "lightgbm": {
+    "rows": 33318,
+    "positives": 3416,
+    "positive_coins": 138,
+    "base_rate": 0.10252716249474758,
+    "auc": 0.8874062961646608,
+    "pr_auc": 0.3599778867751291,
+    "brier": 0.07806467996222313,
+    "precision_top1pct": 0.3993993993993994,
+    "precision_top5pct": 0.3937575030012005,
+    "coin_first_row_recall_top5pct": 0.14634146341463414,
+    "coin_first_row_positives": 82,
+    "pr_auc_ci90": [
+     0.2732223065535809,
+     0.474847497839111
+    ],
+    "seconds": 12.3
+   },
+   "catboost": {
+    "rows": 33318,
+    "positives": 3416,
+    "positive_coins": 138,
+    "base_rate": 0.10252716249474758,
+    "auc": 0.8862953045130878,
+    "pr_auc": 0.35791245781728664,
+    "brier": 0.07684648971928765,
+    "precision_top1pct": 0.4444444444444444,
+    "precision_top5pct": 0.41596638655462187,
+    "coin_first_row_recall_top5pct": 0.15853658536585366,
+    "coin_first_row_positives": 82,
+    "pr_auc_ci90": [
+     0.2685183899316451,
+     0.47146663586966814
+    ],
+    "seconds": 8.0
+   },
+   "combined_no_qfv": {
+    "error": "ValueError('assignment destination is read-only')"
+   },
+   "combined": {
+    "error": "ValueError('assignment destination is read-only')"
+   },
+   "qfv_bands": {
+    "P<0.50": {
+     "rows": 24108,
+     "positives": 1569,
+     "rate": 0.06508213041314087,
+     "positive_coins": 76
+    },
+    "0.50<=P<=0.75": {
+     "rows": 2049,
+     "positives": 309,
+     "rate": 0.15080527086383602,
+     "positive_coins": 40
+    },
+    "P>0.75": {
+     "rows": 6584,
+     "positives": 1492,
+     "rate": 0.22660996354799515,
+     "positive_coins": 90
+    },
+    "P=NaN (<3 trades in 5 min)": {
+     "rows": 577,
+     "positives": 46,
+     "rate": 0.07972270363951472,
+     "positive_coins": 42
+    }
+   }
+  },
+  "y_5x": {
+   "prior": {
+    "rows": 33318,
+    "positives": 1166,
+    "positive_coins": 59,
+    "base_rate": 0.03499609820517438,
+    "auc": 0.5,
+    "pr_auc": 0.03499609820517438,
+    "brier": 0.03393816979776829,
+    "precision_top1pct": 0.6936936936936937,
+    "precision_top5pct": 0.27310924369747897,
+    "coin_first_row_recall_top5pct": 0.11764705882352941,
+    "coin_first_row_positives": 34,
+    "pr_auc_ci90": [
+     0.01987563708055993,
+     0.05071652276968166
+    ],
+    "seconds": 1.8
+   },
+   "qfv_radar": {
+    "rows": 33318,
+    "positives": 1166,
+    "positive_coins": 59,
+    "base_rate": 0.03499609820517438,
+    "auc": 0.7269588904888741,
+    "pr_auc": 0.08358723648181642,
+    "brier": 0.1956764024699143,
+    "precision_top1pct": 0.021021021021021023,
+    "precision_top5pct": 0.10804321728691477,
+    "coin_first_row_recall_top5pct": 0.0,
+    "coin_first_row_positives": 34,
+    "pr_auc_ci90": [
+     0.031250700846627386,
+     0.17932852713488837
+    ],
+    "seconds": 2.5
+   },
+   "markov_state": {
+    "rows": 33318,
+    "positives": 1166,
+    "positive_coins": 59,
+    "base_rate": 0.03499609820517438,
+    "auc": 0.7850589737341109,
+    "pr_auc": 0.0924472612176358,
+    "brier": 0.03320827513795125,
+    "precision_top1pct": 0.6876876876876877,
+    "precision_top5pct": 0.1992797118847539,
+    "coin_first_row_recall_top5pct": 0.14705882352941177,
+    "coin_first_row_positives": 34,
+    "pr_auc_ci90": [
+     0.04258561775036438,
+     0.16461726036955018
+    ],
+    "seconds": 2.1
+   },
+   "hmm_filter": {
+    "error": "ValueError('assignment destination is read-only')"
+   },
+   "kalman_trend": {
+    "error": "ValueError('assignment destination is read-only')"
+   },
+   "logistic": {
+    "rows": 33318,
+    "positives": 1166,
+    "positive_coins": 59,
+    "base_rate": 0.03499609820517438,
+    "auc": 0.8529545230481115,
+    "pr_auc": 0.16825849104903753,
+    "brier": 0.03215434678649545,
+    "precision_top1pct": 0.34234234234234234,
+    "precision_top5pct": 0.18967587034813926,
+    "coin_first_row_recall_top5pct": 0.2647058823529412,
+    "coin_first_row_positives": 34,
+    "pr_auc_ci90": [
+     0.054472336036210676,
+     0.3428761889233594
+    ],
+    "seconds": 18.5
+   },
+   "pca20_logistic": {
+    "rows": 33318,
+    "positives": 1166,
+    "positive_coins": 59,
+    "base_rate": 0.03499609820517438,
+    "auc": 0.8306705776207953,
+    "pr_auc": 0.15357181890998123,
+    "brier": 0.03254796695185408,
+    "precision_top1pct": 0.2912912912912913,
+    "precision_top5pct": 0.17827130852340936,
+    "coin_first_row_recall_top5pct": 0.029411764705882353,
+    "coin_first_row_positives": 34,
+    "pr_auc_ci90": [
+     0.054410968179652866,
+     0.30441460010380794
+    ],
+    "seconds": 10.5
+   },
+   "quantum_kernel": {
+    "rows": 33318,
+    "positives": 1166,
+    "positive_coins": 59,
+    "base_rate": 0.03499609820517438,
+    "auc": 0.6649897229156363,
+    "pr_auc": 0.06051530158016741,
+    "brier": 0.033997844845245345,
+    "precision_top1pct": 0.07207207207207207,
+    "precision_top5pct": 0.07382953181272509,
+    "coin_first_row_recall_top5pct": 0.029411764705882353,
+    "coin_first_row_positives": 34,
+    "pr_auc_ci90": [
+     0.039783159143587814,
+     0.08609033911839671
+    ],
+    "seconds": 21.5
+   },
+   "random_forest": {
+    "rows": 33318,
+    "positives": 1166,
+    "positive_coins": 59,
+    "base_rate": 0.03499609820517438,
+    "auc": 0.8682940610786585,
+    "pr_auc": 0.1721130846680802,
+    "brier": 0.03127504876862288,
+    "precision_top1pct": 0.35435435435435436,
+    "precision_top5pct": 0.1998799519807923,
+    "coin_first_row_recall_top5pct": 0.11764705882352941,
+    "coin_first_row_positives": 34,
+    "pr_auc_ci90": [
+     0.06120159360771356,
+     0.35918327430482183
+    ],
+    "seconds": 34.5
+   },
+   "lightgbm": {
+    "rows": 33318,
+    "positives": 1166,
+    "positive_coins": 59,
+    "base_rate": 0.03499609820517438,
+    "auc": 0.8821829558951755,
+    "pr_auc": 0.1442501193542292,
+    "brier": 0.033841789053407824,
+    "precision_top1pct": 0.06906906906906907,
+    "precision_top5pct": 0.15846338535414164,
+    "coin_first_row_recall_top5pct": 0.2647058823529412,
+    "coin_first_row_positives": 34,
+    "pr_auc_ci90": [
+     0.0699357238777265,
+     0.24548593172433397
+    ],
+    "seconds": 12.4
+   },
+   "catboost": {
+    "rows": 33318,
+    "positives": 1166,
+    "positive_coins": 59,
+    "base_rate": 0.03499609820517438,
+    "auc": 0.87491334845163,
+    "pr_auc": 0.13063666573031016,
+    "brier": 0.03315503878408419,
+    "precision_top1pct": 0.04804804804804805,
+    "precision_top5pct": 0.12845138055222088,
+    "coin_first_row_recall_top5pct": 0.14705882352941177,
+    "coin_first_row_positives": 34,
+    "pr_auc_ci90": [
+     0.06319800398764772,
+     0.22811568134760077
+    ],
+    "seconds": 7.3
+   },
+   "combined_no_qfv": {
+    "error": "ValueError('assignment destination is read-only')"
+   },
+   "combined": {
+    "error": "ValueError('assignment destination is read-only')"
+   },
+   "qfv_bands": {
+    "P<0.50": {
+     "rows": 24108,
+     "positives": 430,
+     "rate": 0.017836402853824457,
+     "positive_coins": 27
+    },
+    "0.50<=P<=0.75": {
+     "rows": 2049,
+     "positives": 142,
+     "rate": 0.06930209858467545,
+     "positive_coins": 16
+    },
+    "P>0.75": {
+     "rows": 6584,
+     "positives": 572,
+     "rate": 0.08687727825030377,
+     "positive_coins": 39
+    },
+    "P=NaN (<3 trades in 5 min)": {
+     "rows": 577,
+     "positives": 22,
+     "rate": 0.038128249566724434,
+     "positive_coins": 19
+    }
+   }
+  },
+  "y_10x": {
+   "prior": {
+    "rows": 33318,
+    "positives": 327,
+    "positive_coins": 30,
+    "base_rate": 0.009814514676751306,
+    "auc": 0.5,
+    "pr_auc": 0.009814514676751306,
+    "brier": 0.009790125055559961,
+    "precision_top1pct": 0.0,
+    "precision_top5pct": 0.07202881152460984,
+    "coin_first_row_recall_top5pct": 0.1,
+    "coin_first_row_positives": 30,
+    "pr_auc_ci90": [
+     0.005166836554173619,
+     0.014788230830882938
+    ],
+    "seconds": 1.8
+   },
+   "qfv_radar": {
+    "rows": 33318,
+    "positives": 327,
+    "positive_coins": 30,
+    "base_rate": 0.009814514676751306,
+    "auc": 0.6790514269622416,
+    "pr_auc": 0.01647462765147636,
+    "brier": 0.1996530051705247,
+    "precision_top1pct": 0.012012012012012012,
+    "precision_top5pct": 0.01020408163265306,
+    "coin_first_row_recall_top5pct": 0.0,
+    "coin_first_row_positives": 30,
+    "pr_auc_ci90": [
+     0.009211064608539123,
+     0.02593356726785409
+    ],
+    "seconds": 2.3
+   },
+   "markov_state": {
+    "rows": 33318,
+    "positives": 327,
+    "positive_coins": 30,
+    "base_rate": 0.009814514676751306,
+    "auc": 0.6901602855824733,
+    "pr_auc": 0.017071401965374353,
+    "brier": 0.009707189082706489,
+    "precision_top1pct": 0.06006006006006006,
+    "precision_top5pct": 0.0234093637454982,
+    "coin_first_row_recall_top5pct": 0.06666666666666667,
+    "coin_first_row_positives": 30,
+    "pr_auc_ci90": [
+     0.00821895017649219,
+     0.030079806877043046
+    ],
+    "seconds": 2.0
+   },
+   "hmm_filter": {
+    "error": "ValueError('assignment destination is read-only')"
+   },
+   "kalman_trend": {
+    "error": "ValueError('assignment destination is read-only')"
+   },
+   "logistic": {
+    "rows": 33318,
+    "positives": 327,
+    "positive_coins": 30,
+    "base_rate": 0.009814514676751306,
+    "auc": 0.8705078217514053,
+    "pr_auc": 0.041074789912229126,
+    "brier": 0.009643368179806239,
+    "precision_top1pct": 0.042042042042042045,
+    "precision_top5pct": 0.03721488595438175,
+    "coin_first_row_recall_top5pct": 0.03333333333333333,
+    "coin_first_row_positives": 30,
+    "pr_auc_ci90": [
+     0.02749971893458729,
+     0.06505167488248419
+    ],
+    "seconds": 16.0
+   },
+   "pca20_logistic": {
+    "rows": 33318,
+    "positives": 327,
+    "positive_coins": 30,
+    "base_rate": 0.009814514676751306,
+    "auc": 0.8613501022473278,
+    "pr_auc": 0.038128946523103294,
+    "brier": 0.009672318296136623,
+    "precision_top1pct": 0.0,
+    "precision_top5pct": 0.030612244897959183,
+    "coin_first_row_recall_top5pct": 0.16666666666666666,
+    "coin_first_row_positives": 30,
+    "pr_auc_ci90": [
+     0.022446951359423175,
+     0.05387734072467299
+    ],
+    "seconds": 8.0
+   },
+   "quantum_kernel": {
+    "rows": 33318,
+    "positives": 327,
+    "positive_coins": 30,
+    "base_rate": 0.009814514676751306,
+    "auc": 0.6022646153983058,
+    "pr_auc": 0.01323286632149059,
+    "brier": 0.009728138019881542,
+    "precision_top1pct": 0.009009009009009009,
+    "precision_top5pct": 0.011404561824729893,
+    "coin_first_row_recall_top5pct": 0.0,
+    "coin_first_row_positives": 30,
+    "pr_auc_ci90": [
+     0.006720152291296237,
+     0.020979287109332136
+    ],
+    "seconds": 21.5
+   },
+   "random_forest": {
+    "rows": 33318,
+    "positives": 327,
+    "positive_coins": 30,
+    "base_rate": 0.009814514676751306,
+    "auc": 0.8786215163675907,
+    "pr_auc": 0.04188561318554729,
+    "brier": 0.009667594108905683,
+    "precision_top1pct": 0.036036036036036036,
+    "precision_top5pct": 0.033013205282112844,
+    "coin_first_row_recall_top5pct": 0.3,
+    "coin_first_row_positives": 30,
+    "pr_auc_ci90": [
+     0.020923997510828813,
+     0.07217405492457571
+    ],
+    "seconds": 31.2
+   },
+   "lightgbm": {
+    "rows": 33318,
+    "positives": 327,
+    "positive_coins": 30,
+    "base_rate": 0.009814514676751306,
+    "auc": 0.9062466021453169,
+    "pr_auc": 0.0549335087720914,
+    "brier": 0.00980867483307695,
+    "precision_top1pct": 0.05105105105105105,
+    "precision_top5pct": 0.04321728691476591,
+    "coin_first_row_recall_top5pct": 0.3,
+    "coin_first_row_positives": 30,
+    "pr_auc_ci90": [
+     0.026351090852210053,
+     0.10603381051318593
+    ],
+    "seconds": 12.9
+   },
+   "catboost": {
+    "rows": 33318,
+    "positives": 327,
+    "positive_coins": 30,
+    "base_rate": 0.009814514676751306,
+    "auc": 0.888481586628621,
+    "pr_auc": 0.0472416084207531,
+    "brier": 0.009683887997200573,
+    "precision_top1pct": 0.042042042042042045,
+    "precision_top5pct": 0.04321728691476591,
+    "coin_first_row_recall_top5pct": 0.16666666666666666,
+    "coin_first_row_positives": 30,
+    "pr_auc_ci90": [
+     0.0252726294920387,
+     0.08402913363425212
+    ],
+    "seconds": 7.3
+   },
+   "combined_no_qfv": {
+    "error": "ValueError('assignment destination is read-only')"
+   },
+   "combined": {
+    "error": "ValueError('assignment destination is read-only')"
+   },
+   "qfv_bands": {
+    "P<0.50": {
+     "rows": 24108,
+     "positives": 118,
+     "rate": 0.004894640783142525,
+     "positive_coins": 12
+    },
+    "0.50<=P<=0.75": {
+     "rows": 2049,
+     "positives": 67,
+     "rate": 0.03269887750122011,
+     "positive_coins": 10
+    },
+    "P>0.75": {
+     "rows": 6584,
+     "positives": 129,
+     "rate": 0.01959295261239368,
+     "positive_coins": 21
+    },
+    "P=NaN (<3 trades in 5 min)": {
+     "rows": 577,
+     "positives": 13,
+     "rate": 0.022530329289428077,
+     "positive_coins": 11
+    }
+   }
+  },
+  "y_rugdead": {
+   "prior": {
+    "rows": 33318,
+    "positives": 1740,
+    "positive_coins": 76,
+    "base_rate": 0.05222402305060328,
+    "auc": 0.5,
+    "pr_auc": 0.05222402305060328,
+    "brier": 0.05626008643759292,
+    "precision_top1pct": 0.0,
+    "precision_top5pct": 0.13085234093637454,
+    "coin_first_row_recall_top5pct": 0.0784313725490196,
+    "coin_first_row_positives": 51,
+    "pr_auc_ci90": [
+     0.037411496572570244,
+     0.07047394758633992
+    ],
+    "seconds": 1.8
+   },
+   "qfv_radar": {
+    "rows": 33318,
+    "positives": 1740,
+    "positive_coins": 76,
+    "base_rate": 0.05222402305060328,
+    "auc": 0.7916893435921852,
+    "pr_auc": 0.17766273559274084,
+    "brier": 0.18922183700035292,
+    "precision_top1pct": 0.21921921921921922,
+    "precision_top5pct": 0.2503001200480192,
+    "coin_first_row_recall_top5pct": 0.0,
+    "coin_first_row_positives": 51,
+    "pr_auc_ci90": [
+     0.09506697596366967,
+     0.28089544729007576
+    ],
+    "seconds": 2.4
+   },
+   "markov_state": {
+    "rows": 33318,
+    "positives": 1740,
+    "positive_coins": 76,
+    "base_rate": 0.05222402305060328,
+    "auc": 0.7877001065779101,
+    "pr_auc": 0.15986353007761928,
+    "brier": 0.04607694188641544,
+    "precision_top1pct": 0.3063063063063063,
+    "precision_top5pct": 0.2034813925570228,
+    "coin_first_row_recall_top5pct": 0.0,
+    "coin_first_row_positives": 51,
+    "pr_auc_ci90": [
+     0.12695747903242346,
+     0.2131939725607757
+    ],
+    "seconds": 2.0
+   },
+   "hmm_filter": {
+    "error": "ValueError('assignment destination is read-only')"
+   },
+   "kalman_trend": {
+    "error": "ValueError('assignment destination is read-only')"
+   },
+   "logistic": {
+    "rows": 33318,
+    "positives": 1740,
+    "positive_coins": 76,
+    "base_rate": 0.05222402305060328,
+    "auc": 0.8989297437543816,
+    "pr_auc": 0.3778537334460907,
+    "brier": 0.04356156284571476,
+    "precision_top1pct": 0.5015015015015015,
+    "precision_top5pct": 0.44237695078031214,
+    "coin_first_row_recall_top5pct": 0.21568627450980393,
+    "coin_first_row_positives": 51,
+    "pr_auc_ci90": [
+     0.20647118640648499,
+     0.5730172653580518
+    ],
+    "seconds": 26.1
+   },
+   "pca20_logistic": {
+    "rows": 33318,
+    "positives": 1740,
+    "positive_coins": 76,
+    "base_rate": 0.05222402305060328,
+    "auc": 0.8817491153087083,
+    "pr_auc": 0.3879249327103222,
+    "brier": 0.039604991337720545,
+    "precision_top1pct": 0.6756756756756757,
+    "precision_top5pct": 0.41236494597839135,
+    "coin_first_row_recall_top5pct": 0.23529411764705882,
+    "coin_first_row_positives": 51,
+    "pr_auc_ci90": [
+     0.2500482873450416,
+     0.524950975141137
+    ],
+    "seconds": 12.0
+   },
+   "quantum_kernel": {
+    "rows": 33318,
+    "positives": 1740,
+    "positive_coins": 76,
+    "base_rate": 0.05222402305060328,
+    "auc": 0.7311054436997095,
+    "pr_auc": 0.14671373702193763,
+    "brier": 0.04915636125772749,
+    "precision_top1pct": 0.29429429429429427,
+    "precision_top5pct": 0.21728691476590636,
+    "coin_first_row_recall_top5pct": 0.0392156862745098,
+    "coin_first_row_positives": 51,
+    "pr_auc_ci90": [
+     0.12215194593404921,
+     0.18166153629501053
+    ],
+    "seconds": 23.0
+   },
+   "random_forest": {
+    "rows": 33318,
+    "positives": 1740,
+    "positive_coins": 76,
+    "base_rate": 0.05222402305060328,
+    "auc": 0.9441453128651331,
+    "pr_auc": 0.4824010735048641,
+    "brier": 0.0343742183525424,
+    "precision_top1pct": 0.5345345345345346,
+    "precision_top5pct": 0.5450180072028812,
+    "coin_first_row_recall_top5pct": 0.47058823529411764,
+    "coin_first_row_positives": 51,
+    "pr_auc_ci90": [
+     0.3326554991005837,
+     0.6403530174211993
+    ],
+    "seconds": 41.5
+   },
+   "lightgbm": {
+    "rows": 33318,
+    "positives": 1740,
+    "positive_coins": 76,
+    "base_rate": 0.05222402305060328,
+    "auc": 0.929054856320019,
+    "pr_auc": 0.4881163982729586,
+    "brier": 0.03569754215088682,
+    "precision_top1pct": 0.6936936936936937,
+    "precision_top5pct": 0.5,
+    "coin_first_row_recall_top5pct": 0.47058823529411764,
+    "coin_first_row_positives": 51,
+    "pr_auc_ci90": [
+     0.3462449531048708,
+     0.616690980820433
+    ],
+    "seconds": 13.6
+   },
+   "catboost": {
+    "rows": 33318,
+    "positives": 1740,
+    "positive_coins": 76,
+    "base_rate": 0.05222402305060328,
+    "auc": 0.9175503842701489,
+    "pr_auc": 0.4420019489498329,
+    "brier": 0.038795800207044935,
+    "precision_top1pct": 0.6396396396396397,
+    "precision_top5pct": 0.4831932773109244,
+    "coin_first_row_recall_top5pct": 0.47058823529411764,
+    "coin_first_row_positives": 51,
+    "pr_auc_ci90": [
+     0.26898696844982495,
+     0.6336470266239631
+    ],
+    "seconds": 7.2
+   },
+   "combined_no_qfv": {
+    "error": "ValueError('assignment destination is read-only')"
+   },
+   "combined": {
+    "error": "ValueError('assignment destination is read-only')"
+   },
+   "qfv_bands": {
+    "P<0.50": {
+     "rows": 24108,
+     "positives": 598,
+     "rate": 0.024805043968807033,
+     "positive_coins": 27
+    },
+    "0.50<=P<=0.75": {
+     "rows": 2049,
+     "positives": 124,
+     "rate": 0.06051732552464617,
+     "positive_coins": 23
+    },
+    "P>0.75": {
+     "rows": 6584,
+     "positives": 972,
+     "rate": 0.14763061968408261,
+     "positive_coins": 68
+    },
+    "P=NaN (<3 trades in 5 min)": {
+     "rows": 577,
+     "positives": 46,
+     "rate": 0.07972270363951472,
+     "positive_coins": 45
+    }
+   }
+  }
+ }
+}

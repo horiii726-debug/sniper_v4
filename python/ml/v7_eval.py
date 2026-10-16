@@ -9,6 +9,7 @@ Labels: y_bin (peak before the -65 % barrier within 1 h) and y_rugdead, present 
 
 Families, each scored alone with identical splits:
   prior            train base rate (reference)
+  qfv_radar        user QFV formula P_collapse = sin^2(pi / (1 + exp(sigma2 / v_ratio))), no training; bands < 0.5 / <= 0.75 / > 0.75
   markov_state     empirical P(target | discrete state), state = radar state x flow sign x 60 s return tercile x on_amm
   hmm_filter       4-state Gaussian HMM fitted on train sequences; FORWARD-only filtered posterior per coin + logistic
   kalman_trend     local-linear-trend Kalman filter on log price per coin (level, slope, slope z, innovation z) + logistic
@@ -40,6 +41,7 @@ from sklearn.preprocessing import StandardScaler  # noqa: E402
 
 TARGETS = {"y_2x": lambda d: d["y_bin"] >= 3, "y_5x": lambda d: d["y_bin"] >= 4, "y_10x": lambda d: d["y_bin"] >= 5,
            "y_rugdead": lambda d: d["y_rugdead"] == 1}
+QF = ["qfv_sigma2", "qfv_vratio", "qfv_x", "qfv_p"]
 HMM_OBS = ["ret_15s", "flow_imb_60s", "buyers_60s", "accel", "vol_60s"]
 SEED = 0
 
@@ -47,6 +49,7 @@ SEED = 0
 def load(d):
     df = pd.read_csv(os.path.join(d, "snapshots_v5.csv.zst"), compression="zstd")
     df = df.sort_values(["coin", "order"], kind="stable").reset_index(drop=True)
+    df = df.copy()
     df["labelled"] = df["y_bin"].notna() & df["y_rugdead"].notna()
     dw = json.load(open(os.path.join(d, "decision_window.json")))
     return df, dw
@@ -85,7 +88,7 @@ def kalman_features(df, q_level, q_slope, r):
 
 
 def hmm_obs(df, mu=None, sd=None):
-    o = df[HMM_OBS].to_numpy(np.float64).copy()
+    o = np.array(df[HMM_OBS].to_numpy(np.float64), copy=True)
     o[:, 2] = np.log1p(np.clip(o[:, 2], 0, None))
     o[~np.isfinite(o)] = np.nan
     if mu is None:
@@ -117,6 +120,46 @@ def markov_state(df, cuts):
     r = np.digitize(df["ret_60s"].fillna(0).to_numpy(), cuts)
     amm = df["on_amm"].fillna(0).to_numpy(int)
     return ((st + 1) * 1000 + (flow + 1) * 100 + r * 10 + amm).astype(np.int64)
+
+
+# ---------- QFV radar (user spec quantum_qfv_formula.pdf) ----------
+
+def qfv_features(d, df):
+    """QFV per snapshot row, causal (trades at or before the row's own trade, block-time resolution 1 s):
+    sigma2 = variance of inter-trade intervals (s) over the last 5 min; v_ratio = SOL volume 5 min / 1 h;
+    theta = pi / (1 + exp(sigma2 / v_ratio)); P_collapse = sin(theta)^2. Note: P is monotone decreasing in
+    x = sigma2 / v_ratio (P > 0.75 <=> x < ln 2), so it is a one-statistic rule; it is not a calibrated probability."""
+    tr = pd.read_csv(os.path.join(d, "trades.csv"), usecols=["block_time", "order", "mint", "sol_lamports"])
+    tr = tr.sort_values("order", kind="stable").reset_index(drop=True)
+    row_of = pd.Series(np.arange(len(tr)), index=tr["order"].to_numpy())
+    ti = row_of.reindex(df["order"].to_numpy()).to_numpy()
+    out = np.full((len(df), 4), np.nan)
+    ok = np.isfinite(ti)
+    tr["k"] = tr.groupby("mint", sort=False).cumcount()
+    mint_rows = {m: g.index.to_numpy() for m, g in tr.groupby("mint", sort=False)}
+    bt = tr["block_time"].to_numpy(np.float64)
+    sol = tr["sol_lamports"].to_numpy(np.float64) / 1e9
+    snap_rows = pd.Series(np.flatnonzero(ok)).groupby(tr["mint"].to_numpy()[ti[ok].astype(int)]).apply(lambda s: s.to_numpy())
+    for m, rows in snap_rows.items():
+        ix = mint_rows[m]
+        t, v = bt[ix], sol[ix]
+        cv = np.r_[0, np.cumsum(v)]
+        dlt = np.r_[0.0, np.diff(t)]
+        c1, c2 = np.r_[0, np.cumsum(dlt)], np.r_[0, np.cumsum(dlt * dlt)]
+        k = tr["k"].to_numpy()[ti[rows].astype(int)]  # position of the row's trade in this mint's sequence
+        now = t[k]
+        a5 = np.searchsorted(t, now - 300, side="right")
+        a60 = np.searchsorted(t, now - 3600, side="right")
+        e = k + 1
+        n_int = e - (a5 + 1)  # intervals between consecutive trades inside the 5 min window
+        s1, s2 = c1[e] - c1[a5 + 1], c2[e] - c2[a5 + 1]
+        with np.errstate(invalid="ignore", divide="ignore"):
+            var = np.where(n_int >= 2, s2 / np.maximum(n_int, 1) - (s1 / np.maximum(n_int, 1)) ** 2, np.nan)
+            vr = (cv[e] - cv[a5]) / (cv[e] - cv[a60])
+            x = var / vr
+            theta = np.pi / (1 + np.exp(np.clip(x, 0, 700)))
+        out[rows] = np.c_[var, vr, x, np.sin(theta) ** 2]
+    return out
 
 
 # ---------- simulated quantum kernel ----------
@@ -197,7 +240,7 @@ def main():
     ap.add_argument("--test", nargs="+", required=True)
     ap.add_argument("--out", default="reports/v7/MODELS.json")
     ap.add_argument("--max-train", type=int, default=300_000)
-    ap.add_argument("--families", default="prior,markov_state,hmm_filter,kalman_trend,logistic,pca20_logistic,"
+    ap.add_argument("--families", default="prior,qfv_radar,markov_state,hmm_filter,kalman_trend,logistic,pca20_logistic,"
                                           "quantum_kernel,random_forest,lightgbm,catboost,combined")
     a = ap.parse_args()
     fams = a.families.split(",")
@@ -226,15 +269,18 @@ def main():
     hmm = GaussianHMM(n_components=4, covariance_type="diag", n_iter=30, random_state=SEED).fit(seq, lengths)
     print(f"components fitted {time.time() - t0:.0f}s", flush=True)
 
-    def extend(df):
+    def extend(df, d):
+        q = qfv_features(d, df)
         k = kalman_features(df, q_level, q_slope, r)
         h = hmm_filter(df, hmm, mu, sd)
         ext = pd.DataFrame(np.c_[k, h], columns=["kf_level", "kf_slope", "kf_slope_z", "kf_innov_z"] + [f"hmm_p{i}" for i in range(4)])
         ext["mk_state"] = markov_state(df, cuts)
+        for j, c in enumerate(QF):
+            ext[c] = q[:, j]
         return pd.concat([df, ext], axis=1)
 
-    trx = [extend(x) for x, _ in tr.values()]
-    tex = [extend(x) for x, _ in te.values()]
+    trx = [extend(x, d) for d, (x, _) in tr.items()]
+    tex = [extend(x, d) for d, (x, _) in te.items()]
     print(f"sequence features {time.time() - t0:.0f}s", flush=True)
     trd = pd.concat(trx, ignore_index=True)
     trd = trd[trd["labelled"]]
@@ -249,7 +295,7 @@ def main():
     HM = [f"hmm_p{i}" for i in range(4)]
 
     def X(df, cols):
-        m = df[cols].to_numpy(np.float64)
+        m = np.array(df[cols].to_numpy(np.float64), copy=True)  # pandas 3 may return a read-only view
         m[~np.isfinite(m)] = np.nan
         return m
 
@@ -278,6 +324,8 @@ def main():
             try:
                 if fam == "prior":
                     p = np.full(len(ted), ytr.mean())
+                elif fam == "qfv_radar":
+                    p = np.nan_to_num(ted["qfv_p"].to_numpy(np.float64), nan=0.0)
                 elif fam == "markov_state":
                     p = mk_te
                 elif fam in ("hmm_filter", "kalman_trend", "logistic"):
@@ -312,13 +360,16 @@ def main():
                                            subsample_freq=1, colsample_bytree=0.7, verbose=-1, random_state=SEED)
                     m.fit(Xtr, ytr, sample_weight=w)
                     p = m.predict_proba(Xte)[:, 1]
-                elif fam in ("catboost", "combined"):
+                elif fam in ("catboost", "combined", "combined_no_qfv"):
                     from catboost import CatBoostClassifier
                     if fam == "catboost":
                         A_tr, A_te = Xtr, Xte
-                    else:
+                    elif fam == "combined_no_qfv":
                         A_tr = np.c_[Xtr, mk_tr, X(trd, HM), X(trd, KF), Ptr]
                         A_te = np.c_[Xte, mk_te, X(ted, HM), X(ted, KF), Pte]
+                    else:
+                        A_tr = np.c_[Xtr, mk_tr, X(trd, HM), X(trd, KF), Ptr, X(trd, QF)]
+                        A_te = np.c_[Xte, mk_te, X(ted, HM), X(ted, KF), Pte, X(ted, QF)]
                     m = CatBoostClassifier(iterations=800, depth=6, learning_rate=0.05, verbose=False, random_seed=SEED, task_type="GPU", devices="0")
                     m.fit(A_tr, ytr, sample_weight=w)
                     p = m.predict_proba(A_te)[:, 1]
@@ -330,6 +381,10 @@ def main():
             except Exception as ex:  # one family failing must not hide the others
                 rr[fam] = {"error": repr(ex)}
                 print(tname, fam, "ERROR", ex, flush=True)
+        pq = ted["qfv_p"].to_numpy(np.float64)
+        bands = {"P<0.50": pq < 0.5, "0.50<=P<=0.75": (pq >= 0.5) & (pq <= 0.75), "P>0.75": pq > 0.75, "P=NaN (<3 trades in 5 min)": ~np.isfinite(pq)}
+        rr["qfv_bands"] = {b: {"rows": int(m.sum()), "positives": int(yte[m].sum()), "rate": float(yte[m].mean()) if m.sum() else None,
+                               "positive_coins": int(len(np.unique(tcoin[m & (yte == 1)])))} for b, m in bands.items()}
         res["results"][tname] = rr
     os.makedirs(os.path.dirname(a.out), exist_ok=True)
     json.dump(res, open(a.out, "w"), indent=1)

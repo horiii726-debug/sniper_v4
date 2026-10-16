@@ -1,0 +1,451 @@
+{
+ "label": "EXPLORATORY v7 per-family + combined evaluation, chronological split",
+ "train": [
+  "data/q_s06d_18h",
+  "data/q_s05d_11h"
+ ],
+ "test": [
+  "data/q_s04d_04h"
+ ],
+ "train_rows": 131723,
+ "test_decision_rows": 33318,
+ "test_coins": 1084,
+ "features": 130,
+ "kalman": {
+  "q_level": 3.6902870223321735e-06,
+  "q_slope": 3.690287022332173e-08,
+  "r": 1.4761148089328694e-05
+ },
+ "hmm_means": [
+  [
+   0.017993795534287052,
+   0.16438382077547828,
+   0.17573454510285533,
+   0.9908943241551855,
+   2.0314809304474477
+  ],
+  [
+   7.152630730502139e-05,
+   0.10246247752568638,
+   -0.3622023774721176,
+   0.06301222689983083,
+   -0.08728979741886372
+  ],
+  [
+   0.00033281704661270817,
+   0.12309738163744242,
+   -0.37440985076276523,
+   0.7622764279160745,
+   0.0028250635025561747
+  ],
+  [
+   0.0003538142927179827,
+   -0.10175202457315712,
+   1.2754757817683944,
+   -0.07713322712691427,
+   0.3875855931891055
+  ]
+ ],
+ "results": {
+  "y_2x": {
+   "hmm_filter": {
+    "rows": 33318,
+    "positives": 3416,
+    "positive_coins": 138,
+    "base_rate": 0.10252716249474758,
+    "auc": 0.8406253020209499,
+    "pr_auc": 0.3094960803695826,
+    "brier": 0.08286525808476966,
+    "precision_top1pct": 0.45045045045045046,
+    "precision_top5pct": 0.3457382953181273,
+    "coin_first_row_recall_top5pct": 0.21951219512195122,
+    "coin_first_row_positives": 82,
+    "pr_auc_ci90": [
+     0.22284976699450776,
+     0.42806478166235656
+    ],
+    "seconds": 5.9
+   },
+   "kalman_trend": {
+    "rows": 33318,
+    "positives": 3416,
+    "positive_coins": 138,
+    "base_rate": 0.10252716249474758,
+    "auc": 0.6127864783742427,
+    "pr_auc": 0.2151173987031842,
+    "brier": 0.09284212366648045,
+    "precision_top1pct": 0.27927927927927926,
+    "precision_top5pct": 0.2695078031212485,
+    "coin_first_row_recall_top5pct": 0.13414634146341464,
+    "coin_first_row_positives": 82,
+    "pr_auc_ci90": [
+     0.16628626973243682,
+     0.2680536108144735
+    ],
+    "seconds": 16.0
+   },
+   "combined_no_qfv": {
+    "rows": 33318,
+    "positives": 3416,
+    "positive_coins": 138,
+    "base_rate": 0.10252716249474758,
+    "auc": 0.8849063116328328,
+    "pr_auc": 0.3534725564790587,
+    "brier": 0.07748948284389938,
+    "precision_top1pct": 0.36036036036036034,
+    "precision_top5pct": 0.3997599039615846,
+    "coin_first_row_recall_top5pct": 0.15853658536585366,
+    "coin_first_row_positives": 82,
+    "pr_auc_ci90": [
+     0.2676280122277105,
+     0.46389042507362876
+    ],
+    "seconds": 51.0
+   },
+   "combined": {
+    "rows": 33318,
+    "positives": 3416,
+    "positive_coins": 138,
+    "base_rate": 0.10252716249474758,
+    "auc": 0.8855997360699127,
+    "pr_auc": 0.35376949806877456,
+    "brier": 0.0770334728750872,
+    "precision_top1pct": 0.43543543543543545,
+    "precision_top5pct": 0.40936374549819926,
+    "coin_first_row_recall_top5pct": 0.15853658536585366,
+    "coin_first_row_positives": 82,
+    "pr_auc_ci90": [
+     0.27142297727719933,
+     0.4590062668254075
+    ],
+    "seconds": 51.0
+   },
+   "qfv_bands": {
+    "P<0.50": {
+     "rows": 24108,
+     "positives": 1569,
+     "rate": 0.06508213041314087,
+     "positive_coins": 76
+    },
+    "0.50<=P<=0.75": {
+     "rows": 2049,
+     "positives": 309,
+     "rate": 0.15080527086383602,
+     "positive_coins": 40
+    },
+    "P>0.75": {
+     "rows": 6584,
+     "positives": 1492,
+     "rate": 0.22660996354799515,
+     "positive_coins": 90
+    },
+    "P=NaN (<3 trades in 5 min)": {
+     "rows": 577,
+     "positives": 46,
+     "rate": 0.07972270363951472,
+     "positive_coins": 42
+    }
+   }
+  },
+  "y_5x": {
+   "hmm_filter": {
+    "rows": 33318,
+    "positives": 1166,
+    "positive_coins": 59,
+    "base_rate": 0.03499609820517438,
+    "auc": 0.8001754477125592,
+    "pr_auc": 0.10572863794361452,
+    "brier": 0.032977058937134394,
+    "precision_top1pct": 0.17117117117117117,
+    "precision_top5pct": 0.12244897959183673,
+    "coin_first_row_recall_top5pct": 0.17647058823529413,
+    "coin_first_row_positives": 34,
+    "pr_auc_ci90": [
+     0.051857171739634916,
+     0.17906212292288756
+    ],
+    "seconds": 19.5
+   },
+   "kalman_trend": {
+    "rows": 33318,
+    "positives": 1166,
+    "positive_coins": 59,
+    "base_rate": 0.03499609820517438,
+    "auc": 0.6083516861588415,
+    "pr_auc": 0.07131782552222318,
+    "brier": 0.03406369890118342,
+    "precision_top1pct": 0.08108108108108109,
+    "precision_top5pct": 0.08163265306122448,
+    "coin_first_row_recall_top5pct": 0.058823529411764705,
+    "coin_first_row_positives": 34,
+    "pr_auc_ci90": [
+     0.0425197521508404,
+     0.11167442654669327
+    ],
+    "seconds": 16.5
+   },
+   "combined_no_qfv": {
+    "rows": 33318,
+    "positives": 1166,
+    "positive_coins": 59,
+    "base_rate": 0.03499609820517438,
+    "auc": 0.8722383803434545,
+    "pr_auc": 0.12498218359260133,
+    "brier": 0.033251848714051395,
+    "precision_top1pct": 0.03903903903903904,
+    "precision_top5pct": 0.09243697478991597,
+    "coin_first_row_recall_top5pct": 0.11764705882352941,
+    "coin_first_row_positives": 34,
+    "pr_auc_ci90": [
+     0.06492319130955092,
+     0.20624571646842746
+    ],
+    "seconds": 44.4
+   },
+   "combined": {
+    "rows": 33318,
+    "positives": 1166,
+    "positive_coins": 59,
+    "base_rate": 0.03499609820517438,
+    "auc": 0.8726681837600729,
+    "pr_auc": 0.1276877631356457,
+    "brier": 0.03322297303811244,
+    "precision_top1pct": 0.05105105105105105,
+    "precision_top5pct": 0.12605042016806722,
+    "coin_first_row_recall_top5pct": 0.17647058823529413,
+    "coin_first_row_positives": 34,
+    "pr_auc_ci90": [
+     0.06409125767851881,
+     0.21868162969413546
+    ],
+    "seconds": 49.1
+   },
+   "qfv_bands": {
+    "P<0.50": {
+     "rows": 24108,
+     "positives": 430,
+     "rate": 0.017836402853824457,
+     "positive_coins": 27
+    },
+    "0.50<=P<=0.75": {
+     "rows": 2049,
+     "positives": 142,
+     "rate": 0.06930209858467545,
+     "positive_coins": 16
+    },
+    "P>0.75": {
+     "rows": 6584,
+     "positives": 572,
+     "rate": 0.08687727825030377,
+     "positive_coins": 39
+    },
+    "P=NaN (<3 trades in 5 min)": {
+     "rows": 577,
+     "positives": 22,
+     "rate": 0.038128249566724434,
+     "positive_coins": 19
+    }
+   }
+  },
+  "y_10x": {
+   "hmm_filter": {
+    "rows": 33318,
+    "positives": 327,
+    "positive_coins": 30,
+    "base_rate": 0.009814514676751306,
+    "auc": 0.8590680416315932,
+    "pr_auc": 0.0351086559708491,
+    "brier": 0.009574061403931931,
+    "precision_top1pct": 0.003003003003003003,
+    "precision_top5pct": 0.040216086434573826,
+    "coin_first_row_recall_top5pct": 0.13333333333333333,
+    "coin_first_row_positives": 30,
+    "pr_auc_ci90": [
+     0.0155497894430493,
+     0.058564859470630275
+    ],
+    "seconds": 18.9
+   },
+   "kalman_trend": {
+    "rows": 33318,
+    "positives": 327,
+    "positive_coins": 30,
+    "base_rate": 0.009814514676751306,
+    "auc": 0.5516093398468325,
+    "pr_auc": 0.02230040523692585,
+    "brier": 0.00972997761546226,
+    "precision_top1pct": 0.03903903903903904,
+    "precision_top5pct": 0.03361344537815126,
+    "coin_first_row_recall_top5pct": 0.03333333333333333,
+    "coin_first_row_positives": 30,
+    "pr_auc_ci90": [
+     0.01309621787743566,
+     0.03220878361267449
+    ],
+    "seconds": 16.4
+   },
+   "combined_no_qfv": {
+    "rows": 33318,
+    "positives": 327,
+    "positive_coins": 30,
+    "base_rate": 0.009814514676751306,
+    "auc": 0.8860956148081159,
+    "pr_auc": 0.04498200525244871,
+    "brier": 0.009697317632251875,
+    "precision_top1pct": 0.03903903903903904,
+    "precision_top5pct": 0.030612244897959183,
+    "coin_first_row_recall_top5pct": 0.13333333333333333,
+    "coin_first_row_positives": 30,
+    "pr_auc_ci90": [
+     0.02614803476268432,
+     0.08132234261723749
+    ],
+    "seconds": 53.0
+   },
+   "combined": {
+    "rows": 33318,
+    "positives": 327,
+    "positive_coins": 30,
+    "base_rate": 0.009814514676751306,
+    "auc": 0.8861619844982279,
+    "pr_auc": 0.04470057512981334,
+    "brier": 0.009695749477735216,
+    "precision_top1pct": 0.04804804804804805,
+    "precision_top5pct": 0.029411764705882353,
+    "coin_first_row_recall_top5pct": 0.13333333333333333,
+    "coin_first_row_positives": 30,
+    "pr_auc_ci90": [
+     0.026440538288420922,
+     0.07446801062413425
+    ],
+    "seconds": 50.3
+   },
+   "qfv_bands": {
+    "P<0.50": {
+     "rows": 24108,
+     "positives": 118,
+     "rate": 0.004894640783142525,
+     "positive_coins": 12
+    },
+    "0.50<=P<=0.75": {
+     "rows": 2049,
+     "positives": 67,
+     "rate": 0.03269887750122011,
+     "positive_coins": 10
+    },
+    "P>0.75": {
+     "rows": 6584,
+     "positives": 129,
+     "rate": 0.01959295261239368,
+     "positive_coins": 21
+    },
+    "P=NaN (<3 trades in 5 min)": {
+     "rows": 577,
+     "positives": 13,
+     "rate": 0.022530329289428077,
+     "positive_coins": 11
+    }
+   }
+  },
+  "y_rugdead": {
+   "hmm_filter": {
+    "rows": 33318,
+    "positives": 1740,
+    "positive_coins": 76,
+    "base_rate": 0.05222402305060328,
+    "auc": 0.7687827550535329,
+    "pr_auc": 0.19661569959139347,
+    "brier": 0.04633216842503822,
+    "precision_top1pct": 0.19519519519519518,
+    "precision_top5pct": 0.3163265306122449,
+    "coin_first_row_recall_top5pct": 0.0392156862745098,
+    "coin_first_row_positives": 51,
+    "pr_auc_ci90": [
+     0.156069051464173,
+     0.24920294425938122
+    ],
+    "seconds": 16.1
+   },
+   "kalman_trend": {
+    "rows": 33318,
+    "positives": 1740,
+    "positive_coins": 76,
+    "base_rate": 0.05222402305060328,
+    "auc": 0.6176310820933824,
+    "pr_auc": 0.1544914751989601,
+    "brier": 0.04921881163466359,
+    "precision_top1pct": 0.3033033033033033,
+    "precision_top5pct": 0.24369747899159663,
+    "coin_first_row_recall_top5pct": 0.058823529411764705,
+    "coin_first_row_positives": 51,
+    "pr_auc_ci90": [
+     0.12067618934388784,
+     0.1957290442428262
+    ],
+    "seconds": 18.8
+   },
+   "combined_no_qfv": {
+    "rows": 33318,
+    "positives": 1740,
+    "positive_coins": 76,
+    "base_rate": 0.05222402305060328,
+    "auc": 0.9215085815601287,
+    "pr_auc": 0.43472523441215205,
+    "brier": 0.04018045896080435,
+    "precision_top1pct": 0.6066066066066066,
+    "precision_top5pct": 0.48619447779111646,
+    "coin_first_row_recall_top5pct": 0.49019607843137253,
+    "coin_first_row_positives": 51,
+    "pr_auc_ci90": [
+     0.2740016798625633,
+     0.6091998314218163
+    ],
+    "seconds": 46.8
+   },
+   "combined": {
+    "rows": 33318,
+    "positives": 1740,
+    "positive_coins": 76,
+    "base_rate": 0.05222402305060328,
+    "auc": 0.9171610636824851,
+    "pr_auc": 0.4220341403978755,
+    "brier": 0.04055235418021517,
+    "precision_top1pct": 0.5405405405405406,
+    "precision_top5pct": 0.4831932773109244,
+    "coin_first_row_recall_top5pct": 0.47058823529411764,
+    "coin_first_row_positives": 51,
+    "pr_auc_ci90": [
+     0.2599926662140256,
+     0.6141818048309776
+    ],
+    "seconds": 45.8
+   },
+   "qfv_bands": {
+    "P<0.50": {
+     "rows": 24108,
+     "positives": 598,
+     "rate": 0.024805043968807033,
+     "positive_coins": 27
+    },
+    "0.50<=P<=0.75": {
+     "rows": 2049,
+     "positives": 124,
+     "rate": 0.06051732552464617,
+     "positive_coins": 23
+    },
+    "P>0.75": {
+     "rows": 6584,
+     "positives": 972,
+     "rate": 0.14763061968408261,
+     "positive_coins": 68
+    },
+    "P=NaN (<3 trades in 5 min)": {
+     "rows": 577,
+     "positives": 46,
+     "rate": 0.07972270363951472,
+     "positive_coins": 45
+    }
+   }
+  }
+ }
+}
