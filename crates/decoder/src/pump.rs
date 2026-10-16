@@ -34,6 +34,9 @@ pub struct MarketEvent {
     pub token_res: u128,
     /// Curve only: SOL that entered/left the curve itself (fees excluded).
     pub curve_quote: u64,
+    /// SOL that entered (buy) / left (sell) the pool's pricing reserve, protocol/creator fees excluded on both
+    /// sides: the symmetric amount for flow features (`sol` keeps the trader's paid/received amount).
+    pub pool_sol: u64,
     /// Curve only: real reserves after the trade (caps for fills).
     pub real_quote: u64,
     pub real_token: u64,
@@ -144,36 +147,53 @@ impl PumpDecoder {
                     self.skipped_non_sol_quote += 1;
                     continue;
                 }
-                let pb = u(&v, "pool_base_token_reserves") as u128;
                 // Pools may carry virtual quote liquidity: pricing uses real + virtual quote reserves.
                 // The virtual quote reserve is signed (i128) and can be negative: never clamp it to 0.
                 let Some(pq) = effective_quote(&v) else {
                     self.malformed += 1;
                     continue;
                 };
-                let (tokens, sol, token_res, quote_res) = if buy {
-                    let base_out = u(&v, "base_amount_out");
-                    let q_in = u(&v, "quote_amount_in_with_lp_fee");
-                    // Total paid: `user_quote_amount_in` (exact-out buy) or `quote_amount_in` (exact-quote-in buy).
-                    let paid = u(&v, "user_quote_amount_in").max(u(&v, "quote_amount_in"));
-                    (base_out, paid, pb.saturating_sub(base_out as u128), pq + q_in as u128)
+                let Some(pb) = ur(&v, "pool_base_token_reserves").filter(|x| *x > 0).map(u128::from) else {
+                    self.malformed += 1;
+                    continue;
+                };
+                // (tokens, trader sol, pool sol, token_res after, quote_res after); required fields only.
+                let amounts = if buy {
+                    (|| {
+                        let base_out = ur(&v, "base_amount_out")?;
+                        let q_in = ur(&v, "quote_amount_in_with_lp_fee")?;
+                        // Total paid: `user_quote_amount_in` (exact-out buy) or `quote_amount_in` (exact-quote-in buy).
+                        let paid = ur(&v, "user_quote_amount_in")?.max(ur(&v, "quote_amount_in")?);
+                        Some((base_out, paid, q_in, pb.checked_sub(base_out as u128)?, pq + q_in as u128))
+                    })()
                 } else {
-                    let base_in = u(&v, "base_amount_in");
-                    let q_out = u(&v, "quote_amount_out").saturating_sub(u(&v, "lp_fee"));
-                    (base_in, u(&v, "user_quote_amount_out"), pb + base_in as u128, pq.saturating_sub(q_out as u128))
+                    (|| {
+                        let base_in = ur(&v, "base_amount_in")?;
+                        let q_out = ur(&v, "quote_amount_out")?.checked_sub(ur(&v, "lp_fee")?)?;
+                        Some((base_in, ur(&v, "user_quote_amount_out")?, q_out, pb + base_in as u128, pq.checked_sub(q_out as u128)?))
+                    })()
+                };
+                let Some((tokens, sol, pool_sol, token_res, quote_res)) = amounts.filter(|a| a.0 > 0) else {
+                    self.malformed += 1;
+                    continue;
+                };
+                let Some(user) = sr(&v, "user") else {
+                    self.malformed += 1;
+                    continue;
                 };
                 out.push(MarketEvent {
                     venue: Venue::Amm,
                     mint: base,
-                    pool: s(&v, "pool"),
+                    pool: sr(&v, "pool").unwrap_or_default(),
                     buy,
                     sol,
                     tokens,
-                    user: s(&v, "user"),
+                    user,
                     creator: s(&v, "coin_creator"),
                     quote_res,
                     token_res,
                     curve_quote: 0,
+                    pool_sol,
                     real_quote: 0,
                     real_token: 0,
                     fee_bps: u(&v, "lp_fee_basis_points") + u(&v, "protocol_fee_basis_points") + u(&v, "coin_creator_fee_basis_points"),
@@ -226,6 +246,7 @@ fn curve_event(v: &Value, parent_pool: Option<String>) -> Option<MarketEvent> {
         buy: is_buy,
         sol: if is_buy { net + fees } else { net.saturating_sub(fees) },
         curve_quote: net,
+        pool_sol: net,
         tokens,
         user: sr(v, "user")?,
         creator: s(v, "creator"),
@@ -336,5 +357,24 @@ mod amm_tests {
         assert_eq!(effective_quote(&v), None);
         let v = json!({"pool_quote_token_reserves": 100u64, "virtual_quote_reserves": "x"});
         assert_eq!(effective_quote(&v), None);
+    }
+}
+
+#[cfg(test)]
+mod flow_tests {
+    use super::*;
+    use serde_json::json;
+
+    /// Buy and sell of the same pool-side size give the same pool_sol: no fee bias in net flow.
+    #[test]
+    fn curve_pool_sol_is_symmetric() {
+        let mk = |buy: bool| {
+            json!({"mint": "M", "user": "U", "is_buy": buy, "sol_amount": 1_000_000u64, "token_amount": 5u64,
+                   "virtual_sol_reserves": 31u64, "virtual_token_reserves": 9u64, "real_sol_reserves": 1u64,
+                   "real_token_reserves": 3u64, "fee": 10_000u64, "creator_fee": 3_000u64})
+        };
+        let (b, s) = (curve_event(&mk(true), None).unwrap(), curve_event(&mk(false), None).unwrap());
+        assert_eq!(b.pool_sol, s.pool_sol);
+        assert_eq!(b.sol - b.pool_sol, s.pool_sol - s.sol);
     }
 }

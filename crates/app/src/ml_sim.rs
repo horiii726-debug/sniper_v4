@@ -212,7 +212,8 @@ impl Engine {
             };
         }
         let pool = *p;
-        let solf = e.sol as f64 / 1e9;
+        // Pool-side SOL: same fee treatment for buys and sells (trader-side `sol` biased flow by ~1%).
+        let solf = e.pool_sol as f64 / 1e9;
         let c = &mut self.coins[ci];
         if c.first_time == 0 {
             c.first_time = e.time;
@@ -1162,7 +1163,7 @@ mod tests {
 
     fn ev(slot: u64, k: u64, user: u32, buy: bool) -> Ev {
         Ev {
-            slot, order: (slot << 24) | (k << 8), time: (slot / 4) as i64, coin: 0, amm: true, buy, sol: 50_000_000,
+            slot, order: (slot << 24) | (k << 8), time: (slot / 4) as i64, coin: 0, amm: true, buy, sol: 50_000_000, pool_sol: 50_000_000,
             tokens: 1_000_000, user, creator: 999, quote_res: 100_000_000_000, token_res: 1_000_000_000_000,
             real_quote: 0, real_token: 0, fee_bps: 100, complete: false,
         }

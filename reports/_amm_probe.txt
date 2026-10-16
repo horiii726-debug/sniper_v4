@@ -1,0 +1,12 @@
+buy:buy_exact_quote_in n= 2218 {'base_ok': '99.6%', 'buy q+=quote_amount_in_with_lp_fee': '99.6%', 'buy q+=quote_amount_in': '0.2%', 'buy q+=user_quote_amount_in': '0.2%', 'buy q+=qin_lp+lp_fee': '0.2%', 'buy q+=user_q - protocol - creator': '0.2%'}
+sell n= 2286 {'base_ok': '99.7%', 'sell q-=quote_out-lp_fee': '77.2%', 'sell q-=quote_out': '0.0%'}
+buy:buy_exact_quote_in_v2 n= 504 {'base_ok': '99.0%', 'buy q+=quote_amount_in_with_lp_fee': '0.0%', 'buy q+=quote_amount_in': '1.0%', 'buy q+=user_quote_amount_in': '0.0%', 'buy q+=qin_lp+lp_fee': '0.0%', 'buy q+=user_q - protocol - creator': '0.0%'}
+buy:buy_v2 n= 103 {'base_ok': '93.2%', 'buy q+=quote_amount_in_with_lp_fee': '0.0%', 'buy q+=quote_amount_in': '0.0%', 'buy q+=user_quote_amount_in': '1.0%', 'buy q+=qin_lp+lp_fee': '0.0%', 'buy q+=user_q - protocol - creator': '0.0%'}
+buy:buy n= 371 {'base_ok': '100.0%', 'buy q+=quote_amount_in_with_lp_fee': '100.0%', 'buy q+=quote_amount_in': '0.0%', 'buy q+=user_quote_amount_in': '0.0%', 'buy q+=qin_lp+lp_fee': '0.0%', 'buy q+=user_q - protocol - creator': '100.0%'}
+virtual_quote_reserves nonzero: 5846 of 5857
+--- effective (real+virtual) continuity
+buy:buy_exact_quote_in: n=2218 exact=99.64%
+sell: n=2286 exact=99.74%
+buy:buy_exact_quote_in_v2: n=504 exact=99.01%
+buy:buy_v2: n=103 exact=93.20%
+buy:buy: n=371 exact=100.00%

@@ -23,18 +23,28 @@ impl TxView {
     pub fn parse(t: &Value) -> Option<Self> {
         let msg = &t["transaction"]["message"];
         let meta = &t["meta"];
-        let mut keys: Vec<String> = msg["accountKeys"].as_array()?.iter().filter_map(|k| k.as_str().map(String::from)).collect();
+        // Any malformed key or index rejects the whole transaction: dropping one item would shift every later index.
+        let strs = |a: &Vec<Value>| a.iter().map(|k| k.as_str().map(String::from)).collect::<Option<Vec<_>>>();
+        let mut keys: Vec<String> = strs(msg["accountKeys"].as_array()?)?;
         for side in ["writable", "readonly"] {
-            if let Some(a) = meta["loadedAddresses"][side].as_array() {
-                keys.extend(a.iter().filter_map(|k| k.as_str().map(String::from)));
+            match &meta["loadedAddresses"][side] {
+                Value::Null => {}
+                v => keys.extend(strs(v.as_array()?)?),
             }
         }
-        let ix = |v: &Value, stack: u32, top: usize| -> Option<Exec> {
+        let n_keys = keys.len();
+        let idx = |a: &Value| a.as_u64().map(|x| x as usize).filter(|x| *x < n_keys);
+        let ix = |v: &Value, inner: bool, top: usize| -> Option<Exec> {
             Some(Exec {
-                program: v["programIdIndex"].as_u64()? as usize,
-                accounts: v["accounts"].as_array()?.iter().filter_map(|a| a.as_u64().map(|x| x as usize)).collect(),
+                program: idx(&v["programIdIndex"])?,
+                accounts: v["accounts"].as_array()?.iter().map(idx).collect::<Option<Vec<_>>>()?,
                 data: bs58::decode(v["data"].as_str()?).into_vec().ok()?,
-                stack: v["stackHeight"].as_u64().map(|x| x as u32).unwrap_or(stack),
+                // Inner instructions need stackHeight to find their parent (CPI depth); without it: unsupported.
+                stack: match v["stackHeight"].as_u64() {
+                    Some(x) => x as u32,
+                    None if !inner => 1,
+                    None => return None,
+                },
                 top,
             })
         };
@@ -48,9 +58,9 @@ impl TxView {
         }
         let mut exec = Vec::new();
         for (k, top) in msg["instructions"].as_array()?.iter().enumerate() {
-            exec.push(ix(top, 1, k)?);
+            exec.push(ix(top, false, k)?);
             for inner in &inner_by_top[k] {
-                exec.push(ix(inner, 2, k)?);
+                exec.push(ix(inner, true, k)?);
             }
         }
         Some(Self { fee_payer: keys.first()?.clone(), keys, exec, failed: !meta["err"].is_null() })
@@ -68,5 +78,41 @@ impl TxView {
     pub fn parent(&self, i: usize) -> Option<usize> {
         let e = &self.exec[i];
         (0..i).rev().take_while(|&j| self.exec[j].top == e.top).find(|&j| self.exec[j].stack + 1 == e.stack)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    fn tx() -> Value {
+        json!({"meta": {"err": null, "loadedAddresses": {"writable": ["L1"], "readonly": []},
+                        "innerInstructions": [{"index": 0, "instructions": [{"programIdIndex": 2, "accounts": [0, 3], "data": "3Bxs", "stackHeight": 2}]}]},
+               "transaction": {"message": {"accountKeys": ["P", "A", "PROG"], "instructions": [{"programIdIndex": 2, "accounts": [0, 1], "data": "3Bxs", "stackHeight": 1}]}}})
+    }
+
+    #[test]
+    fn valid_tx_with_loaded_address() {
+        let t = TxView::parse(&tx()).unwrap();
+        assert_eq!(t.keys.len(), 4);
+        assert_eq!(t.account(&t.exec[1], 1), Some("L1"));
+        assert_eq!(t.parent(1), Some(0));
+    }
+
+    #[test]
+    fn malformed_key_or_index_rejects_tx() {
+        let mut v = tx();
+        v["transaction"]["message"]["accountKeys"][1] = json!({"pubkey": "A"});
+        assert!(TxView::parse(&v).is_none(), "a non-string key must not shift later indexes");
+        let mut v = tx();
+        v["meta"]["innerInstructions"][0]["instructions"][0]["accounts"] = json!([0, 9]);
+        assert!(TxView::parse(&v).is_none(), "out-of-range account index");
+        let mut v = tx();
+        v["transaction"]["message"]["instructions"][0]["programIdIndex"] = json!(7);
+        assert!(TxView::parse(&v).is_none(), "out-of-range program index");
+        let mut v = tx();
+        v["meta"]["innerInstructions"][0]["instructions"][0].as_object_mut().unwrap().remove("stackHeight");
+        assert!(TxView::parse(&v).is_none(), "inner instruction without stackHeight is unsupported");
     }
 }

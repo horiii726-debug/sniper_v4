@@ -26,6 +26,8 @@ pub struct Ev {
     pub amm: bool,
     pub buy: bool,
     pub sol: u64,
+    /// SOL into/out of the pool reserve, fees excluded on both sides (symmetric flow).
+    pub pool_sol: u64,
     pub tokens: u64,
     pub user: u32,
     pub creator: u32,
@@ -48,7 +50,7 @@ pub struct Events {
 
 /// Decode a recording into pump/PumpSwap events, cached as `<rec>/pump_events.bin`.
 /// Bump whenever decoding or event semantics change: the cache file name carries it plus the IDL hash.
-const DECODER_VERSION: u32 = 3;
+const DECODER_VERSION: u32 = 4;
 
 pub fn load(rec: &Path) -> Result<Events> {
     use std::hash::{Hash, Hasher};
@@ -63,6 +65,10 @@ pub fn load(rec: &Path) -> Result<Events> {
     let mut dec = crate::pump_check::load_decoder()?;
     // Mints ever seen in Mayhem mode: their curve price is agent-set, not backed by real SOL -> excluded.
     let mut mayhem: FxHashSet<u32> = FxHashSet::default();
+    // Pool state is kept per coin, so each coin trades on one AMM pool: the first one seen (causal).
+    // Events of any other pool of the same mint would overwrite that state: excluded and counted.
+    let mut amm_pool: FxHashMap<u32, String> = FxHashMap::default();
+    let mut other_pool_events = 0u64;
     let mut mints: FxHashMap<String, u32> = FxHashMap::default();
     let mut users: FxHashMap<String, u32> = FxHashMap::default();
     let mut evs = Vec::new();
@@ -93,6 +99,10 @@ pub fn load(rec: &Path) -> Result<Events> {
                 if e.mayhem {
                     mayhem.insert(coin);
                 }
+                if e.venue == Venue::Amm && *amm_pool.entry(coin).or_insert_with(|| e.pool.clone()) != e.pool {
+                    other_pool_events += 1;
+                    continue;
+                }
                 let n = users.len() as u32;
                 let user = *users.entry(e.user).or_insert(n);
                 let n = users.len() as u32;
@@ -105,6 +115,7 @@ pub fn load(rec: &Path) -> Result<Events> {
                     amm: e.venue == Venue::Amm,
                     buy: e.buy,
                     sol: e.sol,
+                    pool_sol: e.pool_sol,
                     tokens: e.tokens,
                     user,
                     creator,
@@ -120,7 +131,7 @@ pub fn load(rec: &Path) -> Result<Events> {
     }
     let before = evs.len();
     evs.retain(|e| !mayhem.contains(&e.coin));
-    eprintln!("mayhem mints excluded: {} ({} events); malformed events quarantined: {}", mayhem.len(), before - evs.len(), dec.malformed);
+    eprintln!("mayhem mints excluded: {} ({} events); malformed events quarantined: {}; events on a second AMM pool excluded: {other_pool_events}", mayhem.len(), before - evs.len(), dec.malformed);
     evs.sort_by_key(|e| e.order);
     let mut names = vec![String::new(); mints.len()];
     for (m, i) in mints {
@@ -469,7 +480,8 @@ pub fn simulate(ev: &Events, st: &Strategy, c: &Costs, radar_p: RadarParams, sta
                 known: true,
             };
         }
-        let solf = e.sol as f64 / 1e9;
+        // Flow and average trade price use pool-side SOL: same fee treatment for buys and sells.
+        let solf = e.pool_sol as f64 / 1e9;
         let price = if e.tokens > 0 { solf / e.tokens as f64 } else { 0.0 };
         let cstate = &mut cs[e.coin as usize];
         if cstate.first_time == 0 {

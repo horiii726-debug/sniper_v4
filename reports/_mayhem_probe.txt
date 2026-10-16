@@ -1,0 +1,14 @@
+mayhem events 468 fee0 among mayhem 337
+fee0 users [('BwWK17cbHxwWBKZkUYvzxLcNQ1YVyaFezduWbtm2de6s', 337)]
+fee>0 users in mayhem (top) [('DnfFp7okR3fQruvWTe46F3riQxrk6HqmsWTXULb3Hukd', 12), ('5oaNXY6FNQyaYah14tExzc1XV3npAehyw5hBw3ajeLVd', 9), ('EnB4p7E2Dc6Ny26pxQDTmb1pCJwXJQDzRbXtWAiFNnuN', 8)]
+virtual-real SOL offset: normal [30.0, 30.0, 30.0, 30.0, 30.0]
+  mayhem fee>0 [0.006, 0.637, 3.881, 45.589]
+  mayhem fee0  [0.075, 1.316, 3.102, 5.629, 10.089, 14.594, 20.508, 34.535, 80.77]
+mayhem=False prev_fee0=False next_fee0=False n=727 within0.1%=0.997 median_err=0.0000
+mayhem=True prev_fee0=False next_fee0=False n=43 within0.1%=1.000 median_err=0.0000
+mayhem=True prev_fee0=False next_fee0=True n=78 within0.1%=1.000 median_err=0.0000
+mayhem=True prev_fee0=True next_fee0=False n=74 within0.1%=1.000 median_err=0.0000
+mayhem=True prev_fee0=True next_fee0=True n=247 within0.1%=1.000 median_err=0.0000
+mayhem=False fee0=False n=727 k_ratio p10/50/90=1.000/1.000/1.000  post_price/cp_price p10/50/90=1.000/1.000/1.000  dSOL_adj median=0.000 dTOK_adj median=0
+mayhem=True fee0=False n=117 k_ratio p10/50/90=1.000/1.000/1.000  post_price/cp_price p10/50/90=1.000/1.000/1.000  dSOL_adj median=0.000 dTOK_adj median=0
+mayhem=True fee0=True n=325 k_ratio p10/50/90=0.747/1.019/1.265  post_price/cp_price p10/50/90=0.747/1.019/1.265  dSOL_adj median=0.004 dTOK_adj median=0
