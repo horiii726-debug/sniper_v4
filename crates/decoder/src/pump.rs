@@ -52,6 +52,7 @@ pub struct PumpDecoder {
     amm: Idl,
     pub skipped_non_sol_quote: u64,
     pub undecodable: u64,
+    pub skipped_mayhem: u64,
 }
 
 fn u(v: &Value, k: &str) -> u64 {
@@ -64,7 +65,7 @@ fn s(v: &Value, k: &str) -> String {
 
 impl PumpDecoder {
     pub fn new(pump_idl: &str, amm_idl: &str) -> Result<Self, String> {
-        Ok(Self { pump: Idl::from_json(pump_idl)?, amm: Idl::from_json(amm_idl)?, skipped_non_sol_quote: 0, undecodable: 0 })
+        Ok(Self { pump: Idl::from_json(pump_idl)?, amm: Idl::from_json(amm_idl)?, skipped_non_sol_quote: 0, undecodable: 0, skipped_mayhem: 0 })
     }
 
     /// Market events of one successful transaction, in execution order.
@@ -81,6 +82,12 @@ impl PumpDecoder {
             if pid == PUMP {
                 match self.pump.decode_event(&e.data[8..]) {
                     Some((name, v)) if name == "TradeEvent" => {
+                        // Mayhem mode: an agent wallet trades fee-free and rewrites the virtual SOL reserve at each of
+                        // its trades, so the curve price is not backed by real SOL. Out of scope: skipped and counted.
+                        if v["mayhem_mode"].as_bool() == Some(true) {
+                            self.skipped_mayhem += 1;
+                            continue;
+                        }
                         let qm = s(&v, "quote_mint");
                         if !(qm.is_empty() || qm == DEFAULT_KEY || qm == WSOL) {
                             self.skipped_non_sol_quote += 1;
@@ -150,8 +157,11 @@ impl PumpDecoder {
                 }
                 let pb = u(&v, "pool_base_token_reserves") as u128;
                 // Pools may carry virtual quote liquidity: pricing uses real + virtual quote reserves.
-                let vq = v["virtual_quote_reserves"].as_str().and_then(|x| x.parse::<i128>().ok()).unwrap_or(0).max(0) as u128;
-                let pq = u(&v, "pool_quote_token_reserves") as u128 + vq;
+                // The virtual quote reserve is signed (i128) and is often negative: never clamp it to 0.
+                let Some(pq) = effective_quote(&v) else {
+                    self.undecodable += 1;
+                    continue;
+                };
                 let (tokens, sol, token_res, quote_res) = if buy {
                     let base_out = u(&v, "base_amount_out");
                     let q_in = u(&v, "quote_amount_in_with_lp_fee");
@@ -249,6 +259,18 @@ impl PumpDecoder {
     }
 }
 
+/// PumpSwap pricing quote reserve: real pool quote + signed virtual quote (absent in older events = 0).
+/// None when the field is mistyped or the sum is not positive.
+fn effective_quote(v: &Value) -> Option<u128> {
+    let real = v["pool_quote_token_reserves"].as_u64()? as i128;
+    let vq = match &v["virtual_quote_reserves"] {
+        Value::Null => 0,
+        Value::String(x) => x.parse::<i128>().ok()?,
+        x => x.as_i64()? as i128,
+    };
+    u128::try_from(real.checked_add(vq)?).ok().filter(|q| *q > 0)
+}
+
 /// Tokens received for spending `paid` lamports in total (fee taken from the input, exact-quote-in),
 /// constant product on (quote_res, token_res). Curve: virtual reserves; PumpSwap: real + virtual quote.
 pub fn buy_tokens_out(quote_res: u128, token_res: u128, paid: u64, fee_bps: u64) -> u128 {
@@ -325,5 +347,19 @@ mod creation_tests {
         assert!(b[0].venue == Venue::Amm && b[0].migration, "{b:?}");
         let c = d.decode_creations(&tx(vec![(1, pool)]));
         assert!(c.len() == 1 && !c[0].migration, "pool launch without migration is a birth");
+    }
+}
+
+#[cfg(test)]
+mod amm_tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn negative_virtual_quote_is_subtracted_not_clamped() {
+        let v = json!({"pool_quote_token_reserves": 175_445_274_980u64, "virtual_quote_reserves": "-9019950071"});
+        assert_eq!(effective_quote(&v), Some(175_445_274_980 - 9_019_950_071));
+        assert_eq!(effective_quote(&json!({"pool_quote_token_reserves": 100u64})), Some(100));
+        assert_eq!(effective_quote(&json!({"pool_quote_token_reserves": 100u64, "virtual_quote_reserves": "-100"})), None);
     }
 }
